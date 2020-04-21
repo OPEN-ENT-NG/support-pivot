@@ -6,6 +6,13 @@ import java.util.List;
 import java.util.Map;
 
 public class JiraConstants {
+
+    public final static String ATTRIBUTION_FILTERNAME = "Attribution";
+    public final static String ATTRIBUTION_FILTER_LDE = "LDE";
+
+
+    public final static String FIELD_DATE_CREATED = "created";
+    public final static String FIELD_DATE_UPDATED = "updated";
     /**
      * JSON fields for Jira format
      */

@@ -26,7 +26,7 @@ import java.util.Map;
  */
 
 public class LdeController extends ControllerHelper {
-    private static String SOURCE = PivotConstants.SOURCES.LDE.toString();
+    private final static String SOURCE_LDE = PivotConstants.SOURCES.LDE.toString();
     private RouterService routerService;
 
     protected static final Logger log = LoggerFactory.getLogger(LdeController.class);
@@ -36,14 +36,13 @@ public class LdeController extends ControllerHelper {
                      Map<String, SecuredAction> securedActions) {
 
         super.init(vertx, config, rm, securedActions);
-        ServiceManager serviceManager = ServiceManager.getInstance();
-        this.routerService = serviceManager.getRouteurService();
+        this.routerService = ServiceManager.getInstance().getRouteurService();
     }
 
     @Get("/lde/tickets")
     @fr.wseduc.security.SecuredAction(value = "", type = ActionType.AUTHENTICATED)
     public void getListeTicketsLDE(final HttpServerRequest request) {
-        routerService.readTickets(SOURCE, null, event -> {
+        routerService.readTickets(SOURCE_LDE, null, event -> {
             if (event.succeeded()) {
                 Renders.renderJson(request, event.result());
             } else {
@@ -59,7 +58,7 @@ public class LdeController extends ControllerHelper {
         String id_param_value = request.params().get("id");
         //router trigger ( src = lde + idLDE )
         JsonObject data = new JsonObject().put("idjira", id_param_value);
-        routerService.readTickets(SOURCE, data, event -> {
+        routerService.readTickets(SOURCE_LDE, data, event -> {
             if (event.succeeded()) {
                 Renders.renderJson(request, event.result().getJsonObject(0));
             } else {
@@ -72,7 +71,7 @@ public class LdeController extends ControllerHelper {
     @Put("/lde/ticket")
     @fr.wseduc.security.SecuredAction(value = "", type = ActionType.AUTHENTICATED)
     public void putTicketLDE(final HttpServerRequest request) {
-        RequestUtils.bodyToJson(request, body -> routerService.processTicket(SOURCE, body, event -> {
+        RequestUtils.bodyToJson(request, body -> routerService.processTicket(SOURCE_LDE, body, event -> {
             if (event.succeeded()) {
                 Renders.renderJson(request, event.result());
             } else {

@@ -1,14 +1,13 @@
 package fr.openent.supportpivot.services.routers;
 
+import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.constants.PivotConstants.SOURCES;
-import fr.openent.supportpivot.deprecatedservices.DefaultDemandeServiceImpl;
 import fr.openent.supportpivot.model.endpoint.EndpointFactory;
-import fr.openent.supportpivot.model.endpoint.JiraEndpoint;
+import fr.openent.supportpivot.model.endpoint.jira.JiraEndpoint;
 import fr.openent.supportpivot.model.endpoint.LdeEndPoint;
 import fr.openent.supportpivot.model.ticket.PivotTicket;
 import fr.openent.supportpivot.services.HttpClientService;
 import fr.openent.supportpivot.services.JiraService;
-import fr.openent.supportpivot.services.JiraServiceImpl;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -72,16 +71,7 @@ public class CrifRouterService extends AbstractRouterService {
     public void readTickets(String source, JsonObject data, Handler<AsyncResult<JsonArray>> handler) {
         if (SOURCES.LDE.equals(source)) {
             if (data == null) {
-                data = new JsonObject();
-                data.put(jiraEndpoint.ATTRIBUTION_FILTERNAME, "LDE");
-                jiraEndpoint.trigger(data, jiraEndpointTriggerResult -> {
-                    if (jiraEndpointTriggerResult.succeeded()) {
-                        handler.handle(Future.succeededFuture(convertListPivotTicketToJsonObject(jiraEndpointTriggerResult.result())));
-                    } else {
-                        handler.handle(Future.failedFuture(jiraEndpointTriggerResult.cause()));
-                    }
-
-                });
+                getTicketListFromLDE(handler);
             } else {
                 ldeEndpoint.process(data, ldeEndpointProcessResult -> {
                     if (ldeEndpointProcessResult.succeeded()) {
@@ -108,6 +98,19 @@ public class CrifRouterService extends AbstractRouterService {
         } else {
             handler.handle(Future.failedFuture(source + " is an unsupported value for IDF router."));
         }
+    }
+
+    private void getTicketListFromLDE(Handler<AsyncResult<JsonArray>> handler) {
+        JsonObject data = new JsonObject()
+                .put(JiraConstants.ATTRIBUTION_FILTERNAME, JiraConstants.ATTRIBUTION_FILTER_LDE);
+        jiraEndpoint.trigger(data, jiraResult -> {
+            if (jiraResult.succeeded()) {
+                JsonArray result = convertListPivotTicketToJsonObject(jiraResult.result());
+                handler.handle(Future.succeededFuture(result));
+            } else {
+                handler.handle(Future.failedFuture(jiraResult.cause()));
+            }
+        });
     }
 
     private JsonArray convertListPivotTicketToJsonObject(List<PivotTicket> pivotTickets) {
