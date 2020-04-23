@@ -299,7 +299,7 @@ public class JiraEndpoint extends AbstractEndpoint {
             }
 
             jsonPivot.put(TICKETTYPE_FIELD, fields
-                    .getJsonObject("issuetype").getString("name"));
+                    .getJsonObject("issuetype", new JsonObject()).getString("name", ""));
             jsonPivot.put(TITLE_FIELD, fields.getString("summary"));
 
             if (fields.getString("description") != null) {
