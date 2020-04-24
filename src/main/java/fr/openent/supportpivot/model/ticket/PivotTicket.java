@@ -127,6 +127,14 @@ public class PivotTicket {
         return jsonTicket.getString(DATE_CREA_FIELD);
     }
 
+    public String getRawCreatedAt() {
+        return jsonTicket.getString(RAWDATE_CREA_FIELD);
+    }
+
+    public String getRawUpdatedAt() {
+        return jsonTicket.getString(RAWDATE_UPDATE_FIELD);
+    }
+
     public Date getSolvedAt() throws ParseException {
         return this.parser.parse(jsonTicket.getString(DATE_RESO_FIELD));
     }

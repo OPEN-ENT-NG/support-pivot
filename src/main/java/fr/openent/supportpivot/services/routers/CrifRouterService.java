@@ -71,7 +71,13 @@ public class CrifRouterService extends AbstractRouterService {
     public void readTickets(String source, JsonObject data, Handler<AsyncResult<JsonArray>> handler) {
         if (SOURCES.LDE.equals(source)) {
             if (data == null) {
-                getTicketListFromLDE(handler);
+                getTicketListFromJira( jiraResult -> {
+                    if(jiraResult.failed()) {
+                        handler.handle(Future.failedFuture(jiraResult.cause()));
+                    } else {
+                        ldeEndpoint.prepareJsonList(jiraResult.result(), handler);
+                    }
+                });
             } else {
                 ldeEndpoint.process(data, ldeEndpointProcessResult -> {
                     if (ldeEndpointProcessResult.succeeded()) {
@@ -100,25 +106,10 @@ public class CrifRouterService extends AbstractRouterService {
         }
     }
 
-    private void getTicketListFromLDE(Handler<AsyncResult<JsonArray>> handler) {
+    private void getTicketListFromJira(Handler<AsyncResult<List<PivotTicket>>> handler) {
         JsonObject data = new JsonObject()
                 .put(JiraConstants.ATTRIBUTION_FILTERNAME, JiraConstants.ATTRIBUTION_FILTER_LDE);
-        jiraEndpoint.trigger(data, jiraResult -> {
-            if (jiraResult.succeeded()) {
-                JsonArray result = convertListPivotTicketToJsonObject(jiraResult.result());
-                handler.handle(Future.succeededFuture(result));
-            } else {
-                handler.handle(Future.failedFuture(jiraResult.cause()));
-            }
-        });
-    }
-
-    private JsonArray convertListPivotTicketToJsonObject(List<PivotTicket> pivotTickets) {
-        JsonArray jsonPivotTickets = new JsonArray();
-        for (PivotTicket pivotTicket : pivotTickets) {
-            jsonPivotTickets.add(pivotTicket.getJsonTicket());
-        }
-        return jsonPivotTickets;
+        jiraEndpoint.trigger(data, handler);
     }
 
 }

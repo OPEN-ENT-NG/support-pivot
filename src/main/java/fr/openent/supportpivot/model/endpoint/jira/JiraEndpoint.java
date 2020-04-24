@@ -105,6 +105,7 @@ public class JiraEndpoint extends AbstractEndpoint {
                 futures.add(future);
                 convertJiraReponseToJsonPivot((JsonObject) issue, event -> {
                     if (event.isRight()) {
+                        // filter useful data
                         future.complete(new PivotTicket().setJsonObject(event.right().getValue()));
                     } else {
                         future.fail(event.left().getValue());
