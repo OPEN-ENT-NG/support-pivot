@@ -289,6 +289,8 @@ public class JiraEndpoint extends AbstractEndpoint {
         if (fields == null) {
             handler.handle(new Either.Right<>(jsonPivot));
         } else {
+            jsonPivot.putSafe(RAWDATE_CREA_FIELD, fields.getString("created"));
+            jsonPivot.putSafe(RAWDATE_UPDATE_FIELD, fields.getString("updated"));
             jsonPivot.put(CREATOR_FIELD,
                     fields.getString(stringEncode(JIRA_FIELD.getString("creator")), ""));
 
@@ -355,7 +357,6 @@ public class JiraEndpoint extends AbstractEndpoint {
 
             jsonPivot.put(STATUSJIRA_FIELD, currentStatusToIWS);
 
-            //todo get fields from conf
 
             jsonPivot.putSafe(DATE_CREA_FIELD, fields.getString(JIRA_FIELD.getString("creation")));
             jsonPivot.putSafe(DATE_RESOIWS_FIELD, fields.getString(JIRA_FIELD.getString("resolution_iws")));

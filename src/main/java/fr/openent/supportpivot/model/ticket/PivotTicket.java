@@ -32,6 +32,8 @@ public class PivotTicket {
     public final static String STATUSENT_FIELD = "statut_ent";
     public final static String STATUSJIRA_FIELD = "statut_jira";
     public final static String DATE_CREA_FIELD = "date_creation";
+    public final static String RAWDATE_CREA_FIELD = "creation";
+    public final static String RAWDATE_UPDATE_FIELD = "maj";
     @Deprecated
     public final static String DATE_RESOIWS_FIELD = "date_resolution_iws";
     public final static String DATE_RESOEXTERNAL_FIELD = "date_resolution_externe";
