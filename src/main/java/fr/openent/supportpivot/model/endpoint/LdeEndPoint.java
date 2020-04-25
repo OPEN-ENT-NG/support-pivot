@@ -1,5 +1,6 @@
 package fr.openent.supportpivot.model.endpoint;
 
+import fr.openent.supportpivot.constants.LdeConstants;
 import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.model.ticket.PivotTicket;
 import fr.wseduc.webutils.Either;
@@ -40,6 +41,8 @@ public class LdeEndPoint extends AbstractEndpoint {
             ticket.putSafe(PivotTicket.TITLE_FIELD, pivotTicket.getTitle());
             ticket.put(PivotTicket.RAWDATE_CREA_FIELD, pivotTicket.getRawCreatedAt());
             ticket.put(PivotTicket.RAWDATE_UPDATE_FIELD, pivotTicket.getRawUpdatedAt());
+            //ticket.put(PivotTicket.UAI_FIELD, LdeConstants.LDE_DEFAULT_UAI);
+            //ticket.putSafe(PivotTicket.UAI_FIELD, pivotTicket.getUai());
             jsonTickets.add(ticket);
         }
         handler.handle(Future.succeededFuture(jsonTickets));

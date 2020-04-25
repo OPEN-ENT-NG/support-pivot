@@ -42,6 +42,7 @@ public class PivotTicket {
     public final static String TECHNICAL_RESP_FIELD= "reponse_technique";
     public final static String CLIENT_RESP_FIELD= "reponse_client";
     public final static String ATTRIBUTION_FIELD = "attribution";
+    public final static String UAI_FIELD = "uai";
 
     private JsonObject jsonTicket = new JsonObject();
     private SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -120,6 +121,8 @@ public class PivotTicket {
     }
 
     public JsonArray getPjs() { return this.jsonTicket.getJsonArray(ATTACHMENT_FIELD); }
+
+    public String getUai() { return this.jsonTicket.getString(UAI_FIELD); }
 
     /*#### DATES ####*/
 
