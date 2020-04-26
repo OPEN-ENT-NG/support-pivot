@@ -2,6 +2,7 @@ package fr.openent.supportpivot.services.routers;
 
 import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.constants.PivotConstants.SOURCES;
+import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.model.endpoint.EndpointFactory;
 import fr.openent.supportpivot.model.endpoint.jira.JiraEndpoint;
 import fr.openent.supportpivot.model.endpoint.LdeEndPoint;
@@ -70,8 +71,10 @@ public class CrifRouterService extends AbstractRouterService {
     @Override
     public void readTickets(String source, JsonObject data, Handler<AsyncResult<JsonArray>> handler) {
         if (SOURCES.LDE.equals(source)) {
-            if (data == null) {
-                getTicketListFromJira( jiraResult -> {
+            String type = data == null ? "list" : data.getString("type", "");
+            String minDate = data == null ? null : data.getString("date");
+            if (type.equals("list")) {
+                getTicketListFromJira( minDate, jiraResult -> {
                     if(jiraResult.failed()) {
                         handler.handle(Future.failedFuture(jiraResult.cause()));
                     } else {
@@ -106,9 +109,10 @@ public class CrifRouterService extends AbstractRouterService {
         }
     }
 
-    private void getTicketListFromJira(Handler<AsyncResult<List<PivotTicket>>> handler) {
-        JsonObject data = new JsonObject()
-                .put(JiraConstants.ATTRIBUTION_FILTERNAME, JiraConstants.ATTRIBUTION_FILTER_LDE);
+    private void getTicketListFromJira(String minDate, Handler<AsyncResult<List<PivotTicket>>> handler) {
+        JsonObjectSafe data = new JsonObjectSafe();
+        data.put(JiraConstants.ATTRIBUTION_FILTERNAME, JiraConstants.ATTRIBUTION_FILTER_LDE);
+        data.putSafe(JiraConstants.ATTRIBUTION_FILTER_DATE, minDate);
         jiraEndpoint.trigger(data, handler);
     }
 

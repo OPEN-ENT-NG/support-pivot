@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import static fr.openent.supportpivot.constants.JiraConstants.ATTRIBUTION_FILTERNAME;
+import static fr.openent.supportpivot.constants.JiraConstants.ATTRIBUTION_FILTER_DATE;
 import static fr.openent.supportpivot.constants.PivotConstants.*;
 import static fr.openent.supportpivot.model.ticket.PivotTicket.*;
 
@@ -86,6 +87,9 @@ public class JiraEndpoint extends AbstractEndpoint {
         JiraFilterBuilder filter = new JiraFilterBuilder();
         if (data.containsKey(ATTRIBUTION_FILTERNAME)) {
             filter.addAssigneeFilter(data.getString(ATTRIBUTION_FILTERNAME));
+        }
+        if(data.containsKey(ATTRIBUTION_FILTER_DATE)) {
+            filter.addMinUpdateDate(data.getString(ATTRIBUTION_FILTER_DATE));
         }
         JsonObject JIRA_FIELDS = ConfigManager.getInstance().getJiraCustomFields();
         filter.onlyIds();

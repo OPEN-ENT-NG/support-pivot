@@ -18,6 +18,12 @@ public class JiraFilterBuilder extends JsonObject {
         if (assignee != null) jqlQeryString.append(addFilter(("assignee = " + assignee)));
     }
 
+    public void addMinUpdateDate(String date) {
+        if(date != null && !date.isEmpty()) {
+            jqlQeryString.append(addFilter("updated > " + date));
+        }
+    }
+
     public void addCustomfieldFilter(String customfieldid, String value) {
         if (customfieldid != null && value != null)
             jqlQeryString.append(addFilter(("cf[" + customfieldid + "] ~ " + value)));
