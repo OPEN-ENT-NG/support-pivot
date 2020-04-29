@@ -20,7 +20,8 @@ public class JiraFilterBuilder extends JsonObject {
 
     public void addMinUpdateDate(String date) {
         if(date != null && !date.isEmpty()) {
-            jqlQeryString.append(addFilter("updated > " + date));
+            // format date
+            jqlQeryString.append(addFilter("updated > '" + date + "'"));
         }
     }
 
