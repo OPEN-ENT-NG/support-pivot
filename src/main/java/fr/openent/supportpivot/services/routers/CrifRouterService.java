@@ -68,6 +68,7 @@ public class CrifRouterService extends AbstractRouterService {
         }
     }
 
+    //todo split in two functions ?
     @Override
     public void readTickets(String source, JsonObject data, Handler<AsyncResult<JsonArray>> handler) {
         if (SOURCES.LDE.equals(source)) {
@@ -88,9 +89,9 @@ public class CrifRouterService extends AbstractRouterService {
                         jiraEndpoint.process(pivotTicket, jiraEndpointProcessResult -> {
                             if (jiraEndpointProcessResult.succeeded()) {
                                 PivotTicket pivotFormatTicket = jiraEndpointProcessResult.result();
-                                ldeEndpoint.send(pivotFormatTicket, ldeFormatTicketResult -> {    //TODO ici cette méthode devrait servir de conversion mais le type de retour n'est pas bon
+                                ldeEndpoint.sendBack(pivotFormatTicket, ldeFormatTicketResult -> {    //TODO ici cette méthode devrait servir de conversion mais le type de retour n'est pas bon
                                     if (ldeFormatTicketResult.succeeded()) {
-                                        handler.handle(Future.succeededFuture(new JsonArray().add(ldeFormatTicketResult.result().getJsonTicket())));
+                                        handler.handle(Future.succeededFuture(new JsonArray().add(ldeFormatTicketResult.result())));
                                     } else {
                                         handler.handle(Future.failedFuture(ldeFormatTicketResult.cause()));
                                     }

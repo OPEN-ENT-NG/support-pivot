@@ -41,21 +41,27 @@ public class LdeEndPoint extends AbstractEndpoint {
         handler.handle(Future.succeededFuture(ticket));
     }
 
+    public void sendBack(PivotTicket ticket, Handler<AsyncResult<JsonObject>> handler)  {
+        handler.handle(Future.succeededFuture(prepareJson(ticket)));
+    }
+
+    private JsonObject prepareJson(PivotTicket pivotTicket) {
+        JsonObjectSafe ticket = new JsonObjectSafe();
+        ticket.put(PivotTicket.IDJIRA_FIELD, pivotTicket.getJiraId());
+        ticket.putSafe(PivotTicket.IDEXTERNAL_FIELD, pivotTicket.getExternalId());
+        ticket.putSafe(PivotTicket.TITLE_FIELD, pivotTicket.getTitle());
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        Instant createdDate = Instant.parse(pivotTicket.getRawCreatedAt());
+        ticket.put(PivotTicket.RAWDATE_CREA_FIELD, formatter.format(createdDate));
+        Instant updatedDate = Instant.parse(pivotTicket.getRawUpdatedAt());
+        ticket.put(PivotTicket.RAWDATE_UPDATE_FIELD, formatter.format(updatedDate));
+        return ticket;
+    }
+
     public void prepareJsonList(List<PivotTicket> pivotTickets, Handler<AsyncResult<JsonArray>> handler) {
         JsonArray jsonTickets = new JsonArray();
         for (PivotTicket pivotTicket : pivotTickets) {
-            JsonObjectSafe ticket = new JsonObjectSafe();
-            ticket.put(PivotTicket.IDJIRA_FIELD, pivotTicket.getJiraId());
-            ticket.putSafe(PivotTicket.IDEXTERNAL_FIELD, pivotTicket.getExternalId());
-            ticket.putSafe(PivotTicket.TITLE_FIELD, pivotTicket.getTitle());
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-            Instant createdDate = Instant.parse(pivotTicket.getRawCreatedAt());
-            ticket.put(PivotTicket.RAWDATE_CREA_FIELD, formatter.format(createdDate));
-            Instant updatedDate = Instant.parse(pivotTicket.getRawUpdatedAt());
-            ticket.put(PivotTicket.RAWDATE_UPDATE_FIELD, formatter.format(updatedDate));
-            //ticket.put(PivotTicket.UAI_FIELD, LdeConstants.LDE_DEFAULT_UAI);
-            //ticket.putSafe(PivotTicket.UAI_FIELD, pivotTicket.getUai());
-            jsonTickets.add(ticket);
+            jsonTickets.add(prepareJson(pivotTicket));
         }
         handler.handle(Future.succeededFuture(jsonTickets));
     }
