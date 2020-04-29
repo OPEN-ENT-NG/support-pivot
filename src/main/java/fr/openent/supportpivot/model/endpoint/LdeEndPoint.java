@@ -13,6 +13,8 @@ import io.vertx.core.logging.LoggerFactory;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.List;
 
@@ -46,20 +48,11 @@ public class LdeEndPoint extends AbstractEndpoint {
             ticket.put(PivotTicket.IDJIRA_FIELD, pivotTicket.getJiraId());
             ticket.putSafe(PivotTicket.IDEXTERNAL_FIELD, pivotTicket.getExternalId());
             ticket.putSafe(PivotTicket.TITLE_FIELD, pivotTicket.getTitle());
-            SimpleDateFormat readFormat = new SimpleDateFormat("yyyy-MM-ddTHH:mm:ss.SSSZ");
-            SimpleDateFormat writeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-            try {
-                Date createdDate = readFormat.parse(pivotTicket.getRawCreatedAt());
-                ticket.put(PivotTicket.RAWDATE_CREA_FIELD, writeFormat.format(createdDate));
-            } catch (ParseException e) {
-                log.error("Can't parse created date : " + pivotTicket.getRawCreatedAt());
-            }
-            try {
-                Date updatedDate = readFormat.parse(pivotTicket.getRawUpdatedAt());
-                ticket.put(PivotTicket.RAWDATE_UPDATE_FIELD, writeFormat.format(updatedDate));
-            } catch (ParseException e) {
-                log.error("Can't parse updated date : " + pivotTicket.getRawUpdatedAt());
-            }
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+            Instant createdDate = Instant.parse(pivotTicket.getRawCreatedAt());
+            ticket.put(PivotTicket.RAWDATE_CREA_FIELD, formatter.format(createdDate));
+            Instant updatedDate = Instant.parse(pivotTicket.getRawUpdatedAt());
+            ticket.put(PivotTicket.RAWDATE_UPDATE_FIELD, formatter.format(updatedDate));
             //ticket.put(PivotTicket.UAI_FIELD, LdeConstants.LDE_DEFAULT_UAI);
             //ticket.putSafe(PivotTicket.UAI_FIELD, pivotTicket.getUai());
             jsonTickets.add(ticket);
