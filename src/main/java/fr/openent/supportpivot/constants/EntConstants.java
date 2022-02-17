@@ -39,7 +39,6 @@ public class EntConstants {
     public final static String ATTRIBUTION_ENT = "ENT";
     public final static String ATTRIBUTION_CGI = "CGI";
 
-    public final static String ATTRIBUTION_GLPI = "GLPI";
 
     /******************
      * GLPI CONSTANTS *

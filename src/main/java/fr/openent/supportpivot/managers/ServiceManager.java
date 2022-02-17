@@ -1,11 +1,9 @@
 package fr.openent.supportpivot.managers;
 
 import fr.openent.supportpivot.deprecatedservices.DefaultDemandeServiceImpl;
-import fr.openent.supportpivot.deprecatedservices.DefaultJiraServiceImpl;
 import fr.openent.supportpivot.deprecatedservices.DemandeService;
 import fr.openent.supportpivot.services.*;
 import fr.openent.supportpivot.services.routers.CrifRouterService;
-import fr.openent.supportpivot.services.routers.CrnaRouterService;
 import fr.openent.supportpivot.services.routers.MdpRouterService;
 import fr.wseduc.webutils.email.EmailSender;
 import io.vertx.core.Vertx;
@@ -38,12 +36,6 @@ public class ServiceManager {
         HttpClientService httpClientService = new HttpClientService(vertx);
 
         switch( ConfigManager.getInstance().getCollectivity() ) {
-            case "CRNA":
-                log.info("Start Pivot with CRNA Routeur.");
-                JiraService jiraService = new DefaultJiraServiceImpl(vertx, config);
-                GlpiService glpiService = new GlpiService(httpClientService);
-                routeurService = new CrnaRouterService(httpClientService, jiraService, glpiService, mongoService, vertx);
-                break;
             case "MDP":
                 log.info("Start Pivot with MDP Routeur.");
                 //TODO MDP Manager
@@ -51,7 +43,7 @@ public class ServiceManager {
                 break;
             case "CRIF":
                 log.info("Start Pivot with CRIF Routeur.");
-                jiraService = new JiraServiceImpl(vertx,config);
+                JiraService jiraService = new JiraServiceImpl(vertx,config);
                 routeurService = new CrifRouterService(httpClientService,jiraService);
                 break;
             default:

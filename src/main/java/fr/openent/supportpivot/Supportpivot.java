@@ -18,7 +18,6 @@
 
 package fr.openent.supportpivot;
 
-import fr.openent.supportpivot.controllers.GlpiController;
 import fr.openent.supportpivot.controllers.JiraController;
 import fr.openent.supportpivot.controllers.LdeController;
 import fr.openent.supportpivot.controllers.SupportPivotController;
@@ -41,7 +40,6 @@ public class Supportpivot extends BaseServer {
 
 		ServiceManager.init(vertx, config);
 		addController(new SupportPivotController());
-		addController(new GlpiController());
 		addController(new JiraController());
 		addController(new LdeController());
 

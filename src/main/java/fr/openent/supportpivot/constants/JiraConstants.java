@@ -26,7 +26,6 @@ public class JiraConstants {
     public final static String IDEXTERNATBUGTRACKER_FIELD = "id_iws";
     public final static String IDENT_FIELD = "id_ent";
     public final static String IDJIRA_FIELD = "id_jira";
-    public final static String IDGLPI_FIELD = "id_glpi";
     public final static String IDEXTERNAL_FIELD = "id_externe";
     public final static String COLLECTIVITY_FIELD = "collectivite";
     public final static String ACADEMY_FIELD = "academie";

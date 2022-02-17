@@ -29,23 +29,6 @@
         },
         "mail-iws" : "${supportPivotIWSMail}",
     <% } %>
-    <% if (supportPivotExternalTools != null && "GLPI".equals(supportPivotExternalTools)) { %>
-        "glpi-endpoint": {
-            "host": "${supportPivotGlpiHost}",
-            "root-uri": "${supportPivotGlpiRootUri}",
-            "login": "${supportPivotGlpiLogin}",
-            "password": "${supportPivotGlpiPassword}",
-            "supportcgi_username": "${supportPivotGlpiUsername}",
-            "mapping": {
-                "category": ${supportPivotGlpiCategoryMapping},
-                "default_category": "${supportPivotGlpiDefaultCategory}",
-                "type": ${supportPivotGlpiTypeMapping},
-                "default_type": "${supportPivotGlpiDefaultType}",
-                "location": ${supportPivotGlpiLocationMapping}
-            },
-            "synchro-cron" : "${supportPivotGlpiSynchroCron}"
-        },
-    <% } %>
         "jira-login" : "${supportPivotJIRALogin}",
         "jira-passwd" : "${supportPivotJIRAPwd}",
         "jira-host" : "${supportPivotJIRAHost}",

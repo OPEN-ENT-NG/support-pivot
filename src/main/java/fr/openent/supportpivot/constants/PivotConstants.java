@@ -11,7 +11,6 @@ public class PivotConstants {
         ENT("ENT"),
         JIRA("JIRA"),
         IWS("IWS"),
-        GLPI("GLPI"),
         LDE("LDE");
 
         private String name;
@@ -23,7 +22,6 @@ public class PivotConstants {
 
     public  static enum COLLECTIVITIES {
         MDP("MDP"),
-        CRNA("CRNA"),
         CRIDF("CRIDF");
 
         private String name;
@@ -39,7 +37,6 @@ public class PivotConstants {
     public final static String ATTRIBUTION_IWS = "RECTORAT";
     public final static String ATTRIBUTION_ENT = "ENT";
     public final static String ATTRIBUTION_CGI = "CGI";
-    public final static String ATTRIBUTION_GLPI = "GLPI";
 
 
     public static final String PRIORITY_MINOR = "Mineur";

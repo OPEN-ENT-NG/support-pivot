@@ -1,6 +1,5 @@
 package fr.openent.supportpivot.helpers;
 
-import fr.openent.supportpivot.constants.GlpiConstants;
 import fr.openent.supportpivot.managers.ConfigManager;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
