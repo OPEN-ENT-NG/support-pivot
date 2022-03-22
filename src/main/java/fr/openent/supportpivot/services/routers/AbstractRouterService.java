@@ -15,7 +15,7 @@ public abstract class AbstractRouterService implements RouterService {
     }
 
     @Override
-    public void processTicket(String source, JsonObject ticketdata, Handler<AsyncResult<JsonObject>> handler) {
+    public void toPivotTicket(String source, JsonObject ticketdata, Handler<AsyncResult<JsonObject>> handler) {
         handler.handle(Future.failedFuture("process ticket is unsupported for " + getClass().getName()));
     }
 

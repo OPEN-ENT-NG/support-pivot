@@ -16,6 +16,10 @@ public class PivotHttpClient {
     private HttpClient httpClient;
     private String basicAuthLogin = "";
     private String basicAuthPwd = "";
+    private String proxyhost = "";
+    private int proxyport;
+    private String proxylogin ="";
+    private String proxypassword="";
 
     private static final Logger log = LoggerFactory.getLogger(PivotHttpClient.class);
 
@@ -26,6 +30,13 @@ public class PivotHttpClient {
     public void setBasicAuth (String login, String password){
         basicAuthLogin = login;
         basicAuthPwd = password;
+    }
+
+    public void setProxy(String host,int port,String login, String password){
+        proxyhost = host;
+        proxyport = port;
+        proxylogin =login;
+        proxypassword=password;
     }
 
     @SuppressWarnings("unused")

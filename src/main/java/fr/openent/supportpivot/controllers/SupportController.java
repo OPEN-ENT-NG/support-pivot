@@ -18,6 +18,8 @@
 
 package fr.openent.supportpivot.controllers;
 
+import fr.openent.supportpivot.constants.JiraConstants;
+import fr.openent.supportpivot.constants.PivotConstants;
 import fr.openent.supportpivot.deprecatedservices.DemandeService;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.managers.ServiceManager;
@@ -52,7 +54,7 @@ import java.util.Map;
  * /testMail/:mail : Send a test mail to address in parameter
  * /demandeENT : Register a demande from Support module
  */
-public class SupportPivotController extends ControllerHelper{
+public class SupportController extends ControllerHelper {
 
     private DemandeService demandeService;
     private MongoService mongoService;
@@ -69,56 +71,44 @@ public class SupportPivotController extends ControllerHelper{
         this.mongoService = serviceManager.getMongoService();
         this.routerService = serviceManager.getRouteurService();
     }
-
-    /**
-     * Webservice. Receive info from IWS
-     */
-    @Post("/demande")
-    @SecuredAction("supportpivot.ws.demande")
-    public void IWSEntryEndpoint(final HttpServerRequest request) {
-        //TODO return errorcode 1 if non JSON body
-        RequestUtils.bodyToJson(request, resource -> demandeService.treatTicketFromIWS(request, resource,
-                getDefaultResponseHandler(request)));
-    }
-
     /**
      * Get a default handler for HttpServerRequest with added info
      * @return handler with error code, error message and status
      */
-    private Handler<Either<String, JsonObject>> getDefaultResponseHandler(final HttpServerRequest request){
-        return  event -> {
-                if (event.isRight()) {
-                    Renders.renderJson(request, event.right().getValue(), 200);
-                } else {
-                    String errorCode = event.left().getValue();
-                    String errorCodeMsg="";
-                    if(errorCode.contains(";")){
-                        errorCodeMsg=errorCode.substring(errorCode.indexOf(";")+1);
-                        errorCode=errorCode.split(";")[0];
-                    }
-                    JsonObject error = new JsonObject()
-                            .put("errorCode", errorCode)
-                            .put("errorMessage", errorCodeMsg)
-                            .put("status", "KO");
-                    Renders.renderJson(request, error, 400);
+    private Handler<Either<String, JsonObject>> getDefaultResponseHandler(final HttpServerRequest request) {
+        return event -> {
+            if (event.isRight()) {
+                Renders.renderJson(request, event.right().getValue(), 200);
+            } else {
+                String errorCode = event.left().getValue();
+                String errorCodeMsg = "";
+                if (errorCode.contains(";")) {
+                    errorCodeMsg = errorCode.substring(errorCode.indexOf(";") + 1);
+                    errorCode = errorCode.split(";")[0];
                 }
-            };
+                JsonObject error = new JsonObject()
+                        .put(PivotConstants.ERRORCODE, errorCode)
+                        .put(PivotConstants.ERRORMESSAGE, errorCodeMsg)
+                        .put(PivotConstants.STATUS, PivotConstants.KO);
+                Renders.renderJson(request, error, 400);
+            }
+        };
     }
 
     /**
      * Get a default handler for HttpServerRequest with added info
      * @return handler with error code, error message and status
      */
-    private Handler<AsyncResult<JsonObject>> getDefaultResponseHandlerAsync(final HttpServerRequest request){
-        return  result -> {
+    private Handler<AsyncResult<JsonObject>> getDefaultResponseHandlerAsync(final HttpServerRequest request) {
+        return result -> {
             if (result.succeeded()) {
                 Renders.renderJson(request, result.result(), 200);
             } else {
                 String errorCode = result.cause().getMessage();
-                String errorCodeMsg="";
-                if(errorCode.contains(";")){
-                    errorCodeMsg=errorCode.substring(errorCode.indexOf(";")+1);
-                    errorCode=errorCode.split(";")[0];
+                String errorCodeMsg = "";
+                if (errorCode.contains(";")) {
+                    errorCodeMsg = errorCode.substring(errorCode.indexOf(";") + 1);
+                    errorCode = errorCode.split(";")[0];
                 }
                 JsonObject error = new JsonObject()
                         .put("errorCode", errorCode)
@@ -136,7 +126,7 @@ public class SupportPivotController extends ControllerHelper{
     @SecuredAction("supportpivot.demande")
     public void busEndpoint(final Message<JsonObject> message) {
         JsonObject jsonMessage = message.body();
-        this.routerService.processTicket(Endpoint.ENDPOINT_ENT, jsonMessage, event -> {
+        this.routerService.toPivotTicket(Endpoint.ENDPOINT_ENT, jsonMessage, event -> {
             if (event.succeeded()) {
                 message.reply(new JsonObject().put("status", "ok")
                         .put("message", "invalid.action")
@@ -164,13 +154,10 @@ public class SupportPivotController extends ControllerHelper{
         renderJson(request, ConfigManager.getInstance().getPublicConfig());
     }
 
-    /**
-     * Webservice. Send info updated from Jira to IWS
-     */
     @Get("updateJira/:idjira")
     public void jiraUpdateEndpoint(final HttpServerRequest request) {
-        final String idJira = request.params().get("idjira");
-        demandeService.sendJiraTicketToIWS(request, idJira, getDefaultResponseHandler(request));
+        final String idJira = request.params().get(JiraConstants.ID_JIRA);
+        demandeService.sendJiraTicketToSupport(request, idJira, getDefaultResponseHandler(request));
     }
 
 

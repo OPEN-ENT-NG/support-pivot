@@ -78,7 +78,7 @@ public class LdeController extends ControllerHelper {
     @Put("/lde/ticket")
     @fr.wseduc.security.SecuredAction(value = "", type = ActionType.AUTHENTICATED)
     public void putTicketLDE(final HttpServerRequest request) {
-        RequestUtils.bodyToJson(request, body -> routerService.processTicket(SOURCE_LDE, body, event -> {
+        RequestUtils.bodyToJson(request, body -> routerService.toPivotTicket(SOURCE_LDE, body, event -> {
             if (event.succeeded()) {
                 Renders.renderJson(request, event.result());
             } else {

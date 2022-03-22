@@ -1,5 +1,6 @@
 package fr.openent.supportpivot.controllers;
 
+import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.managers.ServiceManager;
 import fr.openent.supportpivot.model.endpoint.Endpoint;
 import fr.openent.supportpivot.services.RouterService;
@@ -41,7 +42,7 @@ public class JiraController extends ControllerHelper {
 //    @fr.wseduc.security.SecuredAction("glpi.test.trigger") //TODO (voir comment faire)
     public void updateTicket(final HttpServerRequest request) {
         final String idJira = request.params().get("idjira");
-        routerService.processTicket(Endpoint.ENDPOINT_JIRA, new JsonObject().put("idjira", idJira), event -> {
+        routerService.toPivotTicket(Endpoint.ENDPOINT_JIRA, new JsonObject().put(JiraConstants.ID_JIRA, idJira), event -> {
             if (event.succeeded()) {
                 Renders.renderJson(request, new JsonObject().put("status", "OK"), 200);
             } else {

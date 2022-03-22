@@ -31,13 +31,27 @@ public class PivotConstants {
         private COLLECTIVITIES(String name) { this.name = name;   }
     }
 
+    public final static String ID = "id";
+
     public final static String BUS_SEND = "support.update.bugtracker";
     public final static String ENT_BUS_OK_STATUS = "OK";
+
+    public final static String ASSISTANCE_ENT = "Assistance ENT";
 
     public final static String ATTRIBUTION_IWS = "RECTORAT";
     public final static String ATTRIBUTION_ENT = "ENT";
     public final static String ATTRIBUTION_CGI = "CGI";
 
+    public final static String ERRORCODE = "errorCode";
+    public final static String ERRORMESSAGE = "errorMessage";
+
+
+    public final static String ISSUES = "issues";
+    public final static String ISSUE = "issue";
+    public final static String JSONPIVOTCOMPLETED = "jsonPivotCompleted";
+    public final static String KO = "KO";
+
+    public final static String NAME = "name";
 
     public static final String PRIORITY_MINOR = "Mineur";
     public static final String PRIORITY_MAJOR = "Majeur";
@@ -52,6 +66,9 @@ public class PivotConstants {
     public static final String STATUS_OPENED = "En cours";
     public static final String STATUS_RESOLVED = "R&eacute;solu";
     public static final String STATUS_CLOSED = "Ferm&eacute;";
+
+    public static final String STATUS = "status";
+    public static final int COMMENT_LENGTH = 4;
 
     public static final List<String> STATUS_LIST = Arrays.asList(
             STATUS_NEW,
