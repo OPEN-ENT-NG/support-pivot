@@ -4,13 +4,14 @@ import fr.openent.supportpivot.model.ticket.PivotTicket;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 
 import java.util.List;
 
 public class AbstractEndpoint implements Endpoint {
     @Override
-    public void trigger(JsonObject data, Handler<AsyncResult<List<PivotTicket>>> handler) {
+    public void getPivotTicket(JsonObject data, Handler<AsyncResult<List<PivotTicket>>> handler) {
         handler.handle(Future.failedFuture("Trigger is not allowed for " + getClass().getName()));
     }
 

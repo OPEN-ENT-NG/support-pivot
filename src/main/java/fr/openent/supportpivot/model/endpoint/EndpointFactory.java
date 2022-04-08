@@ -13,7 +13,7 @@ public  class EndpointFactory {
     }
 
     public static Endpoint getPivotEndpoint(Vertx vertx) {
-        return new PivotEndpoint(vertx);
+        return new SupportEndpoint(vertx);
     }
 
     public static LdeEndPoint getLdeEndpoint() {

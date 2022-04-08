@@ -22,10 +22,11 @@ public class JiraConstants {
     public final static String FIELDS = "fields";
     public final static String PROJECT = "project";
     public final static String PROJECT_KEY = "key";
-
+    public final static String ID_EXTERNAL = "id_external";
     public final static String IDEXTERNATBUGTRACKER_FIELD = "id_iws";
     public final static String IDENT_FIELD = "id_ent";
     public final static String IDJIRA_FIELD = "id_jira";
+    public final static String ID_JIRA = "idjira";
     public final static String IDEXTERNAL_FIELD = "id_externe";
     public final static String COLLECTIVITY_FIELD = "collectivite";
     public final static String ACADEMY_FIELD = "academie";
@@ -47,8 +48,13 @@ public class JiraConstants {
     public final static String DATE_RESOENT_FIELD = "date_resolution_ent";
     public final static String DATE_RESOJIRA_FIELD = "date_resolution_jira";
     public final static String TECHNICAL_RESP_FIELD = "reponse_technique";
+    public final static String TOTAL = "total";
     public final static String CLIENT_RESP_FIELD = "reponse_client";
     public final static String ATTRIBUTION_FIELD = "attribution";
+    public final static String ISSUETYPE = "issuetype";
+    public final static String LABEL = "labels";
+    public final static String PRIORITY = "priority";
+    public final static String REPORTER = "reporter";
 
 
     public static final String PRIORITY_MINOR_FR = "Mineure";
@@ -57,6 +63,10 @@ public class JiraConstants {
     public static final String PRIORITY_MAJOR_EN = "High";
     public static final String PRIORITY_BLOCKING_FR = "Bloquante";
     public static final String PRIORITY_BLOCKING_EN = "Highest";
+
+    public static final String DEFAULT_REPORTER = "fictif.test.supportpivot";
+    public static final String REPORTER_ENT = "assistanceMLN";
+    public static final String REPORTER_LDE = "lde";
 
     public static final List<String> PIVOT_PRIORITY_LEVEL = Arrays.asList(
             PRIORITY_MINOR_FR,
@@ -76,6 +86,9 @@ public class JiraConstants {
     public static final String STATUS_TODO = "A faire";
     public static final String STATUS_END = "Fini";
     public static final String STATUS_TO_RECLAIM = "A recetter";
+
+    public static final String JIRA_STATUS_MAPPING = "jira-status-mapping";
+    public static final String STATUTS_DEFAULT = "statutsDefault";
 
     public static final String TYPE_REQUEST = "Demande";
     public static final String TYPE_ANOMALY = "Anomalie";

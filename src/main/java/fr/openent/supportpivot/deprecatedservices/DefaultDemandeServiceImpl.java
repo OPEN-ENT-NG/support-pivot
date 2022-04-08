@@ -284,12 +284,16 @@ public class DefaultDemandeServiceImpl implements DemandeService {
                 break;
 
             case ATTRIBUTION_CGI:
-                sendToIWS(request, jsonPivot, handler);
                 if (jsonPivot.containsKey(ID_FIELD)
-                        && jsonPivot.getString(ID_FIELD).isEmpty()) {
+                        && !jsonPivot.getString(ID_FIELD).isEmpty()) {
                     sendToENT(jsonPivot, entResponse -> {
                         if (entResponse.isLeft()) {
-                            log.error("Supportpivot : could not send JIRA ticket to ENT" + entResponse.left().getValue());
+                            String message = String.format("[SupportPivot@%s::add] Supportpivot : could not send JIRA ticket to ENT : %s",
+                                    this.getClass().getSimpleName(), entResponse.left().getValue());
+                            log.error(message);
+                            handler.handle(entResponse.left());
+                        }else{
+                            handler.handle(entResponse.right());
                         }
                     });
                 }
@@ -510,6 +514,22 @@ public class DefaultDemandeServiceImpl implements DemandeService {
             }
         });
 
+    }
+
+    @Override
+    public void sendJiraTicketToSupport(final HttpServerRequest request, final String idJira, final Handler<Either<String,JsonObject>> handler){
+        jiraService.getFromJira(request, idJira, stringJsonObjectEither -> {
+            if (stringJsonObjectEither.isRight()) {
+                JsonObject jsonPivot = stringJsonObjectEither.right().getValue();
+                mongoService.saveTicket(ATTRIBUTION_CGI, jsonPivot);
+                add(request, jsonPivot, ATTRIBUTION_CGI, handler);
+            } else {
+                String message = String.format("[SupportPivot@%s::sendJiraTicketToSupport] Supportpivot :Error, the ticket has not been sent, it doesn't exist : %s",
+                        this.getClass().getSimpleName(), stringJsonObjectEither.left().getValue());
+                handler.handle(new Either.Left<>(
+                        message));
+            }
+        });
     }
 
 

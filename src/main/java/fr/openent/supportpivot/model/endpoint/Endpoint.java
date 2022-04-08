@@ -2,6 +2,7 @@ package fr.openent.supportpivot.model.endpoint;
 
 import fr.openent.supportpivot.model.ticket.PivotTicket;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 
@@ -20,7 +21,7 @@ public interface Endpoint {
      * @param data Useful data for trigger. Might be an empty json object, but not null
      * @param handler Handler for callback
      */
-    void trigger(JsonObject data, Handler<AsyncResult<List<PivotTicket>>> handler);
+    void getPivotTicket(JsonObject data, Handler<AsyncResult<List<PivotTicket>>> handler);
 
     /**
      * Process an incoming ticket from that endpoint.

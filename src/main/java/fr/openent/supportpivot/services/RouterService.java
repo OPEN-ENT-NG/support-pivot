@@ -15,8 +15,8 @@ public interface RouterService {
 
     //fonctions publiques prendre ticket + endpoint+ contenu ticket
 
-    void processTicket(String source, JsonObject ticketdata,
-                      Handler<AsyncResult<JsonObject>> handler);
+    void toPivotTicket(String source, JsonObject ticketdata,
+                       Handler<AsyncResult<JsonObject>> handler);
 
     void triggerTicket(String source, JsonObject data,
                        Handler<AsyncResult<JsonObject>> handler);

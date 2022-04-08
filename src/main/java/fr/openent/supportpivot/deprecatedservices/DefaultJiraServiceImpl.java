@@ -18,6 +18,8 @@
 
 package fr.openent.supportpivot.deprecatedservices;
 
+import fr.openent.supportpivot.constants.EntConstants;
+import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.services.JiraService;
 import fr.wseduc.webutils.Either;
@@ -108,7 +110,7 @@ public class DefaultJiraServiceImpl implements JiraService {
         this.ACADEMY_NAME = config.getString("academy");
         JIRA_FIELD = config.getJsonObject("jira-custom-fields");
 
-        if(JIRA_FIELD.containsKey("id_external")) {
+        if (JIRA_FIELD.containsKey(JiraConstants.ID_EXTERNAL)) {
             //Retro-compatibility external fields are historical labeled iws
             JIRA_FIELD.put("id_iws", JIRA_FIELD.getString("id_external"));
             JIRA_FIELD.put("status_iws", JIRA_FIELD.getString("status_external"));
@@ -156,8 +158,8 @@ public class DefaultJiraServiceImpl implements JiraService {
             httpClientRequest.putHeader("Content-Type", "application/json");
         }
 
-        httpClientRequest.exceptionHandler(exception->{
-            LOGGER.error("Error when update Jira ticket",exception );
+        httpClientRequest.exceptionHandler(exception -> {
+            LOGGER.error("Error when update Jira ticket", exception);
         });
         httpClientRequest.end();
     }
@@ -265,7 +267,7 @@ public class DefaultJiraServiceImpl implements JiraService {
 
             terminateRequest(createTicketRequest);
         } catch (Error e) {
-            LOGGER.error("Error when creating Jira ticket",e );
+            LOGGER.error("Error when creating Jira ticket", e);
             handler.handle(new Either.Left<>("999;Error when creating Jira ticket: " + e.getMessage()));
         }
 
@@ -446,7 +448,7 @@ public class DefaultJiraServiceImpl implements JiraService {
     }
 
     public void updateJiraTicket(final JsonObject jsonPivotIn, final String jiraTicketId,
-                                  final Handler<Either<String, JsonObject>> handler) {
+                                 final Handler<Either<String, JsonObject>> handler) {
 
         final URI urlGetTicketGeneralInfo = JIRA_REST_API_URI.resolve(jiraTicketId);
 
@@ -718,7 +720,7 @@ public class DefaultJiraServiceImpl implements JiraService {
         final URI urlGetTicketGeneralInfo = JIRA_REST_API_URI.resolve(jiraTicketId);
 
         HttpClientRequest httpClientRequestGetInfo = httpClient.get(urlGetTicketGeneralInfo.toString(), response -> {
-            response.exceptionHandler(exception -> LOGGER.error("Jira request error : ",exception));
+            response.exceptionHandler(exception -> LOGGER.error("Jira request error : ", exception));
             if (response.statusCode() == HTTP_STATUS_200_OK) {
                 response.bodyHandler(bufferGetInfosTicket -> {
                     JsonObject jsonGetInfosTicket = new JsonObject(bufferGetInfosTicket.toString());
@@ -738,18 +740,20 @@ public class DefaultJiraServiceImpl implements JiraService {
      * Modified Jira JSON to prepare to send the email to IWS
      */
     public void convertJiraReponseToJsonPivot(final JsonObject jiraTicket,
-                                               final Handler<Either<String, JsonObject>> handler) {
+                                              final Handler<Either<String, JsonObject>> handler) {
 
         JsonObject fields = jiraTicket.getJsonObject("fields");
 
-        if (!fields.containsKey(JIRA_FIELD.getString("id_iws"))
-                || fields.getString(JIRA_FIELD.getString("id_iws")) == null) {
-            handler.handle(new Either.Left<>("Field " + JIRA_FIELD.getString("id_iws") + " does not exist."));
+        if (!fields.containsKey(JIRA_FIELD.getString(EntConstants.IDENT_FIELD))
+                || fields.getString(JIRA_FIELD.getString(EntConstants.IDENT_FIELD)) == null) {
+            String message = String.format("[SupportPivot@%s::sendJiraTicketToSupport] Supportpivot Field " + JIRA_FIELD.getString(EntConstants.IDENT_FIELD) + " does not exist : %s",
+                    this.getClass().getSimpleName());
+            handler.handle(new Either.Left<>(message));
         } else {
 
             final JsonObject jsonPivot = new JsonObject();
 
-            jsonPivot.put(IDJIRA_FIELD, jiraTicket.getString("key"));
+            jsonPivot.put(IDJIRA_FIELD, jiraTicket.getString(ID));
 
             jsonPivot.put(COLLECTIVITY_FIELD, ConfigManager.getInstance().getCollectivity());
             jsonPivot.put(ACADEMY_FIELD, ACADEMY_NAME);

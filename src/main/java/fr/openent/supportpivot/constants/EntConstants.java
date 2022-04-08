@@ -25,7 +25,7 @@ public class EntConstants {
     public final static String ATTACHMENT_NAME_FIELD = "nom";
     public final static String ATTACHMENT_CONTENT_FIELD = "contenu";
     public final static String STATUSIWS_FIELD = "statut_iws";
-    public final static String STATUSENT_FIELD = "statut_ent";
+    public final static String STATUSENT_FIELD = "status_ent";
     public final static String STATUSJIRA_FIELD = "statut_jira";
     public final static String DATE_CREA_FIELD = "date_creation";
     public final static String DATE_RESOIWS_FIELD = "date_resolution_iws";
@@ -34,10 +34,16 @@ public class EntConstants {
     public final static String TECHNICAL_RESP_FIELD = "reponse_technique";
     public final static String CLIENT_RESP_FIELD = "reponse_client";
     public final static String ATTRIBUTION_FIELD = "attribution";
-
+    public final static String CREATION_FIELD = "creation";
+    public final static String RESOLUTION_ENT = "resolution_ent";
+    public final static String CREATOR = "creator";
+    public final static String STATUS_NAME_ENT = "Ouvert";
     public final static String ATTRIBUTION_IWS = "RECTORAT";
     public final static String ATTRIBUTION_ENT = "ENT";
     public final static String ATTRIBUTION_CGI = "CGI";
+    public final static String ENT_STATUS_MAPPING = "ent-status-mapping";
+    public final static String STATUTSDEFAULTENT = "statutsDefaultEnt";
+    public final static String STATUTS_ENT = "statutsEnt";
 
 
     /******************

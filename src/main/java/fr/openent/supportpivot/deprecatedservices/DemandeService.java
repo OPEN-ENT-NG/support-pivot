@@ -51,4 +51,6 @@ public interface DemandeService {
      * @param idJira idJira updated in Jira to sens to IWS
      */
     void sendJiraTicketToIWS(HttpServerRequest request, String idJira, Handler<Either<String, JsonObject>> handler);
+
+    void sendJiraTicketToSupport(HttpServerRequest request, String idJira, Handler<Either<String, JsonObject>> handler);
 }

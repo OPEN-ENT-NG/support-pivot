@@ -10,6 +10,8 @@
     <% if (supportPivotProxyHost != null && !supportPivotProxyHost.trim().isEmpty()) { %>
         "proxy-host": "${supportPivotProxyHost}",
         "proxy-port": ${supportPivotProxyPort},
+        "proxy-login": "${supportPivotProxyUserName}",
+        "proxy-passwd": "${supportPivotProxyPassword}",
     <% } %>
         "ssl" : $ssl,
         "auto-redeploy": false,
@@ -51,6 +53,10 @@
     	"jira-status-mapping": {
     		"statutsJira": ${supportPivotMappingStatus},
     		"statutsDefault" : "${supportPivotDefaultStatus}"
+    	},
+    	"ent-status-mapping": {
+    	    "statutsEnt": ${supportPivotMappingStatusEnt},
+    	    "statutsDefaultEnt" : "${supportPivotDefaultStatusEnt}"
     	}
       }
     }

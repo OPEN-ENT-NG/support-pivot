@@ -1,6 +1,7 @@
 package fr.openent.supportpivot.managers;
 
 import fr.openent.supportpivot.Supportpivot;
+import fr.openent.supportpivot.constants.EntConstants;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -40,6 +41,8 @@ public class ConfigManager {
     private final String jiraCustomFieldIdForExternalId;
     private final String jiraDefaultStatus;
     private final JsonObject jiraStatusMapping;
+    private final JsonObject entStatusMapping;
+    private final String statutsDefaultEnt;
 
     private final String glpiSupportCGIUsername;
 
@@ -110,11 +113,12 @@ public class ConfigManager {
             jiraCustomFieldIdForExternalId = jiraCustomFields.getString("id_external");
         }else{
             //For retro-compatibility
-            jiraCustomFieldIdForExternalId = jiraCustomFields.getString("id_iws");
+            jiraCustomFieldIdForExternalId = jiraCustomFields.getString(EntConstants.IDENT_FIELD);
         }
+        statutsDefaultEnt = rawConfig.getJsonObject(EntConstants.ENT_STATUS_MAPPING, new JsonObject()).getString(EntConstants.STATUTSDEFAULTENT, "");
         jiraStatusMapping = rawConfig.getJsonObject("jira-status-mapping").getJsonObject("statutsJira");
         jiraDefaultStatus = rawConfig.getJsonObject("jira-status-mapping").getString("statutsDefault");
-
+        entStatusMapping = rawConfig.getJsonObject(EntConstants.ENT_STATUS_MAPPING, new JsonObject()).getJsonObject(EntConstants.STATUTS_ENT, new JsonObject());
         initPublicConfig();
         log.info("SUPPORT-PIVOT CONFIGURATION : " + publicConfig.toString());
     }
@@ -183,7 +187,8 @@ public class ConfigManager {
     public String getExternalEndpointActivated() { return externalEndpointActivated; }
     public JsonObject getJiraStatusMapping() { return jiraStatusMapping; }
     public String getJiraDefaultStatus() { return jiraDefaultStatus; }
-
+    public JsonObject getEntStatusMapping() { return entStatusMapping; }
+    public String getEntStatusDefault() { return statutsDefaultEnt; }
     public static void init(JsonObject configuration) {
         rawConfig = configuration;
         instance = new ConfigManager();

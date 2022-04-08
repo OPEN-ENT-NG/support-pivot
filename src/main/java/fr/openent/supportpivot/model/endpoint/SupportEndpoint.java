@@ -13,13 +13,13 @@ import static fr.wseduc.webutils.Server.getEventBus;
 import static fr.wseduc.webutils.Utils.handlerToAsyncHandler;
 
 
-class PivotEndpoint extends  AbstractEndpoint {
+class SupportEndpoint extends  AbstractEndpoint {
 
     private EventBus eventBus;
 
-    private static final Logger log = LoggerFactory.getLogger(PivotEndpoint.class);
+    private static final Logger log = LoggerFactory.getLogger(SupportEndpoint.class);
 
-    PivotEndpoint(Vertx vertx) {
+    SupportEndpoint(Vertx vertx) {
         this.eventBus = getEventBus(vertx);
     }
 

@@ -1,5 +1,8 @@
 package fr.openent.supportpivot.model.endpoint.jira;
 
+import fr.openent.supportpivot.constants.EntConstants;
+import fr.openent.supportpivot.constants.JiraConstants;
+import fr.openent.supportpivot.constants.PivotConstants;
 import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.helpers.PivotHttpClient;
 import fr.openent.supportpivot.helpers.PivotHttpClientRequest;
@@ -9,16 +12,14 @@ import fr.openent.supportpivot.model.ticket.PivotTicket;
 import fr.openent.supportpivot.services.HttpClientService;
 import fr.openent.supportpivot.services.JiraService;
 import fr.wseduc.webutils.Either;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.CompositeFuture;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
+import io.vertx.core.*;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.net.ProxyOptions;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -45,7 +46,6 @@ import static fr.openent.supportpivot.model.ticket.PivotTicket.*;
 public class JiraEndpoint extends AbstractEndpoint {
 
 
-
     private PivotHttpClient httpClient;
     private final JiraService jiraService;
     private static final Base64.Encoder encoder = Base64.getMimeEncoder().withoutPadding();
@@ -57,6 +57,7 @@ public class JiraEndpoint extends AbstractEndpoint {
         try {
             this.httpClient = httpClientService.getHttpClient(ConfigManager.getInstance().getJiraHost());
             httpClient.setBasicAuth(ConfigManager.getInstance().getJiraLogin(), ConfigManager.getInstance().getJiraPassword());
+
         } catch (URISyntaxException e) {
             log.error("invalid uri " + e);
         }
@@ -65,14 +66,14 @@ public class JiraEndpoint extends AbstractEndpoint {
     }
 
     @Override
-    public void trigger(JsonObject data, Handler<AsyncResult<List<PivotTicket>>> handler) {
+    public void getPivotTicket(JsonObject data, Handler<AsyncResult<List<PivotTicket>>> handler) {
         URI uri = prepareSearchRequest(data);
 
         executeJiraRequest(uri, getJiraTicketResult -> {
             if (getJiraTicketResult.succeeded()) {
                 HttpClientResponse response = getJiraTicketResult.result();
                 if (response.statusCode() == 200) {
-                    processSearchResponse( response, handler);
+                    processSearchResponse(response, handler);
                 } else {
                     response.bodyHandler(body -> log.error(response.statusCode() + " " + response.statusMessage() + "  " + body));
                     handler.handle(Future.failedFuture("process jira ticket failed"));
@@ -89,15 +90,15 @@ public class JiraEndpoint extends AbstractEndpoint {
         JsonObject JIRA_FIELDS = ConfigManager.getInstance().getJiraCustomFields();
         if (data.containsKey(ATTRIBUTION_FILTERNAME)) {
             String customFieldFilter = data.getString(ATTRIBUTION_FILTER_CUSTOMFIELD, "");
-            if(customFieldFilter.isEmpty()) {
+            if (customFieldFilter.isEmpty()) {
                 filter.addAssigneeFilter(data.getString(ATTRIBUTION_FILTERNAME));
             } else {
                 String customFieldName = JIRA_FIELDS.getString(customFieldFilter);
-                filter.addAssigneeOrCustomFieldFilter(  data.getString(ATTRIBUTION_FILTERNAME),
-                                                        customFieldName, null);
+                filter.addAssigneeOrCustomFieldFilter(data.getString(ATTRIBUTION_FILTERNAME),
+                        customFieldName, null);
             }
         }
-        if(data.containsKey(ATTRIBUTION_FILTER_DATE)) {
+        if (data.containsKey(ATTRIBUTION_FILTER_DATE)) {
             filter.addMinUpdateDate(data.getString(ATTRIBUTION_FILTER_DATE));
         }
         filter.onlyIds();
@@ -127,7 +128,7 @@ public class JiraEndpoint extends AbstractEndpoint {
 
             CompositeFuture.join(futures).setHandler(event -> {
                 if (event.succeeded()) {
-                    for (Future future : futures)  {
+                    for (Future future : futures) {
                         if (future.succeeded() && future.result() != null) {
                             pivotTickets.add((PivotTicket) future.result());
                         }
@@ -143,6 +144,7 @@ public class JiraEndpoint extends AbstractEndpoint {
     @Override
     public void process(JsonObject ticketData, Handler<AsyncResult<PivotTicket>> handler) {
         final String id_jira = ticketData.getString("idjira");
+
         this.getJiraTicketByJiraId(id_jira, result -> {
             if (result.failed()) {
                 handler.handle(Future.failedFuture(result.cause()));
@@ -203,9 +205,55 @@ public class JiraEndpoint extends AbstractEndpoint {
                 }
             });
         } else {
-            handler.handle(Future.failedFuture("Ticket ( externalID: " + ticket.getExternalId() + ") is not attributed"));
+
+            ticket.setExternalId(ticket.getJsonTicket().getString(EntConstants.IDENT_FIELD));
+            this.getJiraTicketByExternalId(ticket.getExternalId(), result -> {
+                if (result.succeeded()) {
+                    HttpClientResponse response = result.result();
+                    if (response.statusCode() == 200) {
+                        response.bodyHandler(body -> {
+                            if (body != null) {
+                                JsonObject jsonTicket = new JsonObject(body.toString());
+                                if (jsonTicket.getInteger(JiraConstants.TOTAL) >= 1) {
+                                    JsonArray issue = jsonTicket.getJsonArray(ISSUES, new JsonArray());
+                                    if (issue.isEmpty()) {
+                                        String message = String.format("[SupportPivot@%s::send] Supportpivot Issues is Empty : %s",
+                                                this.getClass().getSimpleName());
+                                        log.error(message);
+                                    } else {
+                                        ticket.setJiraId(jsonTicket.getJsonArray(ISSUES, new JsonArray()).getJsonObject(0).getString(ID));
+                                    }
+                                }
+                            }
+                            jiraService.sendToJIRA(ticket.getJsonTicket(), sendToJiraResult -> {
+                                if (sendToJiraResult.isRight()) {
+                                    PivotTicket pivotTicket = new PivotTicket();
+                                    pivotTicket.setJsonObject(sendToJiraResult.right().getValue().getJsonObject(JSONPIVOTCOMPLETED, new JsonObject()));
+                                    handler.handle(Future.succeededFuture(pivotTicket));
+                                } else {
+                                    handler.handle(Future.failedFuture(sendToJiraResult.left().getValue()));
+                                }
+                            });
+                        });
+                    } else {
+                        log.error(response.request().uri() + " : " + response.statusCode() + " " + response.statusMessage());
+                        response.bodyHandler(buffer -> log.error(buffer.getString(0, buffer.length())));
+                        String message = String.format("[SupportPivot@%s::send] Supportpivot A problem occurred when trying to get ticket from jira (externalID: " +
+                                ticket.getExternalId() + " ) : %s", this.getClass().getSimpleName(), result.cause());
+                        handler.handle(Future.failedFuture(message));
+                    }
+
+                } else {
+                    log.error("error when getJiraTicket : ", result.cause());
+                    String message = String.format("[SupportPivot@%s::send] Supportpivot A problem occurred when trying to get ticket from jira (externalID: " +
+                            ticket.getExternalId() + " ) : %s", this.getClass().getSimpleName(), result.cause());
+                    handler.handle(Future.failedFuture(message));
+                }
+            });
         }
     }
+
+
 
     /*
         private void mapPivotTicketToJira(PivotTicket ticket, Handler<AsyncResult<JiraTicket>> handler) {
@@ -249,7 +297,6 @@ public class JiraEndpoint extends AbstractEndpoint {
 
             PivotHttpClientRequest sendingRequest = this.httpClient.createRequest("GET", uri.toString(), "");
             setHeaderRequest(sendingRequest);
-
             sendingRequest.startRequest(result -> {
                 if (result.succeeded()) {
                     handler.handle(Future.succeededFuture(result.result()));
@@ -270,10 +317,6 @@ public class JiraEndpoint extends AbstractEndpoint {
             clientRequest.putHeader("Content-Type", "application/json");
         }
     }
-
-
-
-
 
 
     /**
@@ -310,7 +353,6 @@ public class JiraEndpoint extends AbstractEndpoint {
             jsonPivot.putSafe(TICKETTYPE_FIELD, fields
                     .getJsonObject("issuetype", new JsonObject()).getString("name"));
             jsonPivot.putSafe(TITLE_FIELD, fields.getString("summary"));
-            jsonPivot.putSafe(UAI_FIELD, fields.getString(JIRA_FIELD.getString("uai")));
 
             jsonPivot.put(DESCRIPTION_FIELD, fields.getString("description", ""));
 
@@ -337,7 +379,6 @@ public class JiraEndpoint extends AbstractEndpoint {
 
             jsonPivot.put(ID_FIELD, fields.getString(JIRA_FIELD.getString("id_ent"), ""));
 
-            jsonPivot.putSafe(IDIWS_FIELD, fields.getString(JIRA_FIELD.getString("id_iws")));
 
 
             if (fields.containsKey("comment")) {
@@ -356,8 +397,6 @@ public class JiraEndpoint extends AbstractEndpoint {
             }
 
             jsonPivot.putSafe(STATUSENT_FIELD, fields.getString(JIRA_FIELD.getString("status_ent")));
-            jsonPivot.putSafe(STATUSIWS_FIELD, fields.getString(JIRA_FIELD.getString("status_iws")));
-            jsonPivot.putSafe(STATUSEXTERNAL_FIELD, fields.getString(JIRA_FIELD.getString("status_externe")));
 
             String currentStatus = fields.getJsonObject("status", new JsonObject()).getString("name", "");
 
@@ -436,24 +475,24 @@ public class JiraEndpoint extends AbstractEndpoint {
         String attachmentLink = attachmentInfos.getString("content");
 
         final PivotHttpClientRequest getAttachmentrequest = httpClient.createGetRequest(attachmentLink);
-        getAttachmentrequest.startRequest( result -> {
-                    if (result.succeeded()) {
-                        if (result.result().statusCode() == 200) {
-                            result.result().bodyHandler(bufferGetInfosTicket -> {
-                                String b64Attachment = encoder.encodeToString(bufferGetInfosTicket.getBytes());
-                                handler.handle(new Either.Right<>(
-                                        new JsonObject().put("status", "OK")
-                                                .put("b64Attachment", b64Attachment)));
+        getAttachmentrequest.startRequest(result -> {
+            if (result.succeeded()) {
+                if (result.result().statusCode() == 200) {
+                    result.result().bodyHandler(bufferGetInfosTicket -> {
+                        String b64Attachment = encoder.encodeToString(bufferGetInfosTicket.getBytes());
+                        handler.handle(new Either.Right<>(
+                                new JsonObject().put("status", "OK")
+                                        .put("b64Attachment", b64Attachment)));
 
-                            });
-                        } else {
-                            log.error("Error when calling URL : " + attachmentLink + ":" + result.result().statusMessage());
-                            result.result().bodyHandler(body -> log.error(body.toString()));
-                            handler.handle(new Either.Left<>("Error when getting Jira attachment (" + attachmentLink + ") information"));
-                        }
-                    }else{
-                        handler.handle(new Either.Left<>("Error when getting Jira attachment (" + attachmentLink + ") information"));
-                    }
+                    });
+                } else {
+                    log.error("Error when calling URL : " + attachmentLink + ":" + result.result().statusMessage());
+                    result.result().bodyHandler(body -> log.error(body.toString()));
+                    handler.handle(new Either.Left<>("Error when getting Jira attachment (" + attachmentLink + ") information"));
+                }
+            } else {
+                handler.handle(new Either.Left<>("Error when getting Jira attachment (" + attachmentLink + ") information"));
+            }
         });
     }
 
