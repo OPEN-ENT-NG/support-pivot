@@ -42,66 +42,50 @@ public class Supportpivot extends BaseServer {
 	public final static Map<String, String> applicationsMap = new HashMap<String, String>()
 	{
 		{
-			put("/actualites","Actualités");
-			put("/support",stringEncode("Aide et Support"));
-			put("/archive",stringEncode("Archive"));//non trouvé dans JIRA
-			put("/blog",stringEncode("Blog"));
-			put("/calendar",stringEncode("Agenda"));
-			put("/collaborativeeditor",stringEncode("Pad"));
-			put("/collaborativewall",stringEncode("Mur collaboratif"));
-			put("/competences",stringEncode("Compétences"));
-			put("/diary",stringEncode("Cahier de texte"));//non trouvé dans JIRA
-			put("/edt",stringEncode("EDT"));//non trouvé dans JIRA
-			put("/workspace/workspace",stringEncode("Espace_Documenataire"));//a revoir dans JIRA
-			put("/exercizer",stringEncode("Exercizer"));//non trouvé dans JIRA
-			put("https://folios.onisep.fr/","Folios");//non trouvé dans Jira
-			put("/forum",stringEncode("Forum"));//non trouvé dans JIRa
-			put("/auth/saml/sso/urn:gar:ihmAffectation:seclin",stringEncode("GAR"));//a mettre ?
-			put("/homework-assistance",stringEncode("Homework-assistance"));//pas dans JIRA
-			put("/incidents", stringEncode("Incidents"));
-			put("https://www.kiosque-edu.com/","KNE");//non trouvé dans JIRA
-			put("/mediacentre",stringEncode("/mediacentre"));//non trouvé dans JIRA
-			put("/conversation/conversation",stringEncode("Messagerie"));
-			put("/mindmap",stringEncode("Carte mentale"));//non trouvé dans JIRA
-			put("/pages",stringEncode("Pages"));//Pages seulement ?
-			put("/presences", stringEncode("Présences"));// non trouvé dans JIRA
-			put("https://www.index-education.com/fr/pronote-info191-pronote-a-chacun-son-espace--demonstration.php","pronote");
-			put("/rack",stringEncode("Casier"));//non trouvé dans JIRA
-			put("/rbs",stringEncode("Réservation_ressources"));
-			put("/timeline/timeline",stringEncode("Fil de nouveauté"));
-			put("/timelinegenerator",stringEncode("Frise chronologique"));//etiquette timelinegenerator
-			put("/wiki",stringEncode("wikis"));
-
-
-			/*put("/eliot/absences",stringEncode("Absences (Axess)"));//?
-
-			put("/admin",stringEncode("Administration"));
-
-			put("/eliot/agenda",stringEncode("Agenda (Axess)"));
-
-			put("/userbook/annuaire#/search",stringEncode("Annuaire"));
-
-			put("/eliot/textes",stringEncode("Cahier de textes (Axess)"));
-
-
-			put("/community",stringEncode("Communaut&eacute;"));
-			put("/cas",stringEncode("Connexion"));
-
-
-
-
-
-
-			put("/eliot/notes",stringEncode("Notes (Axess)"));
-
-
-			put("/eliot/scolarite",stringEncode("Scolarité (Axess)"));
-			put("/poll",stringEncode("Sondage"));
-			put("/statistics",stringEncode("Statistiques"));
-			put("/rss",stringEncode("Widget Rss"));
-			put("/bookmark",stringEncode("Widget Signets"));
-
-			put("/xiti",stringEncode("Xiti"));*/
+			put("/actualites", stringEncode("Actualité"));
+			put("/calendar", stringEncode("Agenda"));
+			put("/support", stringEncode("Aide et Support"));
+			put("/userbook/annuaire#/search", stringEncode("Annuaire"));
+			put("/community", stringEncode("Communauté"));
+			put("/autres", stringEncode("Autre"));
+			put("/blog", stringEncode("Blog"));
+			put("/mindmap", stringEncode("Carte mentale"));
+			put("/rack", stringEncode("Casier"));
+			put("/workspace/workspace", stringEncode("Espace documentaire"));
+			put("/exercizer", stringEncode("Exercices et évaluations"));
+			put("/formulaire", stringEncode("Formulaire"));
+			put("/forum", stringEncode("Forum"));
+			put("/timelinegenerator", stringEncode("Frise chronologique"));
+			put("/lool", stringEncode("LibreOffice Online (LOOL)"));
+			put("/lool", stringEncode("LibreOffice Online (LOOL)"));
+			put("/conversation/conversation", stringEncode("Messagerie Zimbra"));
+			put("/moodle", stringEncode("Moodle"));
+			put("/collaborativewall", stringEncode("Mur collaboratif"));
+			put("/mediacentre", stringEncode("Mediacentre"));
+			put("/collaborativeeditor", stringEncode("Pad"));
+			put("/pages", stringEncode("Pages"));
+			put("/peertube", stringEncode("Peertube"));
+			put("/rbs", stringEncode("Réservation de ressources"));
+			put("/schooltoring", stringEncode("Schooltoring"));
+			put("/site-web", stringEncode("Site Web"));
+			put("/poll", stringEncode("Sondage"));
+			put("/statistics", stringEncode("Statistiques"));
+			put("/telechargement", stringEncode("Téléchargement de fichiers lourds"));
+			put("web-conference", stringEncode("Web-conférence"));
+			put("/wiki", stringEncode("Wiki"));
+			put("/application-mobile", stringEncode("Application Mobile"));
+			put("/cas", stringEncode("Connexion"));
+			put("/workspace/workspace", stringEncode("Espace Documentaire"));
+			put("/auth/saml/sso/urn:gar:ihmAffectation:seclin", stringEncode("GAR"));
+			put("/portail", stringEncode("Portail"));
+			put("/trousseau", stringEncode("Trousseau"));
+			put("/vie-scolaire", stringEncode(" Vie Scolaire"));
+			put("/homework-assistance", stringEncode("Widget aide aux devoirs (Maxicours)"));
+			put("/calendar", stringEncode("Widget calendrier"));
+			put("https://www.index-education.com/fr/pronote-info191-pronote-a-chacun-son-espace--demonstration.php", stringEncode("Widget pronote"));
+			put("/rss", stringEncode("Widget Rss"));
+			put("/bookmark", stringEncode("Widget Signets"));
+			put("/xiti", stringEncode("Xiti"));
 		}
 	};
 
