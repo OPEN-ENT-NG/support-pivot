@@ -55,6 +55,9 @@ public class JiraConstants {
     public final static String LABEL = "labels";
     public final static String PRIORITY = "priority";
     public final static String REPORTER = "reporter";
+    public final static String COMPONENTS = "components";
+    public final static String NAME = "name";
+    public final static String NOTEXIST = "notExist";
 
 
     public static final String PRIORITY_MINOR_FR = "Mineure";

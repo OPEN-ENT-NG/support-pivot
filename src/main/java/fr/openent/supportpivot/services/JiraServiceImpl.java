@@ -21,6 +21,7 @@ package fr.openent.supportpivot.services;
 import fr.openent.supportpivot.Supportpivot;
 import fr.openent.supportpivot.constants.EntConstants;
 import fr.openent.supportpivot.constants.JiraConstants;
+import fr.openent.supportpivot.helpers.DateHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.wseduc.webutils.Either;
 import io.vertx.core.Handler;
@@ -173,7 +174,7 @@ public class JiraServiceImpl implements JiraService {
      * @return PIVOT-like module name encoded in UTF-8
      */
     private String moduleEntToPivot(String moduleName) {
-        return Supportpivot.applicationsMap.getOrDefault(moduleName, "Autres");
+        return Supportpivot.applicationsMap.getOrDefault(moduleName, JiraConstants.NOTEXIST);
     }
 
     /**
@@ -245,7 +246,12 @@ public class JiraServiceImpl implements JiraService {
     }
 
     public JsonObject PrepareTicketForCreation(JsonObject jsonPivotIn) {
+
         final JsonObject jsonJiraTicket = new JsonObject();
+
+        //changeFormatDate
+        Date date = DateHelper.convertStringToDate(jsonPivotIn.getString(DATE_CREA_FIELD));
+        String dateCreaField = DateHelper.convertDateFormat(date);
 
         //Ticket Type
         String ticketType = DEFAULT_JIRA_TICKETTYPE;
@@ -264,15 +270,15 @@ public class JiraServiceImpl implements JiraService {
         // status ent -> JIRA
         String statusNameEnt = STATUS_NEW;
         String currentStatus = jsonPivotIn.getString(STATUSENT_FIELD);
-        String currentReporter = JiraConstants.DEFAULT_REPORTER;//const
         if (ENT_STATUS_MAPPING.containsKey(currentStatus)) {
             statusNameEnt = ENT_STATUS_MAPPING.getString(currentStatus);
         }
         String title;
 
         // reporter assistanceMLN
+        String currentReporter = JiraConstants.REPORTER_LDE;
         if (!JIRA_FIELD.getString(EntConstants.IDENT_FIELD, "").isEmpty()) {
-            currentReporter = JiraConstants.DEFAULT_REPORTER;
+            currentReporter = JiraConstants.REPORTER_ENT;
         }
 
         if (!JIRA_FIELD.getString(EntConstants.IDENT_FIELD, "").isEmpty()) {
@@ -285,22 +291,27 @@ public class JiraServiceImpl implements JiraService {
                 .map(module -> moduleEntToPivot(module))
                 .collect(Collectors.toList());
 
-        jsonJiraTicket.put(JiraConstants.FIELDS, new JsonObject()
+        JsonObject field = new JsonObject()
                 .put(JiraConstants.PROJECT, new JsonObject()
                         .put(JiraConstants.PROJECT_KEY, JIRA_PROJECT_NAME))
                 .put(JiraConstants.TITLE_FIELD, title)
                 .put(JiraConstants.DESCRIPTION_FIELD, jsonPivotIn.getString(DESCRIPTION_FIELD))
                 .put(JiraConstants.ISSUETYPE, new JsonObject()
                         .put(NAME, ticketType))
-                .put(JiraConstants.LABEL, newModules)
                 .put(JIRA_FIELD.getString(EntConstants.IDENT_FIELD), jsonPivotIn.getString(ID_FIELD))
                 .put(JIRA_FIELD.getString(EntConstants.STATUSENT_FIELD), statusNameEnt)
-                .put(JIRA_FIELD.getString(EntConstants.CREATION_FIELD), jsonPivotIn.getString(DATE_CREA_FIELD))
+                .put(JIRA_FIELD.getString(EntConstants.CREATION_FIELD), dateCreaField)
                 .put(JIRA_FIELD.getString(EntConstants.RESOLUTION_ENT), jsonPivotIn.getString(DATE_RESO_FIELD))
                 .put(JiraConstants.REPORTER, new JsonObject().put(NAME, currentReporter))
                 .put(JIRA_FIELD.getString(EntConstants.CREATOR), jsonPivotIn.getString(CREATOR_FIELD))
                 .put(JiraConstants.PRIORITY, new JsonObject()
-                        .put(NAME, currentPriority)));
+                        .put(NAME, currentPriority));
+
+        if (!JiraConstants.NOTEXIST.equals(newModules.get(0))) {
+            field.put(JiraConstants.COMPONENTS, new JsonArray().add(new JsonObject().put(JiraConstants.NAME, newModules.get(0))));
+        }
+
+        jsonJiraTicket.put(JiraConstants.FIELDS, field);
 
         return jsonJiraTicket;
     }
