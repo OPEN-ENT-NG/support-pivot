@@ -10,6 +10,7 @@ import fr.openent.supportpivot.model.endpoint.LdeEndPoint;
 import fr.openent.supportpivot.model.ticket.PivotTicket;
 import fr.openent.supportpivot.services.HttpClientService;
 import fr.openent.supportpivot.services.JiraService;
+import fr.openent.supportpivot.services.MongoService;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -20,6 +21,7 @@ import io.vertx.core.logging.LoggerFactory;
 
 import java.util.List;
 
+import static fr.openent.supportpivot.constants.PivotConstants.*;
 import static fr.openent.supportpivot.model.ticket.PivotTicket.IDJIRA_FIELD;
 
 public class CrifRouterService extends AbstractRouterService {
@@ -27,10 +29,12 @@ public class CrifRouterService extends AbstractRouterService {
     private static final Logger log = LoggerFactory.getLogger(CrifRouterService.class);
     private final JiraEndpoint jiraEndpoint;
     private LdeEndPoint ldeEndpoint;
+    public MongoService mongoService;
 
     public CrifRouterService(HttpClientService httpClientService, JiraService jiraService) {
         jiraEndpoint = EndpointFactory.getJiraEndpoint(httpClientService, jiraService);
         ldeEndpoint = EndpointFactory.getLdeEndpoint();
+        mongoService = new MongoService(PIVOT);
     }
 
     @Override
@@ -68,6 +72,7 @@ public class CrifRouterService extends AbstractRouterService {
     @Override
     public void toPivotTicket(String source, JsonObject ticketdata, Handler<AsyncResult<JsonObject>> handler) {
         if (SOURCES.LDE.equals(source)) {
+            mongoService.saveTicket(ATTRIBUTION_LDE, ticketdata.getJsonObject(ISSUE, new JsonObject()));
             ldeEndpoint.process(ticketdata, ldeEndpointProcessResult -> {
                 if (ldeEndpointProcessResult.succeeded()) {
                     dispatchTicket(source, ldeEndpointProcessResult.result(), dispatchResult -> {
@@ -83,6 +88,7 @@ public class CrifRouterService extends AbstractRouterService {
 
             });
         } else {
+            mongoService.saveTicket(ATTRIBUTION_ENT, ticketdata.getJsonObject(ISSUE, new JsonObject()));
             PivotTicket ticket = new PivotTicket();
             ticket.setJsonObject(ticketdata.getJsonObject(PivotConstants.ISSUE));
             dispatchTicket(source, ticket, dispatchJiraResult -> {
