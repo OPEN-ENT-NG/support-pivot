@@ -41,9 +41,11 @@ public class PivotConstants {
     public final static String ATTRIBUTION_IWS = "RECTORAT";
     public final static String ATTRIBUTION_ENT = "ENT";
     public final static String ATTRIBUTION_CGI = "CGI";
+    public final static String ATTRIBUTION_LDE = "LDE";
 
     public final static String ERRORCODE = "errorCode";
     public final static String ERRORMESSAGE = "errorMessage";
+    public final static String PIVOT = "pivot";
 
 
     public final static String ISSUES = "issues";
