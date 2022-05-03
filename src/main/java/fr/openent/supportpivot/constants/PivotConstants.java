@@ -72,6 +72,8 @@ public class PivotConstants {
     public static final String STATUS = "status";
     public static final int COMMENT_LENGTH = 4;
 
+    public static final String TIME_ZONE = "CEST";
+
     public static final List<String> STATUS_LIST = Arrays.asList(
             STATUS_NEW,
             STATUS_OPENED,
