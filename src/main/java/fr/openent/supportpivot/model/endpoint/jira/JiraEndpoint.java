@@ -207,7 +207,7 @@ public class JiraEndpoint extends AbstractEndpoint {
         } else {
 
             ticket.setExternalId(ticket.getJsonTicket().getString(EntConstants.IDENT_FIELD));
-            this.getJiraTicketByExternalId(ticket.getExternalId(), result -> {
+            this.getJiraTicketByEntId(ticket.getExternalId(), result -> {
                 if (result.succeeded()) {
                     HttpClientResponse response = result.result();
                     if (response.statusCode() == 200) {
@@ -291,6 +291,14 @@ public class JiraEndpoint extends AbstractEndpoint {
         executeJiraRequest(uri, handler);
     }
 
+    private void getJiraTicketByEntId(String idEnt, Handler<AsyncResult<HttpClientResponse>> handler) {
+        String idCustomField = ConfigManager.getInstance().getjiraCustomFieldIdForIdent().replaceAll("customfield_", "");
+        JiraFilterBuilder filter = new JiraFilterBuilder();
+        filter.addCustomfieldFilter(idCustomField, idEnt);
+        URI uri = ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
+        executeJiraRequest(uri, handler);
+    }
+
 
     private void executeJiraRequest(URI uri, Handler<AsyncResult<HttpClientResponse>> handler) {
         try {
@@ -353,7 +361,7 @@ public class JiraEndpoint extends AbstractEndpoint {
             jsonPivot.putSafe(TICKETTYPE_FIELD, fields
                     .getJsonObject("issuetype", new JsonObject()).getString("name"));
             jsonPivot.putSafe(TITLE_FIELD, fields.getString("summary"));
-
+            jsonPivot.putSafe(UAI_FIELD, fields.getString(JIRA_FIELD.getString("uai")));
             jsonPivot.put(DESCRIPTION_FIELD, fields.getString("description", ""));
 
             String currentPriority = fields.getJsonObject("priority", new JsonObject()).getString("name", "");
@@ -416,6 +424,7 @@ public class JiraEndpoint extends AbstractEndpoint {
             jsonPivot.putSafe(DATE_RESOIWS_FIELD, fields.getString(JIRA_FIELD.getString("resolution_iws")));
             jsonPivot.putSafe(DATE_RESO_FIELD, fields.getString(JIRA_FIELD.getString("resolution_ent")));
             jsonPivot.putSafe(TECHNICAL_RESP_FIELD, fields.getString(JIRA_FIELD.getString("response_technical")));
+            jsonPivot.putSafe(IDEXTERNAL_FIELD, fields.getString(JIRA_FIELD.getString(IDEXTERNAL_FIELD, ""), null));
 
             if (fields.getString("resolutiondate") != null) {
                 String dateFormated = getDateFormatted(fields.getString("resolutiondate"), false);

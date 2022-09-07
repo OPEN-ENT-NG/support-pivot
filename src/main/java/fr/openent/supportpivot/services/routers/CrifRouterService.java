@@ -72,7 +72,7 @@ public class CrifRouterService extends AbstractRouterService {
     @Override
     public void toPivotTicket(String source, JsonObject ticketdata, Handler<AsyncResult<JsonObject>> handler) {
         if (SOURCES.LDE.equals(source)) {
-            mongoService.saveTicket(ATTRIBUTION_LDE, ticketdata.getJsonObject(ISSUE, new JsonObject()));
+            mongoService.saveTicket(ATTRIBUTION_LDE, ticketdata);
             ldeEndpoint.process(ticketdata, ldeEndpointProcessResult -> {
                 if (ldeEndpointProcessResult.succeeded()) {
                     dispatchTicket(source, ldeEndpointProcessResult.result(), dispatchResult -> {

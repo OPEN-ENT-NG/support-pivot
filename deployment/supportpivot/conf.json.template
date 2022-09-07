@@ -42,13 +42,16 @@
         "jira-custom-fields" : {
             "id_ent" : "${supportPivotCFIdEnt}",
             "id_iws" : "${supportPivotCFIdIws}",
+            "id_externe" : "${supportPivotCFIdExterne}",
             "status_ent" : "${supportPivotCFStEnt}",
             "status_iws" : "${supportPivotCFStIws}",
+            "status_externe" : "${supportPivotCFStExterne}",
             "creation" : "${supportPivotCFCreateDate}",
             "resolution_ent" : "${supportPivotCFResEnt}",
             "resolution_iws" : "${supportPivotCFResIws}",
             "creator" : "${supportPivotCFCreator}",
-            "response_technical" : "${supportPivotCFTechResp}"
+            "response_technical" : "${supportPivotCFTechResp}",
+            "uai" : "${supportPivotCFUai}"
         },
     	"jira-status-mapping": {
     		"statutsJira": ${supportPivotMappingStatus},

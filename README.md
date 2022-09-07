@@ -84,13 +84,16 @@ Contenu du fichier deployment/support/conf.json.template :
             "jira-custom-fields" : {
                 "id_ent" : "${supportPivotCFIdEnt}",
                 "id_iws" : "${supportPivotCFIdIws}",
+                "id_externe" : "${supportPivotCFIdExterne}",
                 "status_ent" : "${supportPivotCFStEnt}",
                 "status_iws" : "${supportPivotCFStIws}",
+                "status_externe" : "${supportPivotCFStExterne}",
                 "creation" : "${supportPivotCFCreateDate}",
                 "resolution_ent" : "${supportPivotCFResEnt}",
                 "resolution_iws" : "${supportPivotCFResIws}",
                 "creator" : "${supportPivotCFCreator}",
-                "response_technical" : "${supportPivotCFTechResp}"
+                "response_technical" : "${supportPivotCFTechResp}",
+                "uai" : "${supportPivotCFUai}"
             },
         	"jira-status-mapping": {
         		"statutsJira": ${supportPivotMappingStatus},
@@ -129,8 +132,10 @@ Les paramètres spécifiques à l'application support sont les suivants :
     -------------------------------------------------------------------------------------------------------------------
     "id_ent"                : "${supportPivotCFIdEnt}"          , Jira field id for ENT id of the ticket
     "id_iws"                : "${supportPivotCFIdIws}"          , Jira field id for IWS id of the ticket
+    "id_externe"            : "${supportPivotCFIdExterne}"      , Jira field id for external id of the ticket
     "status_ent"            : "${supportPivotCFStEnt}"          , Jira field id for ENT status of the ticket
     "status_iws"            : "${supportPivotCFStIws}"          , Jira field id for IWS id of the ticket
+    "status_externe"        : "${supportPivotCFStExterne}"      , Jira field id for external id of the ticket
     "creation"              : "${supportPivotCFCreateDate}"     , Jira field id for IWS creation date
     "resolution_ent"        : "${supportPivotCFResEnt}"         , Jira field id for ENT resolution date
     "resolution_iws"        : "${supportPivotCFResIws}"         , Jira field id for IWS resolution date

@@ -39,6 +39,7 @@ public class ConfigManager {
 
     private final JsonObject jiraCustomFields;
     private final String jiraCustomFieldIdForExternalId;
+    private final String jiraCustomFieldIdForIdent;
     private final String jiraDefaultStatus;
     private final JsonObject jiraStatusMapping;
     private final JsonObject entStatusMapping;
@@ -108,9 +109,9 @@ public class ConfigManager {
         jiraLogin = rawConfig.getString("jira-login");
         jiraPassword = rawConfig.getString("jira-passwd");
         jiraCustomFields = rawConfig.getJsonObject("jira-custom-fields");
-
-        if(jiraCustomFields.containsKey("id_external")) {
-            jiraCustomFieldIdForExternalId = jiraCustomFields.getString("id_external");
+        jiraCustomFieldIdForIdent = jiraCustomFields.getString("id_ent");
+        if(jiraCustomFields.containsKey("id_externe")) {
+            jiraCustomFieldIdForExternalId = jiraCustomFields.getString("id_externe");
         }else{
             //For retro-compatibility
             jiraCustomFieldIdForExternalId = jiraCustomFields.getString(EntConstants.IDENT_FIELD);
@@ -184,6 +185,7 @@ public class ConfigManager {
     public String getJiraProjectKey() { return jiraProjectKey; }
     public JsonObject getJiraCustomFields() { return jiraCustomFields; }
     public String getJiraCustomFieldIdForExternalId() { return jiraCustomFieldIdForExternalId; }
+    public String getjiraCustomFieldIdForIdent() { return jiraCustomFieldIdForIdent; }
     public String getExternalEndpointActivated() { return externalEndpointActivated; }
     public JsonObject getJiraStatusMapping() { return jiraStatusMapping; }
     public String getJiraDefaultStatus() { return jiraDefaultStatus; }
