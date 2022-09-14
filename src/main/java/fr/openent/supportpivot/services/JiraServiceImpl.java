@@ -593,8 +593,10 @@ public class JiraServiceImpl implements JiraService {
         String title = "";//const and find default value
         final JsonObject jsonJiraUpdateTicket = new JsonObject();
         JsonObject fields = new JsonObject();
+        if (jsonPivotIn.getString(EntConstants.IDENT_FIELD) != null)
+            fields.put(JIRA_FIELD.getString(EntConstants.IDENT_FIELD), jsonPivotIn.getString(EntConstants.IDENT_FIELD));
         if (jsonPivotIn.getString(IDEXTERNAL_FIELD) != null)
-            fields.put(JIRA_FIELD.getString(EntConstants.IDENT_FIELD), jsonPivotIn.getString(IDEXTERNAL_FIELD));
+            fields.put(JIRA_FIELD.getString(IDEXTERNAL_FIELD), jsonPivotIn.getString(IDEXTERNAL_FIELD));
         if (jsonPivotIn.getString(STATUSENT_FIELD) != null) {
             String statusNameEnt = EntConstants.STATUS_NAME_ENT;
             String currentStatus = jsonPivotIn.getString(STATUSENT_FIELD);
@@ -605,7 +607,7 @@ public class JiraServiceImpl implements JiraService {
         }
 
         if (jsonPivotIn.getString(STATUSEXTERNAL_FIELD) != null)
-            fields.put(JIRA_FIELD.getString(EntConstants.STATUSENT_FIELD), jsonPivotIn.getString(STATUSEXTERNAL_FIELD));
+            fields.put(JIRA_FIELD.getString(EntConstants.STATUSEXTERNAL_FIELD), jsonPivotIn.getString(STATUSEXTERNAL_FIELD));
         if (jsonPivotIn.getString(DATE_RESO_FIELD) != null)
             fields.put(JIRA_FIELD.getString(EntConstants.RESOLUTION_ENT), jsonPivotIn.getString(DATE_RESO_FIELD));
         if (jsonPivotIn.getString(DESCRIPTION_FIELD) != null)

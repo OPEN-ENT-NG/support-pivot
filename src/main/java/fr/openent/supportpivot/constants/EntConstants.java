@@ -26,6 +26,7 @@ public class EntConstants {
     public final static String ATTACHMENT_CONTENT_FIELD = "contenu";
     public final static String STATUSIWS_FIELD = "statut_iws";
     public final static String STATUSENT_FIELD = "status_ent";
+    public final static String STATUSEXTERNAL_FIELD = "status_externe";
     public final static String STATUSJIRA_FIELD = "statut_jira";
     public final static String DATE_CREA_FIELD = "date_creation";
     public final static String DATE_RESOIWS_FIELD = "date_resolution_iws";
