@@ -2,7 +2,6 @@ package fr.openent.supportpivot.model.endpoint;
 
 import fr.openent.supportpivot.model.ticket.PivotTicket;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 
@@ -10,10 +9,8 @@ import java.util.List;
 
 public interface Endpoint {
 
-    static final String ENDPOINT_JIRA = "jira";
-    static final String ENDPOINT_ENT = "ent";
-    static final String ENDPOINT_IWS = "iws";
-    static final String ENDPOINT_GLPI = "glpi";
+    String ENDPOINT_JIRA = "jira";
+    String ENDPOINT_ENT = "ent";
 
     /**
      * Triggers ticket recuperation for this endpoint.

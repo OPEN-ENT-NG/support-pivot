@@ -6,10 +6,6 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
 
 public class PivotHttpClient {
 
@@ -32,6 +28,8 @@ public class PivotHttpClient {
         basicAuthPwd = password;
     }
 
+    //Todo add proxy for dev
+    @SuppressWarnings("unused")
     public void setProxy(String host,int port,String login, String password){
         proxyhost = host;
         proxyport = port;

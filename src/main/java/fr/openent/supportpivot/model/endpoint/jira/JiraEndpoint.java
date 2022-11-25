@@ -2,7 +2,6 @@ package fr.openent.supportpivot.model.endpoint.jira;
 
 import fr.openent.supportpivot.constants.EntConstants;
 import fr.openent.supportpivot.constants.JiraConstants;
-import fr.openent.supportpivot.constants.PivotConstants;
 import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.helpers.PivotHttpClient;
 import fr.openent.supportpivot.helpers.PivotHttpClientRequest;
@@ -19,7 +18,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.core.net.ProxyOptions;
 
 import java.net.URI;
 import java.net.URISyntaxException;
