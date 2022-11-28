@@ -77,10 +77,5 @@ public class LdeEndPoint extends AbstractEndpoint {
     private void checkTicketData(JsonObject ticketData, Handler<Either> handler) {
         //TODO CONTROLE DE FORMAT ICI
         handler.handle(new Either.Right<>(null));
-       // handler.handle(new Either.Left<>("Bad Format :"));
     }
-
-
-
-
 }

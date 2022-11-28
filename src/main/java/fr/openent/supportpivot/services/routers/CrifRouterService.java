@@ -2,11 +2,11 @@ package fr.openent.supportpivot.services.routers;
 
 import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.constants.PivotConstants;
-import fr.openent.supportpivot.constants.PivotConstants.SOURCES;
+import fr.openent.supportpivot.constants.PivotConstants.*;
 import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.model.endpoint.EndpointFactory;
-import fr.openent.supportpivot.model.endpoint.jira.JiraEndpoint;
 import fr.openent.supportpivot.model.endpoint.LdeEndPoint;
+import fr.openent.supportpivot.model.endpoint.jira.JiraEndpoint;
 import fr.openent.supportpivot.model.ticket.PivotTicket;
 import fr.openent.supportpivot.services.HttpClientService;
 import fr.openent.supportpivot.services.JiraService;

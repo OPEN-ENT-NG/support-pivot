@@ -3,9 +3,9 @@ package fr.openent.supportpivot.services;
 import fr.openent.supportpivot.constants.HttpConstants;
 import fr.openent.supportpivot.helpers.PivotHttpClient;
 import fr.openent.supportpivot.managers.ConfigManager;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
-import io.vertx.core.Vertx;
 import io.vertx.core.net.ProxyOptions;
 
 import java.net.URI;
