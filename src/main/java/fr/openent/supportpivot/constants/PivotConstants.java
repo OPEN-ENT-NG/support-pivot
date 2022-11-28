@@ -7,28 +7,16 @@ import java.util.Map;
 
 public class PivotConstants {
 
-    public static enum SOURCES {
+    public enum SOURCES {
         ENT("ENT"),
         JIRA("JIRA"),
         IWS("IWS"),
         LDE("LDE");
 
-        private String name;
+        private final String name;
         public String toString(){return name;}
-        public boolean equals(String name){return name.equals(this.name);}
 
-        private SOURCES(String name) { this.name = name;   }
-    }
-
-    public  static enum COLLECTIVITIES {
-        MDP("MDP"),
-        CRIDF("CRIDF");
-
-        private String name;
-        public String toString(){return name;}
-        public boolean equals(String name){return name.equals(this.name);}
-
-        private COLLECTIVITIES(String name) { this.name = name;   }
+        SOURCES(String name) { this.name = name;   }
     }
 
     public final static String ID = "id";
@@ -73,15 +61,6 @@ public class PivotConstants {
     public static final int COMMENT_LENGTH = 4;
 
     public static final String TIME_ZONE = "CEST";
-
-    public static final List<String> STATUS_LIST = Arrays.asList(
-            STATUS_NEW,
-            STATUS_OPENED,
-            STATUS_RESOLVED,
-            STATUS_CLOSED);
-
-    public static final String TYPE_INCIDENT = "1";
-    public static final String TYPE_REQUEST = "5";
 
     //#######################
     public final static Map<String, String> APPLICATIONS_MAP = new HashMap<String, String>()

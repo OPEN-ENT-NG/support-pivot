@@ -8,7 +8,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-
 import static fr.wseduc.webutils.Server.getEventBus;
 import static fr.wseduc.webutils.Utils.handlerToAsyncHandler;
 

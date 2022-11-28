@@ -37,10 +37,10 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import static fr.wseduc.webutils.Server.getEventBus;
-import static fr.wseduc.webutils.Utils.handlerToAsyncHandler;
 import static fr.openent.supportpivot.constants.PivotConstants.*;
 import static fr.openent.supportpivot.model.ticket.PivotTicket.*;
+import static fr.wseduc.webutils.Server.getEventBus;
+import static fr.wseduc.webutils.Utils.handlerToAsyncHandler;
 
 /**
  * Created by colenot on 07/12/2017.
@@ -324,22 +324,6 @@ public class DefaultDemandeServiceImpl implements DemandeService {
                     }
                 }));
     }
-
-    /**
-     * Send pivot information to JIRA
-     *
-     * @param jsonPivotIn JSON in pivot format
-     */
-    public void sendToJIRA(JsonObject jsonPivotIn, final Handler<AsyncResult<JsonObject>> handler) {
-        jiraService.sendToJIRA(jsonPivotIn, result -> {
-            if (result.isRight()) {
-                handler.handle(Future.succeededFuture(result.right().getValue().getJsonObject("jsonPivotCompleted")));
-            } else {
-                handler.handle(Future.failedFuture(result.left().getValue()));
-            }
-        });
-    }
-
 
     /**
      * Send pivot information to JIRA
