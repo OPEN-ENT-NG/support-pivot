@@ -1,6 +1,5 @@
 package fr.openent.supportpivot.model.endpoint.jira;
 
-import fr.openent.supportpivot.managers.ConfigManager;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;

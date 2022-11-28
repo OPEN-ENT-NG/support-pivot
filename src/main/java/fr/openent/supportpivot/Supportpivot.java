@@ -93,12 +93,6 @@ public class Supportpivot extends BaseServer {
 	public void start() throws Exception {
 		super.start();
 		ConfigManager.init(config);
-		/*
-		if (!Config.getInstance().checkConfiguration()) {
-			LocalMap<String, String> deploymentsIdMap = vertx.sharedData().getLocalMap("deploymentsId");
-			vertx.undeploy(deploymentsIdMap.get("fr.openent.supportpivot"));
-			return;
-	   */
 
 		ServiceManager.init(vertx, config);
 		addController(new SupportController());

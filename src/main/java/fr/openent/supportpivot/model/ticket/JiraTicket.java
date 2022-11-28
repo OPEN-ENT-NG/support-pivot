@@ -1,8 +1,6 @@
 package fr.openent.supportpivot.model.ticket;
 
 import fr.openent.supportpivot.managers.ConfigManager;
-import fr.openent.supportpivot.services.JiraService;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 
 public class JiraTicket extends JsonObject {

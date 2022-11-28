@@ -20,11 +20,6 @@ public abstract class AbstractRouterService implements RouterService {
     }
 
     @Override
-    public void triggerTicket(String source, JsonObject data, Handler<AsyncResult<JsonObject>> handler) {
-        handler.handle(Future.failedFuture("trigger ticket is unsupported for " + getClass().getName()));
-    }
-
-    @Override
     public void readTickets(String source, JsonObject data, Handler<AsyncResult<JsonArray>> handler) {
         handler.handle(Future.failedFuture("read tickets is unsupported for " + getClass().getName()));
     }
