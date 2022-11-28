@@ -18,6 +18,9 @@
 
 package fr.openent.supportpivot.deprecatedservices;
 
+import fr.openent.supportpivot.constants.ConfigField;
+import fr.openent.supportpivot.constants.Field;
+import fr.openent.supportpivot.helpers.DateHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.services.MongoService;
 import fr.wseduc.webutils.Either;
@@ -89,11 +92,11 @@ public class DefaultDemandeServiceImpl implements DemandeService {
         this.mongoService = mongoService;
 
         eb = getEventBus(vertx);
-        this.MAIL_IWS = config.getString("mail-iws");
+        this.MAIL_IWS = config.getString(ConfigField.MAIL_IWS);
         this.COLLECTIVITY_NAME = ConfigManager.getInstance().getCollectivity();
-        this.ATTRIBUTION_DEFAULT = config.getString("default-attribution");
-        this.TICKETTYPE_DEFAULT = config.getString("default-tickettype");
-        this.PRIORITY_DEFAULT = config.getString("default-priority");
+        this.ATTRIBUTION_DEFAULT = config.getString(ConfigField.DEFAULT_ATTRIBUTION);
+        this.TICKETTYPE_DEFAULT = config.getString(ConfigField.DEFAULT_TICKETTYPE);
+        this.PRIORITY_DEFAULT = config.getString(ConfigField.DEFAULT_PRIORITY);
         this.jiraService = new DefaultJiraServiceImpl(vertx, config);
     }
 
@@ -207,7 +210,7 @@ public class DefaultDemandeServiceImpl implements DemandeService {
      * @return PIVOT-like module name encoded in UTF-8
      */
     private String moduleEntToPivot(String moduleName) {
-        return APPLICATIONS_MAP.getOrDefault(moduleName, "Autres");
+        return APPLICATIONS_MAP.getOrDefault(moduleName, Field.AUTRES);
     }
 
     /**
@@ -217,8 +220,8 @@ public class DefaultDemandeServiceImpl implements DemandeService {
      * @return The date formatted, or the original date is case of error
      */
     private String formatSqlDate(String sqlDate) {
-        SimpleDateFormat input = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
-        SimpleDateFormat output = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+        SimpleDateFormat input = new SimpleDateFormat(DateHelper.DATE_FORMAT_PARSE);
+        SimpleDateFormat output = new SimpleDateFormat(DateHelper.DATE_FORMAT_WITHOUT_SEPARATOR);
         try {
             Date dateValue = input.parse(sqlDate);
             return output.format(dateValue);
@@ -315,9 +318,9 @@ public class DefaultDemandeServiceImpl implements DemandeService {
             return;
         }
         eb.send(ENT_TRACKERUPDATE_ADDRESS,
-                new JsonObject().put("action", "create").put("issue", jsonPivot),
+                new JsonObject().put(Field.ACTION, Field.CREATE).put(Field.ISSUE, jsonPivot),
                 handlerToAsyncHandler(message -> {
-                    if ("OK".equals(message.body().getString("status"))) {
+                    if (Field.OK.equals(message.body().getString(Field.STATUS))) {
                         handler.handle(new Either.Right<>(message.body()));
                     } else {
                         handler.handle(new Either.Left<>("999;" + message.body().toString()));
@@ -343,7 +346,7 @@ public class DefaultDemandeServiceImpl implements DemandeService {
                             eitherJsonPivotOut.right().getValue().getJsonObject("jsonPivotCompleted"),
                             handler);
                 } else {
-                    handler.handle(new Either.Right<>(new JsonObject().put("status", "OK")));
+                    handler.handle(new Either.Right<>(new JsonObject().put(Field.STATUS, Field.OK)));
                 }
             } else {
                 handler.handle(eitherJsonPivotOut);
@@ -363,7 +366,6 @@ public class DefaultDemandeServiceImpl implements DemandeService {
      * @param jsonPivot JSON in pivot format
      */
     private void sendToIWS(HttpServerRequest request, JsonObject jsonPivot, final Handler<Either<String, JsonObject>> handler) {
-
         StringBuilder mail = new StringBuilder()
                 .append("<br/>Collectivite=")
                 .append(jsonPivot.getString(COLLECTIVITY_FIELD))
@@ -430,14 +432,13 @@ public class DefaultDemandeServiceImpl implements DemandeService {
             mailTo = this.MAIL_IWS;
         }
 
-
         //prepare storage in mongo of sent mail to IWS
         JsonObject savedInfo = new JsonObject();
-        savedInfo.put("mailContent", mail.toString());
+        savedInfo.put(Field.MAILCONTENT, mail.toString());
         savedInfo.put(IDIWS_FIELD, jsonPivot.getString(IDIWS_FIELD, ""));
         savedInfo.put(ID_FIELD, jsonPivot.getString(ID_FIELD, ""));
         savedInfo.put(IDJIRA_FIELD, jsonPivot.getString(IDJIRA_FIELD, ""));
-        savedInfo.put("dest", mailTo);
+        savedInfo.put(Field.DEST, mailTo);
 
         JsonArray mailAtts = new fr.wseduc.webutils.collections.JsonArray();
         JsonArray savedInfoPJ = new fr.wseduc.webutils.collections.JsonArray();
@@ -448,16 +449,16 @@ public class DefaultDemandeServiceImpl implements DemandeService {
             if (!jsonAtt.containsKey(ATTACHMENT_NAME_FIELD)
                     || !jsonAtt.containsKey(ATTACHMENT_CONTENT_FIELD)) continue;
             JsonObject att = new JsonObject();
-            att.put("name", jsonAtt.getString(ATTACHMENT_NAME_FIELD));
-            att.put("content", jsonAtt.getString(ATTACHMENT_CONTENT_FIELD));
+            att.put(Field.NAME, jsonAtt.getString(ATTACHMENT_NAME_FIELD));
+            att.put(Field.CONTENT, jsonAtt.getString(ATTACHMENT_CONTENT_FIELD));
             mailAtts.add(att);
 
-            savedInfoPJ.add(new JsonObject().put("pj_name", jsonAtt.getString(ATTACHMENT_NAME_FIELD)));
+            savedInfoPJ.add(new JsonObject().put(Field.PJ_NAME, jsonAtt.getString(ATTACHMENT_NAME_FIELD)));
         }
-        savedInfo.put("pj", savedInfoPJ);
+        savedInfo.put(Field.PJ, savedInfoPJ);
 
         //store in mongo sent mail
-        mongoService.saveTicket("mail", savedInfo);
+        mongoService.saveTicket(Field.MAIL, savedInfo);
 
         if (emailSender == null) {
             handler.handle(new Either.Left<>("999;EmailSender module not found"));
@@ -468,12 +469,12 @@ public class DefaultDemandeServiceImpl implements DemandeService {
                 mailTo,
                 null,
                 null,
-                "TICKETCGI",
+                Field.TICKETCGI,
                 mailAtts,
                 mail.toString(),
                 null,
                 false,
-                handlerToAsyncHandler(jsonObjectMessage -> handler.handle(new Either.Right<String, JsonObject>(jsonObjectMessage.body()))));
+                handlerToAsyncHandler(jsonObjectMessage -> handler.handle(new Either.Right<>(jsonObjectMessage.body()))));
     }
 
     /**
@@ -485,8 +486,6 @@ public class DefaultDemandeServiceImpl implements DemandeService {
     public void sendJiraTicketToIWS(final HttpServerRequest request,
                                     final String idJira,
                                     final Handler<Either<String, JsonObject>> handler) {
-
-
         jiraService.getFromJira(request, idJira, stringJsonObjectEither -> {
             if (stringJsonObjectEither.isRight()) {
                 JsonObject jsonPivot = stringJsonObjectEither.right().getValue();
@@ -515,6 +514,4 @@ public class DefaultDemandeServiceImpl implements DemandeService {
             }
         });
     }
-
-
 }

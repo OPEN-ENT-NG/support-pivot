@@ -1,7 +1,9 @@
 package fr.openent.supportpivot.model.endpoint.jira;
 
 import fr.openent.supportpivot.constants.EntConstants;
+import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.JiraConstants;
+import fr.openent.supportpivot.helpers.DateHelper;
 import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.helpers.PivotHttpClient;
 import fr.openent.supportpivot.helpers.PivotHttpClientRequest;
@@ -101,7 +103,7 @@ public class JiraEndpoint extends AbstractEndpoint {
         }
         filter.onlyIds();
         filter.addFieldDates();
-        filter.addFields(JIRA_FIELDS.getString("creation", ""));
+        filter.addFields(JIRA_FIELDS.getString(Field.CREATION, ""));
 
         return ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
     }
@@ -111,7 +113,7 @@ public class JiraEndpoint extends AbstractEndpoint {
             JsonObject jsonTicket = new JsonObject(body.toString());
             List<Future> futures = new ArrayList<>();
             List<PivotTicket> pivotTickets = new ArrayList<>();
-            jsonTicket.getJsonArray("issues").forEach(issue -> {
+            jsonTicket.getJsonArray(Field.ISSUES).forEach(issue -> {
                 Future<PivotTicket> future = Future.future();
                 futures.add(future);
                 convertJiraReponseToJsonPivot((JsonObject) issue, event -> {
@@ -141,7 +143,7 @@ public class JiraEndpoint extends AbstractEndpoint {
 
     @Override
     public void process(JsonObject ticketData, Handler<AsyncResult<PivotTicket>> handler) {
-        final String id_jira = ticketData.getString("idjira");
+        final String id_jira = ticketData.getString(Field.IDJIRA);
 
         this.getJiraTicketByJiraId(id_jira, result -> {
             if (result.failed()) {
@@ -178,13 +180,13 @@ public class JiraEndpoint extends AbstractEndpoint {
                     if (response.statusCode() == 200) {
                         response.bodyHandler(body -> {
                             JsonObject jsonTicket = new JsonObject(body.toString());
-                            if (jsonTicket.getInteger("total") >= 1) {
-                                ticket.setJiraId(jsonTicket.getJsonArray("issues").getJsonObject(0).getString("id"));
+                            if (jsonTicket.getInteger(Field.TOTAL) >= 1) {
+                                ticket.setJiraId(jsonTicket.getJsonArray(Field.ISSUES).getJsonObject(0).getString(Field.ID));
                             }
                             jiraService.sendToJIRA(ticket.getJsonTicket(), sendToJiraResult -> {
                                 if (sendToJiraResult.isRight()) {
                                     PivotTicket pivotTicket = new PivotTicket();
-                                    pivotTicket.setJsonObject(sendToJiraResult.right().getValue().getJsonObject("jsonPivotCompleted"));
+                                    pivotTicket.setJsonObject(sendToJiraResult.right().getValue().getJsonObject(Field.JSONPIVOTCOMPLETED));
                                     handler.handle(Future.succeededFuture(pivotTicket));
                                 } else {
                                     handler.handle(Future.failedFuture(sendToJiraResult.left().getValue()));
@@ -251,31 +253,6 @@ public class JiraEndpoint extends AbstractEndpoint {
         }
     }
 
-
-
-    /*
-        private void mapPivotTicketToJira(PivotTicket ticket, Handler<AsyncResult<JiraTicket>> handler) {
-            JiraTicket jiraTicket = new JiraTicket();
-            ticket.getJsonTicket().forEach(field -> {
-                switch (field.getKey()) {
-                    case PivotConstants.IDGLPI_FIELD:
-                        jiraTicket.setGlpiID((String) field.getValue());
-                        break;
-                    case PivotConstants.ID_FIELD:
-                        jiraTicket.setEntID((String) field.getValue());
-                        break;
-                    case PivotConstants.TITLE_FIELD:
-                        jiraTicket.setTitle((String) field.getValue());
-                        break;
-                    case PivotConstants.DESCRIPTION_FIELD:
-                        jiraTicket.setContent((String) field.getValue());
-                        break;
-                }
-            });
-
-            handler.handle(Future.succeededFuture(jiraTicket));
-        }
-    */
     private void getJiraTicketByJiraId(String idJira, Handler<AsyncResult<HttpClientResponse>> handler) {
         URI uri = ConfigManager.getInstance().getJiraBaseUrl().resolve("issue/" + idJira);
         executeJiraRequest(uri, handler);
@@ -335,34 +312,29 @@ public class JiraEndpoint extends AbstractEndpoint {
         String JIRA_STATUS_DEFAULT = config.getJiraDefaultStatus();
         JsonObject JIRA_STATUS_MAPPING = config.getJiraStatusMapping();
 
-        JsonObject fields = jiraTicket.getJsonObject("fields");
+        JsonObject fields = jiraTicket.getJsonObject(Field.FIELDS);
 
-        /* TODO vérifier mais pourquoi le champ id_IWS est obligatoire dans le cas de GLPI ou IWS
-       if (!fields.containsKey(JIRA_FIELD.getString("id_iws"))
-        || fields.getString(JIRA_FIELD.getString("id_iws")) == null) {
-            handler.handle(new Either.Left<>("Field id_iws (" + JIRA_FIELD.getString("id_iws") + ") does not exist."));
-        } else {
-*/
         final JsonObjectSafe jsonPivot = new JsonObjectSafe();
 
-        jsonPivot.putSafe(IDJIRA_FIELD, jiraTicket.getString("key"));
+        jsonPivot.putSafe(IDJIRA_FIELD, jiraTicket.getString(Field.KEY));
         jsonPivot.putSafe(COLLECTIVITY_FIELD, config.getCollectivity());
         jsonPivot.putSafe(ACADEMY_FIELD, config.getCollectivity());
         if (fields == null) {
             handler.handle(new Either.Right<>(jsonPivot));
         } else {
-            jsonPivot.putSafe(RAWDATE_CREA_FIELD, fields.getString("created"));
-            jsonPivot.putSafe(RAWDATE_UPDATE_FIELD, fields.getString("updated"));
+            jsonPivot.putSafe(RAWDATE_CREA_FIELD, fields.getString(Field.CREATED));
+            jsonPivot.putSafe(RAWDATE_UPDATE_FIELD, fields.getString(Field.UPDATED));
             jsonPivot.put(CREATOR_FIELD,
-                    fields.getString(stringEncode(JIRA_FIELD.getString("creator")), ""));
+                    fields.getString(stringEncode(JIRA_FIELD.getString(Field.CREATOR)), ""));
 
             jsonPivot.putSafe(TICKETTYPE_FIELD, fields
-                    .getJsonObject("issuetype", new JsonObject()).getString("name"));
-            jsonPivot.putSafe(TITLE_FIELD, fields.getString("summary"));
-            jsonPivot.putSafe(UAI_FIELD, fields.getString(JIRA_FIELD.getString("uai")));
-            jsonPivot.put(DESCRIPTION_FIELD, fields.getString("description", ""));
+                    .getJsonObject(Field.ISSUETYPE, new JsonObject()).getString(Field.NAME));
+            jsonPivot.putSafe(TITLE_FIELD, fields.getString(Field.SUMMARY));
+            jsonPivot.putSafe(UAI_FIELD, fields.getString(JIRA_FIELD.getString(Field.UAI)));
+            jsonPivot.put(DESCRIPTION_FIELD, fields.getString(Field.DESCRIPTION, ""));
 
-            String currentPriority = fields.getJsonObject("priority", new JsonObject()).getString("name", "");
+            String currentPriority = fields.getJsonObject(Field.PRIORITY, new JsonObject()).getString(Field.NAME, "");
+            //Todo use Enum to remove magic String
             switch (currentPriority) {
                 case "High":
                 case "Majeure":
@@ -381,20 +353,20 @@ public class JiraEndpoint extends AbstractEndpoint {
 
             jsonPivot.put(PRIORITY_FIELD, currentPriority);
 
-            jsonPivot.putSafe(MODULES_FIELD, fields.getJsonArray("labels"));
+            jsonPivot.putSafe(MODULES_FIELD, fields.getJsonArray(Field.LABELS));
 
-            jsonPivot.put(ID_FIELD, fields.getString(JIRA_FIELD.getString("id_ent"), ""));
+            jsonPivot.put(ID_FIELD, fields.getString(JIRA_FIELD.getString(Field.ID_ENT), ""));
 
 
 
-            if (fields.containsKey("comment")) {
-                JsonArray comm = fields.getJsonObject("comment")
-                        .getJsonArray("comments", new fr.wseduc.webutils.collections.JsonArray());
+            if (fields.containsKey(Field.COMMENT)) {
+                JsonArray comm = fields.getJsonObject(Field.COMMENT)
+                        .getJsonArray(Field.COMMENTS, new fr.wseduc.webutils.collections.JsonArray());
                 JsonArray jsonCommentArray = new fr.wseduc.webutils.collections.JsonArray();
                 for (int i = 0; i < comm.size(); i++) {
                     JsonObject comment = comm.getJsonObject(i);
                     //Write only if the comment is public
-                    if (!comment.containsKey("visibility")) {
+                    if (!comment.containsKey(Field.VISIBILITY)) {
                         String commentFormated = serializeComment(comment);
                         jsonCommentArray.add(commentFormated);
                     }
@@ -402,9 +374,9 @@ public class JiraEndpoint extends AbstractEndpoint {
                 jsonPivot.put(COMM_FIELD, jsonCommentArray);
             }
 
-            jsonPivot.putSafe(STATUSENT_FIELD, fields.getString(JIRA_FIELD.getString("status_ent")));
+            jsonPivot.putSafe(STATUSENT_FIELD, fields.getString(JIRA_FIELD.getString(Field.STATUS_ENT)));
 
-            String currentStatus = fields.getJsonObject("status", new JsonObject()).getString("name", "");
+            String currentStatus = fields.getJsonObject(Field.STATUS, new JsonObject()).getString(Field.NAME, "");
 
             String currentStatusToIWS;
             currentStatusToIWS = JIRA_STATUS_DEFAULT;
@@ -418,21 +390,21 @@ public class JiraEndpoint extends AbstractEndpoint {
             jsonPivot.put(STATUSJIRA_FIELD, currentStatusToIWS);
 
 
-            jsonPivot.putSafe(DATE_CREA_FIELD, fields.getString(JIRA_FIELD.getString("creation")));
-            jsonPivot.putSafe(DATE_RESOIWS_FIELD, fields.getString(JIRA_FIELD.getString("resolution_iws")));
-            jsonPivot.putSafe(DATE_RESO_FIELD, fields.getString(JIRA_FIELD.getString("resolution_ent")));
-            jsonPivot.putSafe(TECHNICAL_RESP_FIELD, fields.getString(JIRA_FIELD.getString("response_technical")));
+            jsonPivot.putSafe(DATE_CREA_FIELD, fields.getString(JIRA_FIELD.getString(Field.CREATION)));
+            jsonPivot.putSafe(DATE_RESOIWS_FIELD, fields.getString(JIRA_FIELD.getString(Field.RESOLUTION_IWS)));
+            jsonPivot.putSafe(DATE_RESO_FIELD, fields.getString(JIRA_FIELD.getString(Field.RESOLUTION_ENT)));
+            jsonPivot.putSafe(TECHNICAL_RESP_FIELD, fields.getString(JIRA_FIELD.getString(Field.RESPONSE_TECHNICAL)));
             jsonPivot.putSafe(IDEXTERNAL_FIELD, fields.getString(JIRA_FIELD.getString(IDEXTERNAL_FIELD, ""), null));
             jsonPivot.putSafe(STATUSEXTERNAL_FIELD, fields.getString(JIRA_FIELD.getString(EntConstants.STATUSEXTERNAL_FIELD, ""), null));
 
-            if (fields.getString("resolutiondate") != null) {
-                String dateFormated = getDateFormatted(fields.getString("resolutiondate"), false);
+            if (fields.getString(Field.RESOLUTIONDATE) != null) {
+                String dateFormated = getDateFormatted(fields.getString(Field.RESOLUTIONDATE), false);
                 jsonPivot.put(DATE_RESOJIRA_FIELD, dateFormated);
             }
 
             jsonPivot.put(ATTRIBUTION_FIELD, ATTRIBUTION_IWS);
 
-            JsonArray attachments = fields.getJsonArray("attachment", new JsonArray());
+            JsonArray attachments = fields.getJsonArray(Field.ATTACHMENT, new JsonArray());
 
             final JsonArray allPJConverted = new JsonArray();
             final AtomicInteger nbAttachment = new AtomicInteger(attachments.size());
@@ -448,9 +420,9 @@ public class JiraEndpoint extends AbstractEndpoint {
                 getJiraPJ(attachmentInfos, getJiraPjResp -> {
 
                             if (getJiraPjResp.isRight()) {
-                                String b64FilePJ = getJiraPjResp.right().getValue().getString("b64Attachment");
+                                String b64FilePJ = getJiraPjResp.right().getValue().getString(Field.B64ATTACHMENT);
                                 JsonObject currentPJ = new JsonObject();
-                                currentPJ.put(ATTACHMENT_NAME_FIELD, attachmentInfos.getString("filename"));
+                                currentPJ.put(ATTACHMENT_NAME_FIELD, attachmentInfos.getString(Field.FILENAME));
                                 currentPJ.put(ATTACHMENT_CONTENT_FIELD, b64FilePJ);
                                 allPJConverted.add(currentPJ);
                             } else {
@@ -480,7 +452,7 @@ public class JiraEndpoint extends AbstractEndpoint {
                            final Handler<Either<String, JsonObject>> handler) {
 
 
-        String attachmentLink = attachmentInfos.getString("content");
+        String attachmentLink = attachmentInfos.getString(Field.CONTENT);
 
         final PivotHttpClientRequest getAttachmentrequest = httpClient.createGetRequest(attachmentLink);
         getAttachmentrequest.startRequest(result -> {
@@ -489,8 +461,8 @@ public class JiraEndpoint extends AbstractEndpoint {
                     result.result().bodyHandler(bufferGetInfosTicket -> {
                         String b64Attachment = encoder.encodeToString(bufferGetInfosTicket.getBytes());
                         handler.handle(new Either.Right<>(
-                                new JsonObject().put("status", "OK")
-                                        .put("b64Attachment", b64Attachment)));
+                                new JsonObject().put(Field.STATUS, Field.OK)
+                                        .put(Field.B64ATTACHMENT, b64Attachment)));
 
                     });
                 } else {
@@ -511,12 +483,12 @@ public class JiraEndpoint extends AbstractEndpoint {
      * @return String with comment serialized
      */
     private String serializeComment(final JsonObject comment) {
-        String content = getDateFormatted(comment.getString("created"), true)
-                + " | " + comment.getJsonObject("author").getString("displayName")
-                + " | " + getDateFormatted(comment.getString("created"), false)
-                + " | " + comment.getString("body");
+        String content = getDateFormatted(comment.getString(Field.CREATED), true)
+                + " | " + comment.getJsonObject(Field.AUTHOR).getString(Field.DISPLAYNAME)
+                + " | " + getDateFormatted(comment.getString(Field.CREATED), false)
+                + " | " + comment.getString(Field.BODY);
 
-        String origContent = comment.getString("body");
+        String origContent = comment.getString(Field.BODY);
 
         return hasToSerialize(origContent) ? content : origContent;
     }
@@ -533,11 +505,6 @@ public class JiraEndpoint extends AbstractEndpoint {
     private boolean hasToSerialize(String content) {
         String[] elements = content.split(Pattern.quote("|"));
         return elements.length != 4;
-        /* Fisrt field can have a different format in according to external tool plugged.
-        if (elements.length < 4) return true;
-        String id = elements[0].trim();
-        return (!id.matches("[0-9]{14}"));
-        */
     }
 
     /**
@@ -559,7 +526,7 @@ public class JiraEndpoint extends AbstractEndpoint {
      * @return formatted date string
      */
     private String getDateFormatted(final String sqlDate, final boolean idStyle) {
-        final DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+        final DateFormat df = new SimpleDateFormat(DateHelper.SQL_FORMAT);
         //df.setTimeZone(TimeZone.getTimeZone("GMT"));
         Date d;
         try {
@@ -571,9 +538,9 @@ public class JiraEndpoint extends AbstractEndpoint {
         }
         Format formatter;
         if (idStyle) {
-            formatter = new SimpleDateFormat("yyyyMMddHHmmss");
+            formatter = new SimpleDateFormat(DateHelper.yyyyMMddHHmmss);
         } else {
-            formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+            formatter = new SimpleDateFormat(DateHelper.DATE_FORMAT_WITHOUT_SEPARATOR);
         }
         return formatter.format(d);
     }
