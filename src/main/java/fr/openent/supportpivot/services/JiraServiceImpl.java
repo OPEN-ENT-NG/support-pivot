@@ -19,7 +19,9 @@
 package fr.openent.supportpivot.services;
 
 import fr.openent.supportpivot.Supportpivot;
+import fr.openent.supportpivot.constants.ConfigField;
 import fr.openent.supportpivot.constants.EntConstants;
+import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.helpers.DateHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
@@ -84,13 +86,13 @@ public class JiraServiceImpl implements JiraService {
     public JiraServiceImpl(Vertx vertx, JsonObject config) {
 
         this.vertx = vertx;
-        String jiraLogin = config.getString("jira-login");
-        String jiraPassword = config.getString("jira-passwd");
+        String jiraLogin = config.getString(ConfigField.JIRA_LOGIN);
+        String jiraPassword = config.getString(ConfigField.JIRA_PASSWD);
         this.JIRA_AUTH_INFO = jiraLogin + ":" + jiraPassword;
 
         URI jira_host_uri = null;
         try {
-            jira_host_uri = new URI(config.getString("jira-host"));
+            jira_host_uri = new URI(config.getString(ConfigField.JIRA_HOST));
         } catch (URISyntaxException e) {
             LOGGER.error("Bad parameter ent-core.json#jira-host ", e);
         }
@@ -99,7 +101,7 @@ public class JiraServiceImpl implements JiraService {
 
         URI jira_rest_uri = null;
         try {
-            jira_rest_uri = new URI(config.getString("jira-url"));
+            jira_rest_uri = new URI(config.getString(ConfigField.JIRA_URL));
         } catch (URISyntaxException e) {
             LOGGER.error("Bad parameter ent-core.json#jira-url ", e);
             //TODO Break module starting
@@ -107,24 +109,24 @@ public class JiraServiceImpl implements JiraService {
         this.JIRA_REST_API_URI = jira_rest_uri;
         assert JIRA_REST_API_URI != null;
 
-        this.JIRA_PROJECT_NAME = config.getString("jira-project-key");
-        this.ACADEMY_NAME = config.getString("academy");
-        JIRA_FIELD = config.getJsonObject("jira-custom-fields");
+        this.JIRA_PROJECT_NAME = config.getString(ConfigField.JIRA_PROJECT_KEY);
+        this.ACADEMY_NAME = config.getString(ConfigField.ACADEMY);
+        JIRA_FIELD = config.getJsonObject(ConfigField.JIRA_CUSTOM_FIELDS);
 
         if (JIRA_FIELD.containsKey(JiraConstants.ID_EXTERNAL)) {
             //Retro-compatibility external fields are historical labeled iws
-            JIRA_FIELD.put("id_iws", JIRA_FIELD.getString("id_external"));
-            JIRA_FIELD.put("status_iws", JIRA_FIELD.getString("status_external"));
-            JIRA_FIELD.put("resolution_iws", JIRA_FIELD.getString("resolution_external"));
+            JIRA_FIELD.put(Field.ID_IWS, JIRA_FIELD.getString(ConfigField.ID_EXTERNAL));
+            JIRA_FIELD.put(Field.STATUS_IWS, JIRA_FIELD.getString(ConfigField.STATUS_EXTERNAL));
+            JIRA_FIELD.put(Field.RESOLUTION_IWS, JIRA_FIELD.getString(ConfigField.RESOLUTION_EXTERNAL));
         }
-        JIRA_STATUS_MAPPING = config.getJsonObject("jira-status-mapping").getJsonObject("statutsJira");
+        JIRA_STATUS_MAPPING = config.getJsonObject(ConfigField.JIRA_STATUS_MAPPING).getJsonObject(ConfigField.STATUTSJIRA);
         ENT_STATUS_MAPPING = config.getJsonObject(EntConstants.ENT_STATUS_MAPPING, new JsonObject()).getJsonObject(EntConstants.STATUTS_ENT, new JsonObject());
         JIRA_STATUS_DEFAULT = config.getJsonObject(JiraConstants.JIRA_STATUS_MAPPING, new JsonObject()).getString(JiraConstants.STATUTS_DEFAULT);
         ENT_STATUS_DEFAULT = config.getJsonObject(EntConstants.ENT_STATUS_MAPPING, new JsonObject()).getString(EntConstants.STATUTSDEFAULTENT);
-        JIRA_ALLOWED_TICKETTYPE = config.getJsonArray("jira-allowed-tickettype");
-        this.DEFAULT_JIRA_TICKETTYPE = config.getString("default-tickettype");
-        this.DEFAULT_PRIORITY = config.getString("default-priority");
-        this.JIRA_ALLOWED_PRIORITY = config.getJsonArray("jira-allowed-priority");
+        JIRA_ALLOWED_TICKETTYPE = config.getJsonArray(ConfigField.JIRA_ALLOWED_TICKETTYPE);
+        this.DEFAULT_JIRA_TICKETTYPE = config.getString(ConfigField.DEFAULT_TICKETTYPE);
+        this.DEFAULT_PRIORITY = config.getString(ConfigField.DEFAULT_PRIORITY);
+        this.JIRA_ALLOWED_PRIORITY = config.getJsonArray(ConfigField.JIRA_ALLOWED_PRIORITY);
 
         this.httpClient = generateHttpClient(JIRA_HOST);
     }
@@ -138,10 +140,10 @@ public class JiraServiceImpl implements JiraService {
     private HttpClient generateHttpClient(URI uri) {
         HttpClientOptions httpClientOptions = new HttpClientOptions()
                 .setDefaultHost(uri.getHost())
-                .setDefaultPort((uri.getPort() > 0) ? uri.getPort() : ("https".equals(uri.getScheme()) ? 443 : 80))
+                .setDefaultPort((uri.getPort() > 0) ? uri.getPort() : (Field.HTTPS.equals(uri.getScheme()) ? 443 : 80))
                 .setVerifyHost(false)
                 .setTrustAll(true)
-                .setSsl("https".equals(uri.getScheme()))
+                .setSsl(Field.HTTPS.equals(uri.getScheme()))
                 .setKeepAlive(true);
 
         if (ConfigManager.getInstance().getProxyHost() != null) {
@@ -328,8 +330,8 @@ public class JiraServiceImpl implements JiraService {
 
             LinkedList<String> commentsLinkedList = new LinkedList<>();
 
-            jsonPivot.put("id_jira", idNewJiraTicket);
-            jsonPivot.put("statut_jira", "Nouveau");
+            jsonPivot.put(Field.ID_JIRA, idNewJiraTicket);
+            jsonPivot.put(Field.STATUT_JIRA, Field.NOUVEAU);
 
             if (jsonJiraComments != null) {
                 for (Object comment : jsonJiraComments) {
@@ -338,14 +340,11 @@ public class JiraServiceImpl implements JiraService {
                 sendJiraComments(idNewJiraTicket, commentsLinkedList, jsonPivot, handler);
             } else {
                 handler.handle(new Either.Right<>(new JsonObject()
-                        .put("status", "OK")
-                        .put("jsonPivotCompleted", jsonPivot)
+                        .put(Field.STATUS, Field.OK)
+                        .put(Field.JSONPIVOTCOMPLETED, jsonPivot)
                 ));
             }
-
         });
-
-
     }
 
     /**
@@ -378,15 +377,15 @@ public class JiraServiceImpl implements JiraService {
             commentTicketRequest.setChunked(true);
 
             final JsonObject jsonCommTicket = new JsonObject();
-            jsonCommTicket.put("body", commentsLinkedList.getFirst().toString());
+            jsonCommTicket.put(Field.BODY, commentsLinkedList.getFirst().toString());
             commentTicketRequest.write(jsonCommTicket.encode());
 
             terminateRequest(commentTicketRequest);
 
         } else {
             handler.handle(new Either.Right<>(new JsonObject()
-                    .put("status", "OK")
-                    .put("jsonPivotCompleted", jsonPivot)
+                    .put(Field.STATUS, Field.OK)
+                    .put(Field.JSONPIVOTCOMPLETED, jsonPivot)
             ));
         }
     }
@@ -414,8 +413,8 @@ public class JiraServiceImpl implements JiraService {
             sendJiraPJ(idJira, pjLinkedList, jsonPivotCompleted, handler);
         } else {
             handler.handle(new Either.Right<>(new JsonObject()
-                    .put("status", "OK")
-                    .put("jsonPivotCompleted", jsonPivot)
+                    .put(Field.STATUS, Field.OK)
+                    .put(Field.JSONPIVOTCOMPLETED, jsonPivot)
             ));
         }
 
@@ -440,8 +439,8 @@ public class JiraServiceImpl implements JiraService {
             final HttpClientRequest postAttachmentsRequest = httpClient.post(urlNewTicket.toString(), response -> {
 
                 if (response.statusCode() != HTTP_STATUS_200_OK) {
-                    handler.handle(new Either.Left<>("999;Error when add Jira attachment : " + pjLinkedList.getFirst().getString("nom") + " : " + response.statusCode() + " " + response.statusMessage()));
-                    LOGGER.error("Error when add Jira attachment" + idJira + pjLinkedList.getFirst().getString("nom"));
+                    handler.handle(new Either.Left<>("999;Error when add Jira attachment : " + pjLinkedList.getFirst().getString(Field.NOM) + " : " + response.statusCode() + " " + response.statusMessage()));
+                    LOGGER.error("Error when add Jira attachment" + idJira + pjLinkedList.getFirst().getString(Field.NOM));
                     return;
                 }
                 //Recursive call
@@ -464,7 +463,7 @@ public class JiraServiceImpl implements JiraService {
             String finRequest = "\r\n--" + currentBoundary + "--";
 
             byte[] debBytes = debRequest.getBytes();
-            byte[] pjBytes = decoder.decode(pjLinkedList.getFirst().getString("contenu"));
+            byte[] pjBytes = decoder.decode(pjLinkedList.getFirst().getString(Field.CONTENU));
             byte[] finBytes = finRequest.getBytes();
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -483,8 +482,8 @@ public class JiraServiceImpl implements JiraService {
             terminateRequest(postAttachmentsRequest);
         } else {
             handler.handle(new Either.Right<>(new JsonObject()
-                    .put("status", "OK")
-                    .put("jsonPivotCompleted", jsonPivotCompleted)
+                    .put(Field.STATUS, Field.OK)
+                    .put(Field.JSONPIVOTCOMPLETED, jsonPivotCompleted)
             ));
         }
 
@@ -502,25 +501,6 @@ public class JiraServiceImpl implements JiraService {
                         case (HTTP_STATUS_200_OK):
                             response.bodyHandler(bufferGetInfosTicket -> {
                                 JsonObject jsonCurrentTicketInfos = new JsonObject(bufferGetInfosTicket.toString());
-                                String jiraTicketIdEnt = jsonCurrentTicketInfos.getJsonObject(JiraConstants.FIELDS, new JsonObject()).getString(JIRA_FIELD.getString(EntConstants.IDENT_FIELD));
-                                /*
-                                //Is JIRA ticket had been created by IWS ?
-                                if (jiraTicketIdIWS == null) {
-                                    handler.handle(new Either.Left<>("102;Not an IWS ticket."));
-                                    return;
-                                }
-
-
-
-                                //Is JIRA ticket had been created by same IWS issue ?
-                                String jsonPivotIdIWS = jsonPivotIn.getString(IDIWS_FIELD);
-                                if (!jiraTicketIdIWS.equals(jsonPivotIdIWS)) {
-                                    handler.handle(new Either.Left<>("102;JIRA Ticket " + jiraTicketId + " already link with an another IWS issue"));
-                                    return;
-                                }
-                                */
-
-
                                 //Convert jsonPivotIn into jsonJiraTicket
 
                                 //Update Jira
@@ -529,8 +509,8 @@ public class JiraServiceImpl implements JiraService {
                                     if (modifyResp.statusCode() == HTTP_STATUS_204_NO_CONTENT) {
 
                                         // Compare comments and add only new ones
-                                        JsonArray jsonPivotTicketComments = jsonPivotIn.getJsonArray("commentaires", new JsonArray());
-                                        JsonArray jsonCurrentTicketComments = jsonCurrentTicketInfos.getJsonObject("fields").getJsonObject("comment").getJsonArray("comments");
+                                        JsonArray jsonPivotTicketComments = jsonPivotIn.getJsonArray(Field.COMMENTAIRES, new JsonArray());
+                                        JsonArray jsonCurrentTicketComments = jsonCurrentTicketInfos.getJsonObject(Field.FIELDS).getJsonObject(Field.COMMENT).getJsonArray(Field.COMMENTS);
                                         JsonArray newComments = extractNewComments(jsonCurrentTicketComments, jsonPivotTicketComments);
 
                                         LinkedList<String> commentsLinkedList = new LinkedList<>();
@@ -547,11 +527,11 @@ public class JiraServiceImpl implements JiraService {
                                             }
                                             sendJiraComments(jiraTicketId, commentsLinkedList, jsonPivotIn, EitherCommentaires -> {
                                                 if (EitherCommentaires.isRight()) {
-                                                    JsonObject jsonPivotCompleted = EitherCommentaires.right().getValue().getJsonObject("jsonPivotCompleted");
+                                                    JsonObject jsonPivotCompleted = EitherCommentaires.right().getValue().getJsonObject(Field.JSONPIVOTCOMPLETED);
 
                                                     // Compare PJ and add only new ones
-                                                    JsonArray jsonPivotTicketPJ = jsonPivotIn.getJsonArray("pj", new JsonArray());
-                                                    JsonArray jsonCurrentTicketPJ = jsonCurrentTicketInfos.getJsonObject("fields").getJsonArray("attachment");
+                                                    JsonArray jsonPivotTicketPJ = jsonPivotIn.getJsonArray(Field.PJ, new JsonArray());
+                                                    JsonArray jsonCurrentTicketPJ = jsonCurrentTicketInfos.getJsonObject(Field.FIELDS).getJsonArray(Field.ATTACHMENT);
                                                     JsonArray newPJs = extractNewPJs(jsonCurrentTicketPJ, jsonPivotTicketPJ);
                                                     updateJiraPJ(jsonPivotCompleted, newPJs, jsonPivotIn, handler);
 
@@ -561,7 +541,7 @@ public class JiraServiceImpl implements JiraService {
                                                 }
                                             });
                                         } else {
-                                            handler.handle(new Either.Right<>(new JsonObject().put("status", "OK")));
+                                            handler.handle(new Either.Right<>(new JsonObject().put(Field.STATUS, Field.OK)));
                                         }
                                     } else {
                                         LOGGER.error("Error when calling URL " + urlUpdateJiraTicket + " : " + modifyResp.statusMessage());
@@ -639,16 +619,16 @@ public class JiraServiceImpl implements JiraService {
                 return null;
             }
             JsonObject jsonComment = new JsonObject();
-            jsonComment.put("id", elements[0].trim());
-            jsonComment.put("owner", elements[1].trim());
-            jsonComment.put("created", elements[2].trim());
+            jsonComment.put(Field.ID, elements[0].trim());
+            jsonComment.put(Field.OWNER, elements[1].trim());
+            jsonComment.put(Field.CREATED, elements[2].trim());
             StringBuilder content = new StringBuilder();
             for (int i = 3; i < elements.length; i++) {
                 content.append(elements[i]);
                 content.append("|");
             }
             content.deleteCharAt(content.length() - 1);
-            jsonComment.put("content", content.toString());
+            jsonComment.put(Field.CONTENT, content.toString());
             return jsonComment;
         } catch (NullPointerException e) {
             return null;
@@ -664,8 +644,7 @@ public class JiraServiceImpl implements JiraService {
      * @return formatted date string
      */
     private String getDateFormatted(final String sqlDate, final boolean idStyle) {
-        final DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-        //df.setTimeZone(TimeZone.getTimeZone("GMT"));
+        final DateFormat df = new SimpleDateFormat(DateHelper.SQL_FORMAT);
         Date d;
         try {
             d = df.parse(sqlDate);
@@ -676,9 +655,9 @@ public class JiraServiceImpl implements JiraService {
         }
         Format formatter;
         if (idStyle) {
-            formatter = new SimpleDateFormat("yyyyMMddHHmmss");
+            formatter = new SimpleDateFormat(DateHelper.yyyyMMddHHmmss);
         } else {
-            formatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+            formatter = new SimpleDateFormat(DateHelper.DATE_FORMAT_WITHOUT_SEPARATOR);
         }
         return formatter.format(d);
     }
@@ -699,8 +678,8 @@ public class JiraServiceImpl implements JiraService {
             JsonObject issueComment = unserializeComment(rawComment);
             String issueCommentId;
 
-            if (issueComment != null && issueComment.containsKey("id")) {
-                issueCommentId = issueComment.getString("id", "");
+            if (issueComment != null && issueComment.containsKey(Field.ID)) {
+                issueCommentId = issueComment.getString(Field.ID, "");
             } else {
                 LOGGER.error("Support : Invalid comment : " + rawComment);
                 continue;
@@ -710,13 +689,13 @@ public class JiraServiceImpl implements JiraService {
             for (Object jiraComment : inJiraComments) {
                 if (!(jiraComment instanceof JsonObject)) continue;
                 JsonObject ticketComment = (JsonObject) jiraComment;
-                String ticketCommentCreated = ticketComment.getString("created", "").trim();
+                String ticketCommentCreated = ticketComment.getString(Field.CREATED, "").trim();
                 String ticketCommentId = getDateFormatted(ticketCommentCreated, true);
-                String ticketCommentContent = ticketComment.getString("body", "").trim();
+                String ticketCommentContent = ticketComment.getString(Field.BODY, "").trim();
                 JsonObject ticketCommentPivotContent = unserializeComment(ticketCommentContent);
                 String ticketCommentPivotId = "";
                 if (ticketCommentPivotContent != null) {
-                    ticketCommentPivotId = ticketCommentPivotContent.getString("id");
+                    ticketCommentPivotId = ticketCommentPivotContent.getString(Field.ID);
                 }
                 if (issueCommentId.equals(ticketCommentId)
                         || issueCommentId.equals(ticketCommentPivotId)) {
@@ -748,8 +727,8 @@ public class JiraServiceImpl implements JiraService {
             String issuePivotName;
 
 
-            if (pjIssuePivot.containsKey("nom")) {
-                issuePivotName = pjIssuePivot.getString("nom", "");
+            if (pjIssuePivot.containsKey(Field.NOM)) {
+                issuePivotName = pjIssuePivot.getString(Field.NOM, "");
             } else {
                 LOGGER.error("Support : Invalid PJ : " + pjIssuePivot);
                 continue;
@@ -760,7 +739,7 @@ public class JiraServiceImpl implements JiraService {
             for (Object ot : inJiraPJs) {
                 if (!(ot instanceof JsonObject)) continue;
                 JsonObject pjTicketJiraPJ = (JsonObject) ot;
-                String ticketPJName = pjTicketJiraPJ.getString("filename", "").trim();
+                String ticketPJName = pjTicketJiraPJ.getString(Field.FILENAME, "").trim();
 
                 if (issuePivotName.equals(ticketPJName)) {
                     existing = true;

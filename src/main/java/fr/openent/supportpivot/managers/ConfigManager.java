@@ -11,6 +11,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 
+//Todo make model
 public class ConfigManager {
 
     private static ConfigManager instance = null;

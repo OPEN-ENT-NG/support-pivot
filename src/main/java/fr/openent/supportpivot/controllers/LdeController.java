@@ -1,5 +1,6 @@
 package fr.openent.supportpivot.controllers;
 
+import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.PivotConstants;
 import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.managers.ServiceManager;
@@ -43,10 +44,10 @@ public class LdeController extends ControllerHelper {
     @Get("/lde/tickets")
     @fr.wseduc.security.SecuredAction(value = "", type = ActionType.AUTHENTICATED)
     public void getListeTicketsLDE(final HttpServerRequest request) {
-        String date = request.params().get("date");
+        String date = request.params().get(Field.DATE);
         JsonObjectSafe data = new JsonObjectSafe();
-        data.put("type", "list");
-        data.putSafe("date", date);
+        data.put(Field.TYPE, Field.LIST);
+        data.putSafe(Field.DATE, date);
         routerService.readTickets(SOURCE_LDE, data, event -> {
             if (event.succeeded()) {
                 Renders.renderJson(request, event.result());
@@ -60,11 +61,11 @@ public class LdeController extends ControllerHelper {
     @Get("/lde/ticket/:id")
     @fr.wseduc.security.SecuredAction(value = "", type = ActionType.AUTHENTICATED)
     public void getTicketLDE(final HttpServerRequest request) {
-        String id_param_value = request.params().get("id");
+        String id_param_value = request.params().get(Field.ID);
         //router trigger ( src = lde + idLDE )
         JsonObject data = new JsonObject()
-                .put("idjira", id_param_value)
-                .put("type", "ticket");
+                .put(Field.IDJIRA, id_param_value)
+                .put(Field.TYPE, Field.TICKET);
         routerService.readTickets(SOURCE_LDE, data, event -> {
             if (event.succeeded()) {
                 Renders.renderJson(request, event.result().getJsonObject(0));

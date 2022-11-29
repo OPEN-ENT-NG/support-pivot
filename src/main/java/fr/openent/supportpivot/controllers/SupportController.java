@@ -18,6 +18,7 @@
 
 package fr.openent.supportpivot.controllers;
 
+import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.constants.PivotConstants;
 import fr.openent.supportpivot.deprecatedservices.DemandeService;
@@ -44,9 +45,7 @@ import java.util.Map;
 
 /**
  * Created by colenot on 07/12/2017.
- *
  * Controller for support pivot
- *
  * Exposed API
  * /demande : Register a demande from IWS
  * /testMail/:mail : Send a test mail to address in parameter
@@ -109,9 +108,9 @@ public class SupportController extends ControllerHelper {
                     errorCode = errorCode.split(";")[0];
                 }
                 JsonObject error = new JsonObject()
-                        .put("errorCode", errorCode)
-                        .put("errorMessage", errorCodeMsg)
-                        .put("status", "KO");
+                        .put(Field.ERRORCODE, errorCode)
+                        .put(Field.ERRORMESSAGE, errorCodeMsg)
+                        .put(Field.STATUS, Field.KO);
                 Renders.renderJson(request, error, 400);
             }
         };
@@ -126,12 +125,12 @@ public class SupportController extends ControllerHelper {
         JsonObject jsonMessage = message.body();
         this.routerService.toPivotTicket(Endpoint.ENDPOINT_ENT, jsonMessage, event -> {
             if (event.succeeded()) {
-                message.reply(new JsonObject().put("status", "ok")
-                        .put("message", "invalid.action")
-                        .put("issue", event.result()));
+                message.reply(new JsonObject().put(Field.STATUS, Field.OK.toLowerCase())
+                        .put(Field.MESSAGE, "invalid.action")
+                        .put(Field.ISSUE, event.result()));
             } else {
-                message.reply(new JsonObject().put("status", "ko")
-                        .put("message", event.cause().getMessage()));
+                message.reply(new JsonObject().put(Field.STATUS, Field.KO.toLowerCase())
+                        .put(Field.MESSAGE, event.cause().getMessage()));
             }
         });
     }
@@ -142,7 +141,7 @@ public class SupportController extends ControllerHelper {
     @Get("getMongoInfos/:request")
     @SecuredAction("supportpivot.ws.dbrequest")
     public void getMongoInfos(final HttpServerRequest request) {
-        final String mailTo = request.params().get("request");
+        final String mailTo = request.params().get(Field.REQUEST);
         mongoService.getMongoInfos(mailTo, getDefaultResponseHandlerAsync(request));
     }
 

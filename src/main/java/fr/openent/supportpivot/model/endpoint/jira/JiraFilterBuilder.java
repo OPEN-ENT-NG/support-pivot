@@ -11,11 +11,11 @@ import java.nio.charset.StandardCharsets;
 public class JiraFilterBuilder extends JsonObject {
 
     private static final Logger log = LoggerFactory.getLogger(JiraFilterBuilder.class);
-    StringBuilder jqlQeryString = new StringBuilder();
+    StringBuilder jqlQueryString = new StringBuilder();
     String outputFields = "";
 
     public void addAssigneeFilter(String assignee) {
-        if (assignee != null) jqlQeryString.append(addFilter(("assignee = " + assignee)));
+        if (assignee != null) jqlQueryString.append(addFilter(("assignee = " + assignee)));
     }
 
     public void addAssigneeOrCustomFieldFilter(String assignee, String customFielName, String customFieldValue) {
@@ -35,7 +35,7 @@ public class JiraFilterBuilder extends JsonObject {
         if(!tmpFilter.toString().isEmpty()) {
             tmpFilter.insert(0, '(');
             tmpFilter.append(')');
-            jqlQeryString.append(tmpFilter.toString());
+            jqlQueryString.append(tmpFilter);
         }
     }
 
@@ -51,13 +51,13 @@ public class JiraFilterBuilder extends JsonObject {
     public void addMinUpdateDate(String date) {
         if(date != null && !date.isEmpty()) {
             // format date
-            jqlQeryString.append(addFilter("updated > '" + date + "'"));
+            jqlQueryString.append(addFilter("updated > '" + date + "'"));
         }
     }
 
     public void addCustomfieldFilter(String customfieldid, String value) {
         if (customfieldid != null && value != null)
-            jqlQeryString.append(addFilter(getCustomFieldTemplate(customfieldid, value)));
+            jqlQueryString.append(addFilter(getCustomFieldTemplate(customfieldid, value)));
     }
 
     public void onlyIds() {
@@ -78,16 +78,16 @@ public class JiraFilterBuilder extends JsonObject {
 
     public String buildSearchQueryString() {
         try {
-            return "jql=" + URLEncoder.encode(jqlQeryString.toString(), StandardCharsets.UTF_8.toString()) + outputFields;
+            return "jql=" + URLEncoder.encode(jqlQueryString.toString(), StandardCharsets.UTF_8.toString()) + outputFields;
         } catch (UnsupportedEncodingException e) {
-            log.error("Error during build Jira search request :" + jqlQeryString.toString());
+            log.error("Error during build Jira search request :" + jqlQueryString.toString());
             return "";
         }
     }
 
     private String addFilter(String filter) {
 
-        if (jqlQeryString.length() == 0) {
+        if (jqlQueryString.length() == 0) {
             return filter;
         } else {
             return " AND " + filter;

@@ -15,6 +15,11 @@ public class DateHelper {
     public static final String TIME_ZONE_FORMAT = "z";
     public static final String DATE_FORMAT = "dd/MM/yyyy' 'HH:mm";
     public static final String DATE_FORMAT_PARSE = "yyyy-MM-dd'T'HH:mm:ss.SSS";
+    public static final String SQL_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
+    public static final String DATE_FORMAT_PARSE_UTC = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
+    public static final String yyyyMMddHHmmss = "yyyyMMddHHmmss";
+    public static final String SQL_FORMAT_WITHOUT_SEPARATOR = "yyyy-MM-dd HH:mm:ss";
+    public static final String DATE_FORMAT_WITHOUT_SEPARATOR = "dd/MM/yyyy HH:mm:ss";
     private static final Logger log = LoggerFactory.getLogger(DateHelper.class);
 
     private DateHelper() {

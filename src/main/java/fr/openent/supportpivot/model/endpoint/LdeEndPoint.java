@@ -1,5 +1,6 @@
 package fr.openent.supportpivot.model.endpoint;
 
+import fr.openent.supportpivot.helpers.DateHelper;
 import fr.openent.supportpivot.model.ticket.PivotTicket;
 import fr.wseduc.webutils.Either;
 import io.vertx.core.AsyncResult;
@@ -46,8 +47,8 @@ public class LdeEndPoint extends AbstractEndpoint {
         ticket.put(PivotTicket.IDJIRA_FIELD, pivotTicket.getJiraId());
         if(pivotTicket.getExternalId() != null) ticket.put(PivotTicket.IDEXTERNAL_FIELD, pivotTicket.getExternalId());
         if(pivotTicket.getTitle() != null) ticket.put(PivotTicket.TITLE_FIELD, pivotTicket.getTitle());
-        DateTimeFormatter inFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-        DateTimeFormatter outFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        DateTimeFormatter inFormatter = DateTimeFormatter.ofPattern(DateHelper.DATE_FORMAT_PARSE_UTC);
+        DateTimeFormatter outFormatter = DateTimeFormatter.ofPattern(DateHelper.SQL_FORMAT_WITHOUT_SEPARATOR);
         ZonedDateTime createdDate = inFormatter.parse(pivotTicket.getRawCreatedAt(), ZonedDateTime::from);
         ticket.put(PivotTicket.RAWDATE_CREA_FIELD, outFormatter.format(createdDate));
         ZonedDateTime updatedDate = inFormatter.parse(pivotTicket.getRawUpdatedAt(), ZonedDateTime::from);

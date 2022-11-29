@@ -1,5 +1,6 @@
 package fr.openent.supportpivot.model.endpoint;
 
+import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.PivotConstants;
 import fr.openent.supportpivot.model.ticket.PivotTicket;
 import io.vertx.core.*;
@@ -25,7 +26,7 @@ class SupportEndpoint extends  AbstractEndpoint {
 
     @Override
     public void process(JsonObject ticketData, Handler<AsyncResult<PivotTicket>> handler) {
-        final JsonObject issue = ticketData.getJsonObject("issue");
+        final JsonObject issue = ticketData.getJsonObject(Field.ISSUE);
         PivotTicket ticket = new PivotTicket();
         ticket.setJsonObject(issue);
         handler.handle(Future.succeededFuture(ticket));
@@ -36,10 +37,10 @@ class SupportEndpoint extends  AbstractEndpoint {
          try {
                     eventBus
                             .send(PivotConstants.BUS_SEND, new JsonObject()
-                                            .put("action", "create")
-                                            .put("issue", ticket.getJsonTicket()),
+                                            .put(Field.ACTION, Field.CREATE)
+                                            .put(Field.ISSUE, ticket.getJsonTicket()),
                                     handlerToAsyncHandler(message -> {
-                                        if (PivotConstants.ENT_BUS_OK_STATUS.equals(message.body().getString("status"))) {
+                                        if (PivotConstants.ENT_BUS_OK_STATUS.equals(message.body().getString(Field.STATUS))) {
                                             log.info(message.body());
                                             handler.handle(Future.succeededFuture(new PivotTicket()));
                                         } else {

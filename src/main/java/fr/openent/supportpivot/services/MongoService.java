@@ -2,6 +2,8 @@ package fr.openent.supportpivot.services;
 
 import fr.openent.supportpivot.Supportpivot;
 import fr.openent.supportpivot.constants.BusConstants;
+import fr.openent.supportpivot.constants.Field;
+import fr.openent.supportpivot.helpers.DateHelper;
 import fr.wseduc.mongodb.MongoDb;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -19,9 +21,6 @@ public class MongoService {
     private final MongoDb mongo;
     private final String mongoCollection;
 
-    private static final String SOURCE = "source";
-    private static final String DATE = "date";
-
     private final Logger log = LoggerFactory.getLogger(Supportpivot.class);
 
     public MongoService(String mongoCollection) {
@@ -31,10 +30,10 @@ public class MongoService {
 
 
     public void saveTicket(final String source, JsonObject jsonPivot) {
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+        DateFormat dateFormat = new SimpleDateFormat(DateHelper.DATE_FORMAT_PARSE_UTC);
         Date date = new Date();
-        jsonPivot.put(SOURCE, source);
-        jsonPivot.put(DATE, dateFormat.format(date));
+        jsonPivot.put(Field.SOURCE, source);
+        jsonPivot.put(Field.DATE, dateFormat.format(date));
 
         mongo.insert(mongoCollection, jsonPivot, retourJson -> {
             if (!BusConstants.OK.equals(retourJson.body().getString(BusConstants.STATUS))) {
@@ -46,7 +45,7 @@ public class MongoService {
     public void getMongoInfos(String mailTo,
                               final Handler<AsyncResult<JsonObject>> handler) {
         try {
-            JsonObject req = new JsonObject(java.net.URLDecoder.decode(mailTo, "UTF-8"));
+            JsonObject req = new JsonObject(java.net.URLDecoder.decode(mailTo, Field.ENCODE_UTF_8));
             mongo.find(mongoCollection, req,
                     jsonObjectMessage -> handler.handle(Future.succeededFuture(jsonObjectMessage.body())));
         } catch(Exception e) {
