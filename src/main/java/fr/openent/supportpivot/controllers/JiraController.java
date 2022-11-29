@@ -1,5 +1,6 @@
 package fr.openent.supportpivot.controllers;
 
+import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.managers.ServiceManager;
 import fr.openent.supportpivot.model.endpoint.Endpoint;
@@ -44,11 +45,10 @@ public class JiraController extends ControllerHelper {
         final String idJira = request.params().get("idjira");
         routerService.toPivotTicket(Endpoint.ENDPOINT_JIRA, new JsonObject().put(JiraConstants.ID_JIRA, idJira), event -> {
             if (event.succeeded()) {
-                Renders.renderJson(request, new JsonObject().put("status", "OK"), 200);
+                Renders.renderJson(request, new JsonObject().put(Field.STATUS, Field.OK), 200);
             } else {
-                Renders.renderJson(request, new JsonObject().put("status", "KO"), 500);
+                Renders.renderJson(request, new JsonObject().put(Field.STATUS, Field.KO), 500);
             }
         });
     }
-
 }
