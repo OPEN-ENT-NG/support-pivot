@@ -47,7 +47,6 @@ import static fr.wseduc.webutils.Utils.handlerToAsyncHandler;
 
 /**
  * Created by colenot on 07/12/2017.
- *
  * Default implementation for DemandeService
  */
 public class DefaultDemandeServiceImpl implements DemandeService {
@@ -93,11 +92,11 @@ public class DefaultDemandeServiceImpl implements DemandeService {
 
         eb = getEventBus(vertx);
         this.MAIL_IWS = config.getString(ConfigField.MAIL_IWS);
-        this.COLLECTIVITY_NAME = ConfigManager.getInstance().getCollectivity();
-        this.ATTRIBUTION_DEFAULT = config.getString(ConfigField.DEFAULT_ATTRIBUTION);
-        this.TICKETTYPE_DEFAULT = config.getString(ConfigField.DEFAULT_TICKETTYPE);
-        this.PRIORITY_DEFAULT = config.getString(ConfigField.DEFAULT_PRIORITY);
-        this.jiraService = new DefaultJiraServiceImpl(vertx, config);
+        this.COLLECTIVITY_NAME = ConfigManager.getInstance().getConfig().getCollectivity();
+        this.ATTRIBUTION_DEFAULT = ConfigManager.getInstance().getConfig().getDefaultAttribution();
+        this.TICKETTYPE_DEFAULT = ConfigManager.getInstance().getConfig().getDefaultTicketType();
+        this.PRIORITY_DEFAULT = ConfigManager.getInstance().getConfig().getDefaultPriority().getEnName();
+        this.jiraService = new DefaultJiraServiceImpl(vertx);
     }
 
     /**

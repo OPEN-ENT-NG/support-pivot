@@ -39,7 +39,7 @@ public class CrifRouterService extends AbstractRouterService {
 
     @Override
     public void dispatchTicket(String source, PivotTicket ticket, Handler<AsyncResult<PivotTicket>> handler) {
-        if (SOURCES.LDE.equals(source)) {
+        if (SOURCES.LDE.toString().equals(source)) {
             if (!ticket.getJiraId().isEmpty()) {
                 jiraEndpoint.send(ticket, jiraEndpointSendResult -> {
                     if (jiraEndpointSendResult.succeeded()) {
@@ -71,7 +71,7 @@ public class CrifRouterService extends AbstractRouterService {
 
     @Override
     public void toPivotTicket(String source, JsonObject ticketdata, Handler<AsyncResult<JsonObject>> handler) {
-        if (SOURCES.LDE.equals(source)) {
+        if (SOURCES.LDE.toString().equals(source)) {
             mongoService.saveTicket(ATTRIBUTION_LDE, ticketdata);
             ldeEndpoint.process(ticketdata, ldeEndpointProcessResult -> {
                 if (ldeEndpointProcessResult.succeeded()) {
@@ -104,7 +104,7 @@ public class CrifRouterService extends AbstractRouterService {
     //todo split in two functions ?
     @Override
     public void readTickets(String source, JsonObject data, Handler<AsyncResult<JsonArray>> handler) {
-        if (SOURCES.LDE.equals(source)) {
+        if (SOURCES.LDE.toString().equals(source)) {
             String type = data == null ? "list" : data.getString("type", "");
             String minDate = data == null ? null : data.getString("date");
             if (type.equals("list")) {

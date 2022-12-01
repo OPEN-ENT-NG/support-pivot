@@ -8,6 +8,8 @@ import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.helpers.PivotHttpClient;
 import fr.openent.supportpivot.helpers.PivotHttpClientRequest;
 import fr.openent.supportpivot.managers.ConfigManager;
+import fr.openent.supportpivot.model.ConfigModel;
+import fr.openent.supportpivot.model.status.JiraStatus;
 import fr.openent.supportpivot.model.endpoint.AbstractEndpoint;
 import fr.openent.supportpivot.model.ticket.PivotTicket;
 import fr.openent.supportpivot.services.HttpClientService;
@@ -28,10 +30,7 @@ import java.text.DateFormat;
 import java.text.Format;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
@@ -55,8 +54,8 @@ public class JiraEndpoint extends AbstractEndpoint {
 
     public JiraEndpoint(HttpClientService httpClientService, JiraService jiraService) {
         try {
-            this.httpClient = httpClientService.getHttpClient(ConfigManager.getInstance().getJiraHost());
-            httpClient.setBasicAuth(ConfigManager.getInstance().getJiraLogin(), ConfigManager.getInstance().getJiraPassword());
+            this.httpClient = httpClientService.getHttpClient(ConfigManager.getInstance().getConfig().getJiraHost());
+            httpClient.setBasicAuth(ConfigManager.getInstance().getConfig().getJiraLogin(), ConfigManager.getInstance().getConfig().getJiraPasswd());
 
         } catch (URISyntaxException e) {
             log.error("invalid uri " + e);
@@ -87,13 +86,17 @@ public class JiraEndpoint extends AbstractEndpoint {
 
     private URI prepareSearchRequest(JsonObject data) {
         JiraFilterBuilder filter = new JiraFilterBuilder();
-        JsonObject JIRA_FIELDS = ConfigManager.getInstance().getJiraCustomFields();
+        Map<String, String> jiraField = ConfigManager.getInstance().getConfig().getJiraCustomFields();
         if (data.containsKey(ATTRIBUTION_FILTERNAME)) {
             String customFieldFilter = data.getString(ATTRIBUTION_FILTER_CUSTOMFIELD, "");
             if (customFieldFilter.isEmpty()) {
                 filter.addAssigneeFilter(data.getString(ATTRIBUTION_FILTERNAME));
             } else {
-                String customFieldName = JIRA_FIELDS.getString(customFieldFilter);
+                String customFieldName = jiraField.getOrDefault(customFieldFilter, "");
+                if (customFieldName == null || customFieldName.isEmpty()) {
+                    log.error(String.format("[SupportPivot@%s::prepareSearchRequest]: Can not find customFieldFilter %s",
+                            this.getClass().getSimpleName(), customFieldFilter));
+                }
                 filter.addAssigneeOrCustomFieldFilter(data.getString(ATTRIBUTION_FILTERNAME),
                         customFieldName, null);
             }
@@ -103,7 +106,12 @@ public class JiraEndpoint extends AbstractEndpoint {
         }
         filter.onlyIds();
         filter.addFieldDates();
-        filter.addFields(JIRA_FIELDS.getString(Field.CREATION, ""));
+        String creationFieldJira = jiraField.getOrDefault(Field.CREATION, "");
+        if (creationFieldJira == null || creationFieldJira.isEmpty()) {
+            log.error(String.format("[SupportPivot@%s::prepareSearchRequest]: Can not find creationFieldJira",
+                    this.getClass().getSimpleName()));
+        }
+        filter.addFields(creationFieldJira);
 
         return ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
     }
@@ -307,10 +315,10 @@ public class JiraEndpoint extends AbstractEndpoint {
      */
     public void convertJiraReponseToJsonPivot(final JsonObject jiraTicket,
                                               final Handler<Either<String, JsonObject>> handler) {
-        ConfigManager config = ConfigManager.getInstance();
-        JsonObject JIRA_FIELD = config.getJiraCustomFields();
-        String JIRA_STATUS_DEFAULT = config.getJiraDefaultStatus();
-        JsonObject JIRA_STATUS_MAPPING = config.getJiraStatusMapping();
+        ConfigModel config = ConfigManager.getInstance().getConfig();
+        Map<String, String> jiraCustomFields = config.getJiraCustomFields();
+        JiraStatus defaultJiraStatus = config.getDefaultJiraStatus();
+        List<JiraStatus> jiraStatusMapping = config.getJiraStatusMapping();
 
         JsonObject fields = jiraTicket.getJsonObject(Field.FIELDS);
 
@@ -322,15 +330,26 @@ public class JiraEndpoint extends AbstractEndpoint {
         if (fields == null) {
             handler.handle(new Either.Right<>(jsonPivot));
         } else {
+            String creatorField = jiraCustomFields.getOrDefault(Field.CREATOR, "");
+            String creationField = jiraCustomFields.getOrDefault(Field.CREATION, "");
+            String uaiField = jiraCustomFields.getOrDefault(Field.UAI, "");
+            String idEntField = jiraCustomFields.getOrDefault(Field.ID_ENT, "");
+            String statusEntField = jiraCustomFields.getOrDefault(Field.STATUS_ENT, "");
+            String resolutionIws = jiraCustomFields.getOrDefault(Field.RESOLUTION_IWS, "");
+            String resolutionEnt = jiraCustomFields.getOrDefault(Field.RESOLUTION_ENT, "");
+            String responseTechnical = jiraCustomFields.getOrDefault(Field.RESPONSE_TECHNICAL, "");
+            String idExternalField = jiraCustomFields.getOrDefault(Field.ID_EXTERNE, "");
+            String statusExterne = jiraCustomFields.getOrDefault(Field.STATUS_EXTERNE, "");
+
             jsonPivot.putSafe(RAWDATE_CREA_FIELD, fields.getString(Field.CREATED));
             jsonPivot.putSafe(RAWDATE_UPDATE_FIELD, fields.getString(Field.UPDATED));
             jsonPivot.put(CREATOR_FIELD,
-                    fields.getString(stringEncode(JIRA_FIELD.getString(Field.CREATOR)), ""));
+                    fields.getString(stringEncode(creatorField), ""));
 
             jsonPivot.putSafe(TICKETTYPE_FIELD, fields
                     .getJsonObject(Field.ISSUETYPE, new JsonObject()).getString(Field.NAME));
             jsonPivot.putSafe(TITLE_FIELD, fields.getString(Field.SUMMARY));
-            jsonPivot.putSafe(UAI_FIELD, fields.getString(JIRA_FIELD.getString(Field.UAI)));
+            jsonPivot.putSafe(UAI_FIELD, fields.getString(uaiField));
             jsonPivot.put(DESCRIPTION_FIELD, fields.getString(Field.DESCRIPTION, ""));
 
             String currentPriority = fields.getJsonObject(Field.PRIORITY, new JsonObject()).getString(Field.NAME, "");
@@ -355,9 +374,7 @@ public class JiraEndpoint extends AbstractEndpoint {
 
             jsonPivot.putSafe(MODULES_FIELD, fields.getJsonArray(Field.LABELS));
 
-            jsonPivot.put(ID_FIELD, fields.getString(JIRA_FIELD.getString(Field.ID_ENT), ""));
-
-
+            jsonPivot.put(ID_FIELD, fields.getString(idEntField, ""));
 
             if (fields.containsKey(Field.COMMENT)) {
                 JsonArray comm = fields.getJsonObject(Field.COMMENT)
@@ -374,28 +391,25 @@ public class JiraEndpoint extends AbstractEndpoint {
                 jsonPivot.put(COMM_FIELD, jsonCommentArray);
             }
 
-            jsonPivot.putSafe(STATUSENT_FIELD, fields.getString(JIRA_FIELD.getString(Field.STATUS_ENT)));
+            jsonPivot.putSafe(STATUSENT_FIELD, fields.getString(statusEntField));
 
             String currentStatus = fields.getJsonObject(Field.STATUS, new JsonObject()).getString(Field.NAME, "");
 
-            String currentStatusToIWS;
-            currentStatusToIWS = JIRA_STATUS_DEFAULT;
-            for (String fieldName : JIRA_STATUS_MAPPING.fieldNames()) {
-                if (JIRA_STATUS_MAPPING.getJsonArray(fieldName).contains(currentStatus)) {
-                    currentStatusToIWS = fieldName;
-                    break;
-                }
-            }
+            String currentStatusToIWS = jiraStatusMapping.stream()
+                    .filter(jiraStatus -> jiraStatus.contains(currentStatus))
+                    .map(JiraStatus::getKey)
+                    .findFirst()
+                    .orElse(defaultJiraStatus.getKey());
 
             jsonPivot.put(STATUSJIRA_FIELD, currentStatusToIWS);
 
 
-            jsonPivot.putSafe(DATE_CREA_FIELD, fields.getString(JIRA_FIELD.getString(Field.CREATION)));
-            jsonPivot.putSafe(DATE_RESOIWS_FIELD, fields.getString(JIRA_FIELD.getString(Field.RESOLUTION_IWS)));
-            jsonPivot.putSafe(DATE_RESO_FIELD, fields.getString(JIRA_FIELD.getString(Field.RESOLUTION_ENT)));
-            jsonPivot.putSafe(TECHNICAL_RESP_FIELD, fields.getString(JIRA_FIELD.getString(Field.RESPONSE_TECHNICAL)));
-            jsonPivot.putSafe(IDEXTERNAL_FIELD, fields.getString(JIRA_FIELD.getString(IDEXTERNAL_FIELD, ""), null));
-            jsonPivot.putSafe(STATUSEXTERNAL_FIELD, fields.getString(JIRA_FIELD.getString(EntConstants.STATUSEXTERNAL_FIELD, ""), null));
+            jsonPivot.putSafe(DATE_CREA_FIELD, fields.getString(creationField));
+            jsonPivot.putSafe(DATE_RESOIWS_FIELD, fields.getString(resolutionIws));
+            jsonPivot.putSafe(DATE_RESO_FIELD, fields.getString(resolutionEnt));
+            jsonPivot.putSafe(TECHNICAL_RESP_FIELD, fields.getString(responseTechnical));
+            jsonPivot.putSafe(IDEXTERNAL_FIELD, fields.getString(idExternalField, null));
+            jsonPivot.putSafe(STATUSEXTERNAL_FIELD, fields.getString(statusExterne, null));
 
             if (fields.getString(Field.RESOLUTIONDATE) != null) {
                 String dateFormated = getDateFormatted(fields.getString(Field.RESOLUTIONDATE), false);

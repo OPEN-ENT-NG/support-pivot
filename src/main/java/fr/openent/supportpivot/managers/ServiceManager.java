@@ -31,11 +31,11 @@ public class ServiceManager {
         EmailFactory emailFactory = new EmailFactory(vertx, config);
         EmailSender emailSender = emailFactory.getSender();
 
-       mongoService = new MongoService(ConfigManager.getInstance().getMongoCollection());
+       mongoService = new MongoService(ConfigManager.getInstance().getConfig().getMongoCollection());
        demandeService = new DefaultDemandeServiceImpl(vertx, config, emailSender, mongoService);
         HttpClientService httpClientService = new HttpClientService(vertx);
 
-        switch( ConfigManager.getInstance().getCollectivity() ) {
+        switch( ConfigManager.getInstance().getConfig().getCollectivity() ) {
             case "MDP":
                 log.info("Start Pivot with MDP Routeur.");
                 //TODO MDP Manager
@@ -43,11 +43,11 @@ public class ServiceManager {
                 break;
             case "CRIF":
                 log.info("Start Pivot with CRIF Routeur.");
-                JiraService jiraService = new JiraServiceImpl(vertx,config);
+                JiraService jiraService = new JiraServiceImpl(vertx);
                 routeurService = new CrifRouterService(httpClientService,jiraService);
                 break;
             default:
-                log.error("Unknown value when starting Pivot Service. collectivity: " + ConfigManager.getInstance().getCollectivity());
+                log.error("Unknown value when starting Pivot Service. collectivity: " + ConfigManager.getInstance().getConfig().getCollectivity());
         } 
     }
 

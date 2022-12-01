@@ -1,7 +1,9 @@
 package fr.openent.supportpivot.managers;
 
 import fr.openent.supportpivot.Supportpivot;
-import fr.openent.supportpivot.constants.EntConstants;
+import fr.openent.supportpivot.constants.ConfigField;
+import fr.openent.supportpivot.constants.Field;
+import fr.openent.supportpivot.model.ConfigModel;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -10,77 +12,67 @@ import org.apache.commons.lang3.StringUtils;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.List;
 
-//Todo make model
 public class ConfigManager {
 
     private static ConfigManager instance = null;
 
     private static JsonObject rawConfig;
+    private final ConfigModel config;
     private final JsonObject publicConfig;
-
-    private final String collectivity;
-    private final String mongoCollection;
-    private final String proxyHost;
-    private final Integer proxyPort;
-
-    private final String jiraHost;
-    private final String jiraBaseUri;
-    private final String jiraProjectKey;
-    private final String jiraLogin;
-    private final String jiraPassword;
-
-    private final JsonObject jiraCustomFields;
-    private final String jiraCustomFieldIdForExternalId;
-    private final String jiraCustomFieldIdForIdent;
-    private final String jiraDefaultStatus;
-    private final JsonObject jiraStatusMapping;
 
     private static final Logger log = LoggerFactory.getLogger(Supportpivot.class);
 
 
     private ConfigManager() {
-
+        config = new ConfigModel(rawConfig);
+        checkUrlSyntax();
+        checkMissingFields();
         publicConfig = rawConfig.copy();
-        collectivity = rawConfig.getString("collectivity");
-        if(collectivity.isEmpty()) {
-            log.warn("Default collectivity absent from configuration");
-        }
-        mongoCollection = rawConfig.getString("mongo-collection", "support.demandes");
-        proxyHost = rawConfig.getString("proxy-host", null);
-        proxyPort = rawConfig.getInteger("proxy-port");
-
-        //JIRA configuration
-        jiraHost = rawConfig.getString("jira-host").trim() ;
-        CheckUrlSyntax(jiraHost, "jira-host");
-        jiraBaseUri = rawConfig.getString("jira-base-uri");
-        jiraProjectKey = rawConfig.getString("jira-project-key");
-        jiraLogin = rawConfig.getString("jira-login");
-        jiraPassword = rawConfig.getString("jira-passwd");
-        jiraCustomFields = rawConfig.getJsonObject("jira-custom-fields");
-        jiraCustomFieldIdForIdent = jiraCustomFields.getString("id_ent");
-        if(jiraCustomFields.containsKey("id_externe")) {
-            jiraCustomFieldIdForExternalId = jiraCustomFields.getString("id_externe");
-        }else{
-            //For retro-compatibility
-            jiraCustomFieldIdForExternalId = jiraCustomFields.getString(EntConstants.IDENT_FIELD);
-        }
-        jiraStatusMapping = rawConfig.getJsonObject("jira-status-mapping").getJsonObject("statutsJira");
-        jiraDefaultStatus = rawConfig.getJsonObject("jira-status-mapping").getString("statutsDefault");
         initPublicConfig();
         log.info("SUPPORT-PIVOT CONFIGURATION : " + publicConfig.toString());
     }
 
-    private void initPublicConfig() {
-        publicConfig.put("jira-passwd", hidePasswd(rawConfig.getString("jira-passwd", "")));
+    /**
+     * Send log when one jira custom field is missing
+     */
+    private void checkMissingFields() {
+        List<String> requiredFieldsList = Arrays.asList(Field.ID_ENT, Field.ID_IWS, Field.ID_EXTERNE, Field.STATUS_ENT,
+                Field.STATUS_IWS, Field.STATUS_EXTERNE, Field.CREATION, Field.RESOLUTION_ENT, Field.RESOLUTION_IWS, Field.CREATOR,
+                Field.RESPONSE_TECHNICAL, Field.UAI);
+        requiredFieldsList.stream()
+                .filter(field -> !config.getJiraCustomFields().containsKey(field))
+                .forEach(field -> log.error(String.format("[SupportPivot@%s::checkMissingFields] Missing jira custom field %s", this.getClass().getName(), field)));
     }
 
-    private static void CheckUrlSyntax(String URLvalue, String parameterName) {
+    public URI getJiraBaseUrl() {
         try {
-            new URL(URLvalue).toURI();
-        }catch (Exception e) {
-            log.error("entcore.json : parameter " + parameterName+" is not a valid URL",e);
+            return new URI(config.getJiraHost()).resolve(config.getJiraBaseUri());
+        } catch (URISyntaxException e) {
+            log.fatal("bad URL jira-host / jira-base-uri :" +  config.getJiraHost() + " / " + config.getJiraBaseUri());
+            return URI.create("");
         }
+    }
+
+    public URI getJiraHostUrl() {
+        try {
+            return new URI(config.getJiraHost());
+        } catch (URISyntaxException e) {
+            log.fatal("bad URL jira-host / jira-base-uri :" +  config.getJiraHost() + " / " + config.getJiraBaseUri());
+            return URI.create("");
+        }
+    }
+
+    public String getJiraAuthInfo() { return config.getJiraLogin() + ":" + config.getJiraPasswd(); }
+
+    public String getJiraCustomFieldIdForExternalId() { return config.getJiraCustomFields().getOrDefault(Field.ID_EXTERNE, ""); }
+
+    public String getjiraCustomFieldIdForIdent() { return config.getJiraCustomFields().getOrDefault(Field.ID_ENT, ""); }
+
+    private void initPublicConfig() {
+        publicConfig.put(ConfigField.JIRA_PASSWD, hidePasswd(rawConfig.getString(ConfigField.JIRA_PASSWD, "")));
     }
 
     private String hidePasswd(String passwd) {
@@ -93,31 +85,14 @@ public class ConfigManager {
         return newpwd;
     }
 
-    public JsonObject getPublicConfig() { return publicConfig; }
-
-    public String getCollectivity() { return collectivity; }
-    public String getMongoCollection() { return mongoCollection; }
-    public String getProxyHost() { return proxyHost; }
-    public Integer getProxyPort() { return proxyPort; }
-
-    public String getJiraHost() { return jiraHost; }
-    public URI getJiraBaseUrl() {
+    private void checkUrlSyntax() {
         try {
-            return new URI(jiraHost).resolve(jiraBaseUri);
-        } catch (URISyntaxException e) {
-            log.fatal("bad URL jira-host / jira-base-uri :" +  jiraHost + " / " + jiraBaseUri);
-            return URI.create("");
+            new URL(config.getJiraHost()).toURI();
+        }catch (Exception e) {
+            log.error("entcore.json : parameter " + ConfigField.JIRA_HOST +" is not a valid URL",e);
         }
     }
-    public String getJiraLogin() { return jiraLogin; }
-    public String getJiraPassword() { return jiraPassword; }
-    public String getJiraAuthInfo() { return jiraLogin + ":" + jiraPassword; }
-    public String getJiraProjectKey() { return jiraProjectKey; }
-    public JsonObject getJiraCustomFields() { return jiraCustomFields; }
-    public String getJiraCustomFieldIdForExternalId() { return jiraCustomFieldIdForExternalId; }
-    public String getjiraCustomFieldIdForIdent() { return jiraCustomFieldIdForIdent; }
-    public JsonObject getJiraStatusMapping() { return jiraStatusMapping; }
-    public String getJiraDefaultStatus() { return jiraDefaultStatus; }
+
     public static void init(JsonObject configuration) {
         rawConfig = configuration;
         instance = new ConfigManager();
@@ -127,5 +102,11 @@ public class ConfigManager {
         return instance;
     }
 
+    public ConfigModel getConfig() {
+        return config;
+    }
 
+    public JsonObject getPublicConfig() {
+        return publicConfig;
+    }
 }

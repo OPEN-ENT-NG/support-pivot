@@ -52,7 +52,7 @@ public class LdeController extends ControllerHelper {
             if (event.succeeded()) {
                 Renders.renderJson(request, event.result());
             } else {
-                log.error("GET /lde/tickets failed : ", event.cause());
+                log.error(String.format("[SupportPivot@%s::getListeTicketsLDE]]GET /lde/tickets failed : %s", this.getClass().getName(), event.cause()));
                 Renders.badRequest(request, event.cause().toString());
             }
         });
