@@ -74,4 +74,8 @@ public class Field {
     public static final String TYPE = "type";
     public static final String LIST = "list";
     public static final String TICKET = "ticket";
+    public static final String ID_EXTERNE = "id_externe";
+    public static final String STATUS_EXTERNE = "status_externe";
+    public static final String STATUTSENT = "statutsEnt";
+    public static final String STATUTSDEFAULTENT = "statutsDefaultEnt";
 }
