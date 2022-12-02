@@ -3,6 +3,7 @@ package fr.openent.supportpivot.services.routers;
 import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.constants.PivotConstants;
 import fr.openent.supportpivot.constants.PivotConstants.*;
+import fr.openent.supportpivot.helpers.AsyncResultHelper;
 import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.model.endpoint.EndpointFactory;
 import fr.openent.supportpivot.model.endpoint.LdeEndPoint;
@@ -45,11 +46,13 @@ public class CrifRouterService extends AbstractRouterService {
                     if (jiraEndpointSendResult.succeeded()) {
                         handler.handle(Future.succeededFuture(jiraEndpointSendResult.result()));
                     } else {
+                        log.error(String.format("[SupportPivot@%s::dispatchTicket] Fail to dispatch ticket %s",
+                                this.getClass().getName(), AsyncResultHelper.getOrNullFailMessage(jiraEndpointSendResult)));
                         handler.handle(Future.failedFuture(jiraEndpointSendResult.cause()));
                     }
-
                 });
             } else {
+                log.error(String.format("[SupportPivot@%s::dispatchTicket] %s is mandatory for IDF router.", this.getClass().getName(), IDJIRA_FIELD));
                 handler.handle(Future.failedFuture(IDJIRA_FIELD + " is mandatory for IDF router."));
             }
         } else {
@@ -58,13 +61,14 @@ public class CrifRouterService extends AbstractRouterService {
                     if (jiraEndpointSendResult.succeeded()) {
                         handler.handle(Future.succeededFuture(jiraEndpointSendResult.result()));
                     } else {
+                        log.error(String.format("[SupportPivot@%s::dispatchTicket] Fail to dispatch ticket %s",
+                                this.getClass().getName(), AsyncResultHelper.getOrNullFailMessage(jiraEndpointSendResult)));
                         handler.handle(Future.failedFuture(jiraEndpointSendResult.cause()));
                     }
-
                 });
             } else {
-                String message = String.format("[SupportPivot@%s::dispatchTicket] Supportpivot" + IDJIRA_FIELD + " is mandatory for IDF router : %s",this.getClass().getSimpleName());
-                handler.handle(Future.failedFuture(message));
+                log.error(String.format("[SupportPivot@%s::dispatchTicket] %s is mandatory for IDF router.", this.getClass().getName(), IDJIRA_FIELD));
+                handler.handle(Future.failedFuture(IDJIRA_FIELD + " is mandatory for IDF router."));
             }
         }
     }
@@ -110,6 +114,8 @@ public class CrifRouterService extends AbstractRouterService {
             if (type.equals("list")) {
                 getTicketListFromJira(minDate, jiraResult -> {
                     if (jiraResult.failed()) {
+                        log.error(String.format("[SupportPivot@%s::readTickets] Fail to read ticket %s",
+                                this.getClass().getName(), AsyncResultHelper.getOrNullFailMessage(jiraResult)));
                         handler.handle(Future.failedFuture(jiraResult.cause()));
                     } else {
                         ldeEndpoint.prepareJsonList(jiraResult.result(), handler);
@@ -126,14 +132,20 @@ public class CrifRouterService extends AbstractRouterService {
                                     if (ldeFormatTicketResult.succeeded()) {
                                         handler.handle(Future.succeededFuture(new JsonArray().add(ldeFormatTicketResult.result())));
                                     } else {
+                                        log.error(String.format("[SupportPivot@%s::readTickets] Fail to sendBack %s",
+                                                this.getClass().getName(), AsyncResultHelper.getOrNullFailMessage(ldeFormatTicketResult)));
                                         handler.handle(Future.failedFuture(ldeFormatTicketResult.cause()));
                                     }
                                 });
                             } else {
+                                log.error(String.format("[SupportPivot@%s::readTickets] Fail to jiraEndpoint.process %s",
+                                        this.getClass().getName(), AsyncResultHelper.getOrNullFailMessage(jiraEndpointProcessResult)));
                                 handler.handle(Future.failedFuture(jiraEndpointProcessResult.cause()));
                             }
                         });
                     } else {
+                        log.error(String.format("[SupportPivot@%s::readTickets] Fail to ldeEndpoint.process %s",
+                                this.getClass().getName(), AsyncResultHelper.getOrNullFailMessage(ldeEndpointProcessResult)));
                         handler.handle(Future.failedFuture(ldeEndpointProcessResult.cause()));
                     }
                 });

@@ -80,7 +80,7 @@ public class JiraFilterBuilder extends JsonObject {
         try {
             return "jql=" + URLEncoder.encode(jqlQueryString.toString(), StandardCharsets.UTF_8.toString()) + outputFields;
         } catch (UnsupportedEncodingException e) {
-            log.error("Error during build Jira search request :" + jqlQueryString.toString());
+            log.error(String.format("[SupportPivot@%s::buildSearchQueryString] Error during build Jira search request: %s", this.getClass().getName(), jqlQueryString.toString()));
             return "";
         }
     }

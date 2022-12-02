@@ -13,7 +13,6 @@ public class ConfigField {
     public static final String STATUS_EXTERNAL = "status_external";
     public static final String RESOLUTION_EXTERNAL = "resolution_external";
     public static final String JIRA_STATUS_MAPPING = "jira-status-mapping";
-    public static final String STATUTSJIRA = "statutsJira";
     public static final String JIRA_ALLOWED_TICKETTYPE = "jira-allowed-tickettype";
     public static final String DEFAULT_TICKETTYPE = "default-tickettype";
     public static final String DEFAULT_PRIORITY = "default-priority";
