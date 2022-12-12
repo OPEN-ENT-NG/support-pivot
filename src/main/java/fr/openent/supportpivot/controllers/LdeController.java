@@ -4,7 +4,7 @@ import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.PivotConstants;
 import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.managers.ServiceManager;
-import fr.openent.supportpivot.services.RouterService;
+import fr.openent.supportpivot.services.routers.RouterService;
 import fr.wseduc.rs.Get;
 import fr.wseduc.rs.Put;
 import fr.wseduc.security.ActionType;

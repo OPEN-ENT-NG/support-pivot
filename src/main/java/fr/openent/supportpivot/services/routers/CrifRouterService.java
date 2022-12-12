@@ -2,7 +2,6 @@ package fr.openent.supportpivot.services.routers;
 
 import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.constants.PivotConstants;
-import fr.openent.supportpivot.constants.PivotConstants.*;
 import fr.openent.supportpivot.helpers.AsyncResultHelper;
 import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.model.endpoint.EndpointFactory;
@@ -25,7 +24,7 @@ import java.util.List;
 import static fr.openent.supportpivot.constants.PivotConstants.*;
 import static fr.openent.supportpivot.model.ticket.PivotTicket.IDJIRA_FIELD;
 
-public class CrifRouterService extends AbstractRouterService {
+public class CrifRouterService implements RouterService {
 
     private static final Logger log = LoggerFactory.getLogger(CrifRouterService.class);
     private final JiraEndpoint jiraEndpoint;
@@ -105,7 +104,6 @@ public class CrifRouterService extends AbstractRouterService {
         }
     }
 
-    //todo split in two functions ?
     @Override
     public void readTickets(String source, JsonObject data, Handler<AsyncResult<JsonArray>> handler) {
         if (SOURCES.LDE.toString().equals(source)) {
