@@ -44,7 +44,7 @@ public class IModelHelperTest {
 
         @Override
         public JsonObject toJson() {
-            return IModelHelper.toJson(false, this);
+            return IModelHelper.toJson(this, false, true);
         }
     }
 
@@ -53,7 +53,7 @@ public class IModelHelperTest {
 
         @Override
         public JsonObject toJson() {
-            return IModelHelper.toJson(true, this);
+            return IModelHelper.toJson(this, false, true);
         }
     }
 
