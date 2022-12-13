@@ -23,7 +23,7 @@ public class ConfigModel implements IModel<ConfigModel> {
     private final String academy;
     private final String defaultAttribution;
     private final String defaultTicketType;
-    private final PriorityEnum defaultPriority;
+    private final String defaultPriority;
     private final String jiraLogin;
     private String jiraPasswd;
     private final String jiraHost;
@@ -50,7 +50,7 @@ public class ConfigModel implements IModel<ConfigModel> {
         this.academy = config.getString(ConfigField.ACADEMY);
         this.defaultAttribution = config.getString(ConfigField.DEFAULT_ATTRIBUTION);
         this.defaultTicketType = config.getString(ConfigField.DEFAULT_TICKETTYPE);
-        this.defaultPriority = PriorityEnum.getValue(config.getString(ConfigField.DEFAULT_PRIORITY));
+        this.defaultPriority = config.getString(ConfigField.DEFAULT_PRIORITY);
         this.jiraLogin = config.getString(ConfigField.JIRA_LOGIN);
         this.jiraPasswd = config.getString(ConfigField.JIRA_PASSWD);
         this.jiraHost = config.getString(ConfigField.JIRA_HOST).trim();
@@ -99,7 +99,7 @@ public class ConfigModel implements IModel<ConfigModel> {
                 .put(ConfigField.ACADEMY, this.academy)
                 .put(ConfigField.DEFAULT_ATTRIBUTION, this.defaultAttribution)
                 .put(ConfigField.DEFAULT_TICKETTYPE, this.defaultTicketType)
-                .put(ConfigField.DEFAULT_PRIORITY, this.defaultPriority.getEnName())
+                .put(ConfigField.DEFAULT_PRIORITY, this.defaultPriority)
                 .put(ConfigField.JIRA_LOGIN, this.jiraLogin)
                 .put(ConfigField.JIRA_PASSWD, this.jiraPasswd)
                 .put(ConfigField.JIRA_HOST, this.jiraHost)
@@ -151,7 +151,7 @@ public class ConfigModel implements IModel<ConfigModel> {
         return defaultTicketType;
     }
 
-    public PriorityEnum getDefaultPriority() {
+    public String getDefaultPriority() {
         return defaultPriority;
     }
 

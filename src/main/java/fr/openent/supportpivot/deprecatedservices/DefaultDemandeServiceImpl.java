@@ -94,7 +94,7 @@ public class DefaultDemandeServiceImpl implements DemandeService {
         this.COLLECTIVITY_NAME = ConfigManager.getInstance().getConfig().getCollectivity();
         this.ATTRIBUTION_DEFAULT = ConfigManager.getInstance().getConfig().getDefaultAttribution();
         this.TICKETTYPE_DEFAULT = ConfigManager.getInstance().getConfig().getDefaultTicketType();
-        this.PRIORITY_DEFAULT = ConfigManager.getInstance().getConfig().getDefaultPriority().getEnName();
+        this.PRIORITY_DEFAULT = ConfigManager.getInstance().getConfig().getDefaultPriority();
         this.jiraService = new DefaultJiraServiceImpl(vertx);
     }
 

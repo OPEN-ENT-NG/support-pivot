@@ -21,6 +21,7 @@ package fr.openent.supportpivot.deprecatedservices;
 import fr.openent.supportpivot.constants.EntConstants;
 import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.JiraConstants;
+import fr.openent.supportpivot.enums.PriorityEnum;
 import fr.openent.supportpivot.helpers.DateHelper;
 import fr.openent.supportpivot.helpers.EitherHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
@@ -117,7 +118,7 @@ public class DefaultJiraServiceImpl implements JiraService {
         JIRA_STATUS_DEFAULT = config.getDefaultJiraStatus().getKey();
         JIRA_ALLOWED_TICKETTYPE = new JsonArray(config.getJiraAllowedTicketType()).copy();
         this.DEFAULT_JIRA_TICKETTYPE = config.getDefaultTicketType();
-        this.DEFAULT_PRIORITY = config.getDefaultPriority().getEnName();
+        this.DEFAULT_PRIORITY = config.getDefaultPriority();
         this.JIRA_ALLOWED_PRIORITY = new JsonArray(config.getJiraAllowedPriority()).copy();
 
         this.httpClient = generateHttpClient(JIRA_HOST);
@@ -769,22 +770,7 @@ public class DefaultJiraServiceImpl implements JiraService {
             }
 
             String currentPriority = fields.getJsonObject(Field.PRIORITY).getString(Field.NAME);
-            //TODO use Enum to remove magic String
-            switch (currentPriority) {
-                case "High":
-                case "Majeure":
-                    currentPriority = PRIORITY_MAJOR;
-                    break;
-                case "Highest":
-                case "Bloquante":
-                    currentPriority = PRIORITY_BLOCKING;
-                    break;
-                case "Lowest":
-                case "Mineure":
-                default:
-                    currentPriority = PRIORITY_MINOR;
-                    break;
-            }
+            currentPriority = PriorityEnum.getValue(currentPriority).getPivotName();
 
             jsonPivot.put(PRIORITY_FIELD, currentPriority);
 
