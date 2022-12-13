@@ -27,8 +27,8 @@ import fr.openent.supportpivot.helpers.DateHelper;
 import fr.openent.supportpivot.helpers.EitherHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.model.ConfigModel;
-import fr.openent.supportpivot.model.status.EntStatus;
-import fr.openent.supportpivot.model.status.StatusModel;
+import fr.openent.supportpivot.model.status.config.EntStatusConfig;
+import fr.openent.supportpivot.model.status.config.StatusConfigModel;
 import fr.wseduc.webutils.Either;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -72,7 +72,7 @@ public class JiraServiceImpl implements JiraService {
     private final JsonArray JIRA_ALLOWED_PRIORITY;
     private final JsonArray JIRA_ALLOWED_TICKETTYPE;
     private final Map<String, String> JIRA_FIELD;
-    private final List<EntStatus> ENT_STATUS_MAPPING;
+    private final List<EntStatusConfig> ENT_STATUS_MAPPING;
 
     private HttpClient httpClient;
     private static Base64.Encoder encoder = Base64.getMimeEncoder().withoutPadding();
@@ -270,7 +270,7 @@ public class JiraServiceImpl implements JiraService {
         String currentStatus = jsonPivotIn.getString(STATUSENT_FIELD);
 
         //Todo mettre le status par defaut plutot que STATUS_NEW
-        String statusNameEnt = ENT_STATUS_MAPPING.stream().filter(entStatus -> entStatus.getName().equals(currentStatus)).map(StatusModel::getKey).findFirst().orElse(STATUS_NEW);;
+        String statusNameEnt = ENT_STATUS_MAPPING.stream().filter(entStatusConfig -> entStatusConfig.getName().equals(currentStatus)).map(StatusConfigModel::getKey).findFirst().orElse(STATUS_NEW);;
         String title;
 
         // reporter assistanceMLN
@@ -570,8 +570,8 @@ public class JiraServiceImpl implements JiraService {
             String currentStatus = jsonPivotIn.getString(STATUSENT_FIELD);
 
             String statusNameEnt = ENT_STATUS_MAPPING.stream()
-                    .filter(entStatus -> entStatus.getName().equals(currentStatus))
-                    .map(StatusModel::getKey)
+                    .filter(entStatusConfig -> entStatusConfig.getName().equals(currentStatus))
+                    .map(StatusConfigModel::getKey)
                     .findFirst()
                     .orElse(EntConstants.STATUS_NAME_ENT);
             fields.put(JIRA_FIELD.getOrDefault(EntConstants.STATUSENT_FIELD, ""), statusNameEnt);
