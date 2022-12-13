@@ -34,22 +34,23 @@ class SupportEndpoint extends  AbstractEndpoint {
 
     @Override
     public void send(PivotTicket ticket, Handler<AsyncResult<PivotTicket>> handler) {
-         try {
-                    eventBus
-                            .send(PivotConstants.BUS_SEND, new JsonObject()
-                                            .put(Field.ACTION, Field.CREATE)
-                                            .put(Field.ISSUE, ticket.getJsonTicket()),
-                                    handlerToAsyncHandler(message -> {
-                                        if (PivotConstants.ENT_BUS_OK_STATUS.equals(message.body().getString(Field.STATUS))) {
-                                            log.info(message.body());
-                                            handler.handle(Future.succeededFuture(new PivotTicket()));
-                                        } else {
-                                            handler.handle(Future.failedFuture(message.body().toString()));
-                                        }
-                                    })
-                            );
-                } catch (Error e) {
-                    handler.handle(Future.failedFuture(e.getMessage()));
-                }
+        try {
+            eventBus
+                    .send(PivotConstants.BUS_SEND, new JsonObject()
+                                    .put(Field.ACTION, Field.CREATE)
+                                    .put(Field.ISSUE, ticket.getJsonTicket()),
+                            handlerToAsyncHandler(message -> {
+                                if (PivotConstants.ENT_BUS_OK_STATUS.equals(message.body().getString(Field.STATUS))) {
+                                    log.info(String.format("[SupportPivot@%s::send] %s", this.getClass().getName(), message.body()));
+                                    handler.handle(Future.succeededFuture(new PivotTicket()));
+                                } else {
+                                    log.error(String.format("[SupportPivot@%s::send] Fail to send to support %s", this.getClass().getName(), message.body().toString()));
+                                    handler.handle(Future.failedFuture(message.body().toString()));
+                                }
+                            })
+                    );
+        } catch (Error e) {
+            handler.handle(Future.failedFuture(e.getMessage()));
+        }
     }
 }

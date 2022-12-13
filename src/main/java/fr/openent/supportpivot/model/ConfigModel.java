@@ -43,7 +43,7 @@ public class ConfigModel implements IModel<ConfigModel> {
     public ConfigModel(JsonObject config) {
         this.collectivity = config.getString(ConfigField.COLLECTIVITY, "");
         if(this.collectivity == null || collectivity.isEmpty()) {
-            log.warn("Default collectivity absent from configuration");
+            log.warn(String.format("[SupportPivot@%s::ConfigModel] Default collectivity absent from configuration", this.getClass().getName()));
         }
         //We remove "support.demandes" from config
         this.mongoCollection = config.getString(ConfigField.MONGO_COLLECTION);

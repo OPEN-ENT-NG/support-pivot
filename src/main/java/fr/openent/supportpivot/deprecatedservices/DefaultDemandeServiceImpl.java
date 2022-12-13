@@ -21,12 +21,11 @@ package fr.openent.supportpivot.deprecatedservices;
 import fr.openent.supportpivot.constants.ConfigField;
 import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.helpers.DateHelper;
+import fr.openent.supportpivot.helpers.EitherHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.services.MongoService;
 import fr.wseduc.webutils.Either;
 import fr.wseduc.webutils.email.EmailSender;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
@@ -117,6 +116,7 @@ public class DefaultDemandeServiceImpl implements DemandeService {
         }
 
         if (missingMandatoryFields.length() != 0) {
+            log.error(String.format("[SupportPivot@%s::treatTicketFromIWS] Mandatory field %s", this.getClass().getName(), missingMandatoryFields));
             handler.handle(new Either.Left<>("2;Mandatory Field " + missingMandatoryFields));
         } else {
             add(request, jsonPivot, ATTRIBUTION_IWS, handler);
@@ -145,6 +145,7 @@ public class DefaultDemandeServiceImpl implements DemandeService {
         }
 
         if (missingMandatoryFields.length() != 0) {
+            log.error(String.format("[SupportPivot@%s::treatTicketFromENT] Mandatory field %s", this.getClass().getName(), missingMandatoryFields));
             handler.handle(new Either.Left<>("2;Mandatory Field " + missingMandatoryFields));
 
         } else {
@@ -225,7 +226,7 @@ public class DefaultDemandeServiceImpl implements DemandeService {
             Date dateValue = input.parse(sqlDate);
             return output.format(dateValue);
         } catch (ParseException e) {
-            log.error("Supportpivot : invalid date format" + e.getMessage());
+            log.error(String.format("[SupportPivot@%s::formatSqlDate] Supportpivot : invalid date format %s", this.getClass().getName(), e.getMessage()));
             return sqlDate;
         }
     }
@@ -243,6 +244,7 @@ public class DefaultDemandeServiceImpl implements DemandeService {
         if (!ATTRIBUTION_CGI.equals(attribution)
                 && !ATTRIBUTION_ENT.equals(attribution)
                 && !ATTRIBUTION_IWS.equals(attribution)) {
+            log.error(String.format("[SupportPivot@%s::add] Invalid value for %s", this.getClass().getName(), ATTRIBUTION_FIELD));
             handler.handle(new Either.Left<>("3;Invalid value for " + ATTRIBUTION_FIELD));
             return;
         }
@@ -263,7 +265,8 @@ public class DefaultDemandeServiceImpl implements DemandeService {
                     if (sentToEnt) {
                         newHandler = jiraResponse -> {
                             if (jiraResponse.isLeft()) {
-                                log.error("Supportpivot : could not save ticket to JIRA");
+                                log.error(String.format("[SupportPivot@%s::add] could not save ticket to JIRA %s",
+                                        this.getClass().getName(), EitherHelper.getOrNullLeftMessage(jiraResponse)));
                             }
                         };
                     } else {
@@ -279,7 +282,8 @@ public class DefaultDemandeServiceImpl implements DemandeService {
                         && jsonPivot.getString(IDJIRA_FIELD).isEmpty()) {
                     sendToJIRA(request, jsonPivot, jiraResponse -> {
                         if (jiraResponse.isLeft()) {
-                            log.error("Supportpivot : could not save ticket to JIRA");
+                            log.error(String.format("[SupportPivot@%s::add] Could not save ticket to JIRA %s",
+                                    this.getClass().getName(), EitherHelper.getOrNullLeftMessage(jiraResponse)));
                         }
                     });
                 }
@@ -291,7 +295,7 @@ public class DefaultDemandeServiceImpl implements DemandeService {
                     sendToENT(jsonPivot, entResponse -> {
                         if (entResponse.isLeft()) {
                             String message = String.format("[SupportPivot@%s::add] Supportpivot : could not send JIRA ticket to ENT : %s",
-                                    this.getClass().getSimpleName(), entResponse.left().getValue());
+                                    this.getClass().getSimpleName(), EitherHelper.getOrNullLeftMessage(entResponse));
                             log.error(message);
                             handler.handle(entResponse.left());
                         }else{
@@ -302,7 +306,6 @@ public class DefaultDemandeServiceImpl implements DemandeService {
                 break;
         }
     }
-
 
     /**
      * Send pivot information to ENT -- using internal bus
@@ -322,6 +325,8 @@ public class DefaultDemandeServiceImpl implements DemandeService {
                     if (Field.OK.equals(message.body().getString(Field.STATUS))) {
                         handler.handle(new Either.Right<>(message.body()));
                     } else {
+                        log.error(String.format("[SupportPivot@%s::sendToENT] Fail to send information to ENT %s",
+                                this.getClass().getName(), message.body().toString()));
                         handler.handle(new Either.Left<>("999;" + message.body().toString()));
                     }
                 }));
@@ -342,7 +347,7 @@ public class DefaultDemandeServiceImpl implements DemandeService {
 
                     //return to IWS ticket with Id_JIRA
                     sendToIWS(request,
-                            eitherJsonPivotOut.right().getValue().getJsonObject("jsonPivotCompleted"),
+                            eitherJsonPivotOut.right().getValue().getJsonObject(Field.JSONPIVOTCOMPLETED , new JsonObject()),
                             handler);
                 } else {
                     handler.handle(new Either.Right<>(new JsonObject().put(Field.STATUS, Field.OK)));
@@ -460,6 +465,7 @@ public class DefaultDemandeServiceImpl implements DemandeService {
         mongoService.saveTicket(Field.MAIL, savedInfo);
 
         if (emailSender == null) {
+            log.error(String.format("[SupportPivot@%s::sendToIWS] EmailSender module not found", this.getClass().getName()));
             handler.handle(new Either.Left<>("999;EmailSender module not found"));
             return;
         }
@@ -491,6 +497,8 @@ public class DefaultDemandeServiceImpl implements DemandeService {
                 mongoService.saveTicket(ATTRIBUTION_CGI, jsonPivot);
                 add(request, jsonPivot, ATTRIBUTION_CGI, handler);
             } else {
+                log.error(String.format("[SupportPivot@%s::sendJiraTicketToIWS] Error, the ticket has not been sent, it doesn't exist %s",
+                        this.getClass().getName(), EitherHelper.getOrNullLeftMessage(stringJsonObjectEither)));
                 handler.handle(new Either.Left<>(
                         "Error, the ticket has not been sent, it doesn't exist."));
             }
@@ -506,8 +514,9 @@ public class DefaultDemandeServiceImpl implements DemandeService {
                 mongoService.saveTicket(ATTRIBUTION_CGI, jsonPivot);
                 add(request, jsonPivot, ATTRIBUTION_CGI, handler);
             } else {
-                String message = String.format("[SupportPivot@%s::sendJiraTicketToSupport] Supportpivot :Error, the ticket has not been sent, it doesn't exist : %s",
-                        this.getClass().getSimpleName(), stringJsonObjectEither.left().getValue());
+                String message = String.format("[SupportPivot@%s::sendJiraTicketToSupport] Error, the ticket has not been sent, it doesn't exist : %s",
+                        this.getClass().getSimpleName(), EitherHelper.getOrNullLeftMessage(stringJsonObjectEither));
+                log.error(message);
                 handler.handle(new Either.Left<>(
                         message));
             }

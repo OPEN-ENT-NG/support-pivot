@@ -47,6 +47,7 @@ public class ServiceManager {
                 routeurService = new CrifRouterService(httpClientService,jiraService);
                 break;
             default:
+                //todo delete
                 log.error("Unknown value when starting Pivot Service. collectivity: " + ConfigManager.getInstance().getConfig().getCollectivity());
         } 
     }

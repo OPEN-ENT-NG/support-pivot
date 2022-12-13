@@ -22,6 +22,8 @@ import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.constants.PivotConstants;
 import fr.openent.supportpivot.deprecatedservices.DemandeService;
+import fr.openent.supportpivot.helpers.AsyncResultHelper;
+import fr.openent.supportpivot.helpers.EitherHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.managers.ServiceManager;
 import fr.openent.supportpivot.model.endpoint.Endpoint;
@@ -77,6 +79,8 @@ public class SupportController extends ControllerHelper {
             if (event.isRight()) {
                 Renders.renderJson(request, event.right().getValue(), 200);
             } else {
+                log.error(String.format("[SupportPivot@%s::getDefaultResponseHandler] %s",
+                        this.getClass().getName(), EitherHelper.getOrNullLeftMessage(event)));
                 String errorCode = event.left().getValue();
                 String errorCodeMsg = "";
                 if (errorCode.contains(";")) {
@@ -101,6 +105,8 @@ public class SupportController extends ControllerHelper {
             if (result.succeeded()) {
                 Renders.renderJson(request, result.result(), 200);
             } else {
+                log.error(String.format("[SupportPivot@%s::getDefaultResponseHandler] %s",
+                        this.getClass().getName(), AsyncResultHelper.getOrNullFailMessage(result)));
                 String errorCode = result.cause().getMessage();
                 String errorCodeMsg = "";
                 if (errorCode.contains(";")) {
@@ -156,6 +162,4 @@ public class SupportController extends ControllerHelper {
         final String idJira = request.params().get(JiraConstants.ID_JIRA);
         demandeService.sendJiraTicketToSupport(request, idJira, getDefaultResponseHandler(request));
     }
-
-
 }

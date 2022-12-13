@@ -33,8 +33,8 @@ public class PivotHttpClient {
     public void setProxy(String host,int port,String login, String password){
         proxyhost = host;
         proxyport = port;
-        proxylogin =login;
-        proxypassword=password;
+        proxylogin = login;
+        proxypassword = password;
     }
 
     @SuppressWarnings("unused")

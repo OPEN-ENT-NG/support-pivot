@@ -1,6 +1,7 @@
 package fr.openent.supportpivot.model.endpoint;
 
 import fr.openent.supportpivot.helpers.DateHelper;
+import fr.openent.supportpivot.helpers.EitherHelper;
 import fr.openent.supportpivot.model.ticket.PivotTicket;
 import fr.wseduc.webutils.Either;
 import io.vertx.core.AsyncResult;
@@ -28,6 +29,7 @@ public class LdeEndPoint extends AbstractEndpoint {
                 ticket.setJsonObject(ticketData);
                 handler.handle(Future.succeededFuture(ticket));
             } else {
+                log.error(String.format("[SupportPivot@%s::process] Fail to process %s", this.getClass().getName(), EitherHelper.getOrNullLeftMessage(result)));
                 handler.handle(Future.failedFuture(result.left().toString()));
             }
         });
