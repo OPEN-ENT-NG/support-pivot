@@ -1,14 +1,14 @@
-package fr.openent.supportpivot.model.status;
+package fr.openent.supportpivot.model.status.config;
 
 import io.vertx.core.json.JsonArray;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class JiraStatus extends StatusModel {
+public class JiraStatusConfig extends StatusConfigModel {
     private final List<String> nameList;
 
-    public JiraStatus(String key, JsonArray nameList) {
+    public JiraStatusConfig(String key, JsonArray nameList) {
         super(key);
         this.nameList = nameList.stream()
                 .filter(String.class::isInstance)

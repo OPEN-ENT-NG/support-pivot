@@ -25,7 +25,7 @@ import fr.openent.supportpivot.helpers.DateHelper;
 import fr.openent.supportpivot.helpers.EitherHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.model.ConfigModel;
-import fr.openent.supportpivot.model.status.JiraStatus;
+import fr.openent.supportpivot.model.status.config.JiraStatusConfig;
 import fr.openent.supportpivot.services.JiraService;
 import fr.wseduc.webutils.Either;
 import io.vertx.core.Handler;
@@ -73,7 +73,7 @@ public class DefaultJiraServiceImpl implements JiraService {
     private final JsonArray JIRA_ALLOWED_PRIORITY;
     private final JsonArray JIRA_ALLOWED_TICKETTYPE;
     private final Map<String, String> JIRA_FIELD;
-    private final List<JiraStatus> JIRA_STATUS_MAPPING;
+    private final List<JiraStatusConfig> JIRA_STATUS_MAPPING;
     private final String JIRA_STATUS_DEFAULT;
 
     private HttpClient httpClient;
@@ -827,8 +827,8 @@ public class DefaultJiraServiceImpl implements JiraService {
             String currentStatus = fields.getJsonObject(Field.STATUS).getString(Field.NAME);
 
             String currentStatusToIWS = JIRA_STATUS_MAPPING.stream()
-                    .filter(jiraStatus -> jiraStatus.contains(currentStatus))
-                    .map(JiraStatus::getKey)
+                    .filter(jiraStatusConfig -> jiraStatusConfig.contains(currentStatus))
+                    .map(JiraStatusConfig::getKey)
                     .findFirst()
                     .orElse(JIRA_STATUS_DEFAULT);
 

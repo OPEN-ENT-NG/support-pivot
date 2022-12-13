@@ -4,8 +4,8 @@ import fr.openent.supportpivot.constants.ConfigField;
 import fr.openent.supportpivot.constants.EntConstants;
 import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.enums.PriorityEnum;
-import fr.openent.supportpivot.model.status.EntStatus;
-import fr.openent.supportpivot.model.status.JiraStatus;
+import fr.openent.supportpivot.model.status.config.EntStatusConfig;
+import fr.openent.supportpivot.model.status.config.JiraStatusConfig;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -33,10 +33,10 @@ public class ConfigModel implements IModel<ConfigModel> {
     private final List<String> jiraAllowedTicketType;
     private final List<String> jiraAllowedPriority;
     private final Map<String, String> jiraCustomFields;
-    private final List<JiraStatus> jiraStatusMapping;
-    private final JiraStatus defaultJiraStatus;
-    private final List<EntStatus> entStatusMapping;
-    private final EntStatus defaultEntStatus;
+    private final List<JiraStatusConfig> jiraStatusConfigMapping;
+    private final JiraStatusConfig defaultJiraStatusConfig;
+    private final List<EntStatusConfig> entStatusConfigMapping;
+    private final EntStatusConfig defaultEntStatusConfig;
     private final String proxyHost;
     private final Integer proxyPort;
 
@@ -67,24 +67,24 @@ public class ConfigModel implements IModel<ConfigModel> {
                 .collect(Collectors.toList());
         this.jiraCustomFields = config.getJsonObject(ConfigField.JIRA_CUSTOM_FIELDS, new JsonObject()).stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, stringObjectEntry -> stringObjectEntry.getValue().toString()));
-        this.jiraStatusMapping = config.getJsonObject(ConfigField.JIRA_STATUS_MAPPING, new JsonObject())
+        this.jiraStatusConfigMapping = config.getJsonObject(ConfigField.JIRA_STATUS_MAPPING, new JsonObject())
                 .getJsonObject(Field.STATUTSJIRA, new JsonObject()).stream()
                 .filter(jiraStatusEntry -> jiraStatusEntry.getValue() instanceof JsonArray)
-                .map(jiraStatusEntry -> new JiraStatus(jiraStatusEntry.getKey(), (JsonArray) jiraStatusEntry.getValue()))
+                .map(jiraStatusEntry -> new JiraStatusConfig(jiraStatusEntry.getKey(), (JsonArray) jiraStatusEntry.getValue()))
                 .collect(Collectors.toList());
         String defaultJiraStatusString = config.getJsonObject(ConfigField.JIRA_STATUS_MAPPING).getString(Field.STATUTSDEFAULT);
-        this.defaultJiraStatus = this.jiraStatusMapping.stream()
-                .filter(jiraStatus -> jiraStatus.getKey().equals(defaultJiraStatusString))
+        this.defaultJiraStatusConfig = this.jiraStatusConfigMapping.stream()
+                .filter(jiraStatusConfig -> jiraStatusConfig.getKey().equals(defaultJiraStatusString))
                 .findFirst()
                 .orElse(null);
-        this.entStatusMapping = config.getJsonObject(ConfigField.ENT_STATUS_MAPPING, new JsonObject())
+        this.entStatusConfigMapping = config.getJsonObject(ConfigField.ENT_STATUS_MAPPING, new JsonObject())
                 .getJsonObject(EntConstants.STATUTS_ENT, new JsonObject()).stream()
                 .filter(entStatusEntry -> entStatusEntry.getValue() instanceof String)
-                .map(entStatusEntry -> new EntStatus(entStatusEntry.getKey(), (String) entStatusEntry.getValue()))
+                .map(entStatusEntry -> new EntStatusConfig(entStatusEntry.getKey(), (String) entStatusEntry.getValue()))
                 .collect(Collectors.toList());
         String defaultEntStatusString = config.getJsonObject(ConfigField.ENT_STATUS_MAPPING, new JsonObject()).getString(EntConstants.STATUTSDEFAULTENT);
-        this.defaultEntStatus = this.entStatusMapping.stream()
-                .filter(entStatus -> entStatus.getName().equals(defaultEntStatusString))
+        this.defaultEntStatusConfig = this.entStatusConfigMapping.stream()
+                .filter(entStatusConfig -> entStatusConfig.getName().equals(defaultEntStatusString))
                 .findFirst()
                 .orElse(null);
         this.proxyHost = config.getString(ConfigField.PROXY_HOST);
@@ -113,16 +113,16 @@ public class ConfigModel implements IModel<ConfigModel> {
         this.jiraCustomFields.forEach(jiraField::put);
 
         JsonObject jiraStatus = new JsonObject();
-        this.jiraStatusMapping.forEach(jiraStatus1 -> jiraStatus.put(jiraStatus1.getKey(), new JsonArray(jiraStatus1.getNameList()).copy()));
+        this.jiraStatusConfigMapping.forEach(jiraStatusConfig1 -> jiraStatus.put(jiraStatusConfig1.getKey(), new JsonArray(jiraStatusConfig1.getNameList()).copy()));
         JsonObject jiraMapping = new JsonObject()
                 .put(Field.STATUTSJIRA, jiraStatus)
-                .put(Field.STATUTSDEFAULT, this.defaultJiraStatus.getKey());
+                .put(Field.STATUTSDEFAULT, this.defaultJiraStatusConfig.getKey());
 
         JsonObject entStatus = new JsonObject();
-        this.entStatusMapping.forEach(entStatus1 -> entStatus.put(entStatus1.getKey(), entStatus1.getName()));
+        this.entStatusConfigMapping.forEach(entStatusConfig1 -> entStatus.put(entStatusConfig1.getKey(), entStatusConfig1.getName()));
         JsonObject entMapping = new JsonObject()
                 .put(Field.STATUTSENT, entStatus)
-                .put(Field.STATUTSDEFAULTENT, this.defaultEntStatus.getName());
+                .put(Field.STATUTSDEFAULTENT, this.defaultEntStatusConfig.getName());
 
         result.put(ConfigField.JIRA_CUSTOM_FIELDS, jiraField)
                 .put(ConfigField.JIRA_STATUS_MAPPING, jiraMapping)
@@ -196,20 +196,20 @@ public class ConfigModel implements IModel<ConfigModel> {
         return jiraCustomFields;
     }
 
-    public List<JiraStatus> getJiraStatusMapping() {
-        return jiraStatusMapping;
+    public List<JiraStatusConfig> getJiraStatusMapping() {
+        return jiraStatusConfigMapping;
     }
 
-    public JiraStatus getDefaultJiraStatus() {
-        return defaultJiraStatus;
+    public JiraStatusConfig getDefaultJiraStatus() {
+        return defaultJiraStatusConfig;
     }
 
-    public List<EntStatus> getEntStatusMapping() {
-        return entStatusMapping;
+    public List<EntStatusConfig> getEntStatusMapping() {
+        return entStatusConfigMapping;
     }
 
-    public EntStatus getDefaultEntStatus() {
-        return defaultEntStatus;
+    public EntStatusConfig getDefaultEntStatus() {
+        return defaultEntStatusConfig;
     }
 
     public String getProxyHost() {
