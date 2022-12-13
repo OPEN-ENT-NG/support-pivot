@@ -6,7 +6,8 @@ import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.helpers.*;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.model.ConfigModel;
-import fr.openent.supportpivot.model.status.JiraStatus;
+import fr.openent.supportpivot.model.jira.*;
+import fr.openent.supportpivot.model.status.config.JiraStatusConfig;
 import fr.openent.supportpivot.model.endpoint.AbstractEndpoint;
 import fr.openent.supportpivot.model.ticket.PivotTicket;
 import fr.openent.supportpivot.services.HttpClientService;
@@ -31,6 +32,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static fr.openent.supportpivot.constants.JiraConstants.ATTRIBUTION_FILTERNAME;
 import static fr.openent.supportpivot.constants.JiraConstants.ATTRIBUTION_FILTER_DATE;
@@ -116,13 +118,13 @@ public class JiraEndpoint extends AbstractEndpoint {
 
     private void processSearchResponse(HttpClientResponse response, Handler<AsyncResult<List<PivotTicket>>> handler) {
         response.bodyHandler(body -> {
-            JsonObject jsonTicket = new JsonObject(body.toString());
+            JiraSearch jiraSearch = new JiraSearch(new JsonObject(body));
             List<Future> futures = new ArrayList<>();
             List<PivotTicket> pivotTickets = new ArrayList<>();
-            jsonTicket.getJsonArray(Field.ISSUES).forEach(issue -> {
+            jiraSearch.getIssues().forEach(issue -> {
                 Future<PivotTicket> future = Future.future();
                 futures.add(future);
-                convertJiraReponseToJsonPivot((JsonObject) issue, event -> {
+                convertJiraReponseToJsonPivot(issue, event -> {
                     if (event.isRight()) {
                         // filter useful data
                         future.complete(new PivotTicket().setJsonObject(event.right().getValue()));
@@ -160,8 +162,8 @@ public class JiraEndpoint extends AbstractEndpoint {
                 HttpClientResponse response = result.result();
                 if (response.statusCode() == 200) {
                     response.bodyHandler(body -> {
-                        JsonObject jsonTicket = new JsonObject(body.toString());
-                        convertJiraReponseToJsonPivot(jsonTicket, resultPivot -> {
+                        JiraTicket jiraTicket = new JiraTicket(new JsonObject(body));
+                        convertJiraReponseToJsonPivot(jiraTicket, resultPivot -> {
                             if (resultPivot.isRight()) {
                                 PivotTicket pivotTicket = new PivotTicket();
                                 pivotTicket.setJsonObject(resultPivot.right().getValue());
@@ -322,16 +324,148 @@ public class JiraEndpoint extends AbstractEndpoint {
         }
     }
 
+    public void convertJiraReponseToJsonPivot(final JiraTicket jiraTicket, final Handler<Either<String, JsonObject>> handler) {
+        ConfigModel config = ConfigManager.getInstance().getConfig();
+        Map<String, String> jiraCustomFields = config.getJiraCustomFields();
+        JiraStatusConfig defaultJiraStatusConfig = config.getDefaultJiraStatus();
+        List<JiraStatusConfig> jiraStatusConfigMapping = config.getJiraStatusMapping();
+
+        JiraFields fields = jiraTicket.getFields();
+
+        final JsonObjectSafe jsonPivot = new JsonObjectSafe();
+
+        jsonPivot.putSafe(IDJIRA_FIELD, jiraTicket.getKey());
+        jsonPivot.putSafe(COLLECTIVITY_FIELD, config.getCollectivity());
+        jsonPivot.putSafe(ACADEMY_FIELD, config.getCollectivity());
+        if (fields == null) {
+            handler.handle(new Either.Right<>(jsonPivot));
+        } else {
+            String creatorField = jiraCustomFields.getOrDefault(Field.CREATOR, "");
+            String creationField = jiraCustomFields.getOrDefault(Field.CREATION, "");
+            String uaiField = jiraCustomFields.getOrDefault(Field.UAI, "");
+            String idEntField = jiraCustomFields.getOrDefault(Field.ID_ENT, "");
+            String statusEntField = jiraCustomFields.getOrDefault(Field.STATUS_ENT, "");
+            String resolutionIws = jiraCustomFields.getOrDefault(Field.RESOLUTION_IWS, "");
+            String resolutionEnt = jiraCustomFields.getOrDefault(Field.RESOLUTION_ENT, "");
+            String responseTechnical = jiraCustomFields.getOrDefault(Field.RESPONSE_TECHNICAL, "");
+            String idExternalField = jiraCustomFields.getOrDefault(Field.ID_EXTERNE, "");
+            String statusExterne = jiraCustomFields.getOrDefault(Field.STATUS_EXTERNE, "");
+
+            jsonPivot.putSafe(RAWDATE_CREA_FIELD, fields.getCreated());
+            jsonPivot.putSafe(RAWDATE_UPDATE_FIELD, fields.getUpdated());
+            jsonPivot.put(CREATOR_FIELD, fields.getCustomFields(stringEncode(creatorField), ""));
+
+            jsonPivot.putSafe(TICKETTYPE_FIELD, fields.getIssuetype() == null ? null : fields.getIssuetype().getName());
+            jsonPivot.putSafe(TITLE_FIELD, fields.getSummary());
+            jsonPivot.putSafe(UAI_FIELD, fields.getCustomFields(uaiField, ""));
+            jsonPivot.put(DESCRIPTION_FIELD, fields.getDescription());
+
+            String currentPriority = fields.getPriority().getName();
+            //Todo use Enum to remove magic String
+            switch (currentPriority) {
+                case "High":
+                case "Majeure":
+                    currentPriority = PRIORITY_MAJOR;
+                    break;
+                case "Highest":
+                case "Bloquante":
+                    currentPriority = PRIORITY_BLOCKING;
+                    break;
+                case "Lowest":
+                case "Mineure":
+                default:
+                    currentPriority = PRIORITY_MINOR;
+                    break;
+            }
+
+            jsonPivot.put(PRIORITY_FIELD, currentPriority);
+
+            jsonPivot.putSafe(MODULES_FIELD, new JsonArray(fields.getLabels()).copy());
+
+            jsonPivot.put(ID_FIELD, fields.getCustomFields(idEntField, ""));
+
+            if (fields.getComment() != null) {
+                List<JiraComment> jiraCommentList = fields.getComment().getComments();
+                List<String> commentString = jiraCommentList.stream()
+                        .filter(jiraComment -> jiraComment.getVisibility() == null)
+                        .map(this::serializeComment)
+                        .collect(Collectors.toList());
+                jsonPivot.put(COMM_FIELD, new JsonArray(commentString));
+            }
+
+            jsonPivot.putSafe(STATUSENT_FIELD, fields.getCustomFields(statusEntField, ""));
+
+            String currentStatus = fields.getStatus().getName();
+
+            String currentStatusToIWS = jiraStatusConfigMapping.stream()
+                    .filter(jiraStatusConfig -> jiraStatusConfig.contains(currentStatus))
+                    .map(JiraStatusConfig::getKey)
+                    .findFirst()
+                    .orElse(defaultJiraStatusConfig.getKey());
+
+            jsonPivot.put(STATUSJIRA_FIELD, currentStatusToIWS);
+
+
+            jsonPivot.putSafe(DATE_CREA_FIELD, fields.getCustomFields(creationField, null));
+            jsonPivot.putSafe(DATE_RESOIWS_FIELD, fields.getCustomFields(resolutionIws, null));
+            jsonPivot.putSafe(DATE_RESO_FIELD, fields.getCustomFields(resolutionEnt, null));
+            jsonPivot.putSafe(TECHNICAL_RESP_FIELD, fields.getCustomFields(responseTechnical, null));
+            jsonPivot.putSafe(IDEXTERNAL_FIELD, fields.getCustomFields(idExternalField, null));
+            jsonPivot.putSafe(STATUSEXTERNAL_FIELD, fields.getCustomFields(statusExterne, null));
+
+            if (fields.getResolutiondate() != null && !fields.getResolutiondate().isEmpty()) {
+                String dateFormated = getDateFormatted(fields.getResolutiondate(), false);
+                jsonPivot.put(DATE_RESOJIRA_FIELD, dateFormated);
+            }
+
+            jsonPivot.put(ATTRIBUTION_FIELD, ATTRIBUTION_IWS);
+
+            //if no attachment handle the response
+            if (fields.getAttachment().isEmpty()) {
+                handler.handle(new Either.Right<>(jsonPivot));
+                return;
+            }
+
+            Map<JiraAttachment, Future<String>> attachmentsPJFutureMap = fields.getAttachment().stream()
+                    .collect(Collectors.toMap(jiraAttachment -> jiraAttachment, this::getJiraPJ));
+
+            CompositeFuture.any(attachmentsPJFutureMap.values().stream().map(Future.class::cast).collect(Collectors.toList()))
+                    .onSuccess(res -> {
+                        final JsonArray allPJConverted = new JsonArray();
+                        attachmentsPJFutureMap.forEach((attachment, PJFuture) -> {
+                            if (PJFuture.succeeded()) {
+                                JsonObject currentPJ = new JsonObject();
+                                currentPJ.put(ATTACHMENT_NAME_FIELD, attachment.getFilename());
+                                currentPJ.put(ATTACHMENT_CONTENT_FIELD, PJFuture.result());
+                                allPJConverted.add(currentPJ);
+                            } else {
+                                log.error(String.format("[SupportPivot@%s::convertJiraReponseToJsonPivot] Fail to get jira PJ %s",
+                                        this.getClass().getName(), AsyncResultHelper.getOrNullFailMessage(PJFuture)));
+                            }
+                        });
+                        jsonPivot.put(ATTACHMENT_FIELD, allPJConverted);
+                        handler.handle(new Either.Right<>(jsonPivot));
+                    })
+                    .onFailure(event -> {
+                        log.error((String.format("[SupportPivot@%s::convertJiraReponseToJsonPivot] Fail to get all jira PJ %s",
+                                this.getClass().getName(), event.getMessage())));
+                        handler.handle(new Either.Left<>(event.getMessage()));
+                    });
+        }
+    }
 
     /**
      * Modified Jira JSON to prepare to send the email to IWS
+     *
+     * @deprecated Replaced by {@link JiraEndpoint#convertJiraReponseToJsonPivot(JiraTicket, Handler)}
      */
+    @Deprecated
     public void convertJiraReponseToJsonPivot(final JsonObject jiraTicket,
                                               final Handler<Either<String, JsonObject>> handler) {
         ConfigModel config = ConfigManager.getInstance().getConfig();
         Map<String, String> jiraCustomFields = config.getJiraCustomFields();
-        JiraStatus defaultJiraStatus = config.getDefaultJiraStatus();
-        List<JiraStatus> jiraStatusMapping = config.getJiraStatusMapping();
+        JiraStatusConfig defaultJiraStatusConfig = config.getDefaultJiraStatus();
+        List<JiraStatusConfig> jiraStatusConfigMapping = config.getJiraStatusMapping();
 
         JsonObject fields = jiraTicket.getJsonObject(Field.FIELDS);
 
@@ -356,8 +490,7 @@ public class JiraEndpoint extends AbstractEndpoint {
 
             jsonPivot.putSafe(RAWDATE_CREA_FIELD, fields.getString(Field.CREATED));
             jsonPivot.putSafe(RAWDATE_UPDATE_FIELD, fields.getString(Field.UPDATED));
-            jsonPivot.put(CREATOR_FIELD,
-                    fields.getString(stringEncode(creatorField), ""));
+            jsonPivot.put(CREATOR_FIELD, fields.getString(stringEncode(creatorField), ""));
 
             jsonPivot.putSafe(TICKETTYPE_FIELD, fields
                     .getJsonObject(Field.ISSUETYPE, new JsonObject()).getString(Field.NAME));
@@ -408,11 +541,11 @@ public class JiraEndpoint extends AbstractEndpoint {
 
             String currentStatus = fields.getJsonObject(Field.STATUS, new JsonObject()).getString(Field.NAME, "");
 
-            String currentStatusToIWS = jiraStatusMapping.stream()
-                    .filter(jiraStatus -> jiraStatus.contains(currentStatus))
-                    .map(JiraStatus::getKey)
+            String currentStatusToIWS = jiraStatusConfigMapping.stream()
+                    .filter(jiraStatusConfig -> jiraStatusConfig.contains(currentStatus))
+                    .map(JiraStatusConfig::getKey)
                     .findFirst()
-                    .orElse(defaultJiraStatus.getKey());
+                    .orElse(defaultJiraStatusConfig.getKey());
 
             jsonPivot.put(STATUSJIRA_FIELD, currentStatusToIWS);
 
@@ -472,13 +605,42 @@ public class JiraEndpoint extends AbstractEndpoint {
         }
     }
 
+    private Future<String> getJiraPJ(JiraAttachment jiraAttachment) {
+        Promise<String> promise = Promise.promise();
+
+        String attachmentLink = jiraAttachment.getContent();
+
+        httpClient.createGetRequest(attachmentLink).startRequest(result -> {
+            if (result.succeeded()) {
+                if (result.result().statusCode() == 200) {
+                    result.result().bodyHandler(bufferGetInfosTicket -> {
+                        String b64Attachment = encoder.encodeToString(bufferGetInfosTicket.getBytes());
+                        promise.complete(b64Attachment);
+                    });
+                } else {
+                    log.error(String.format("[SupportPivot@%s::getJiraPJ] Error when calling URL: %s %s %s",
+                            this.getClass().getName(), attachmentLink, result.result().statusCode(), AsyncResultHelper.getOrNullFailMessage(result)));
+                    result.result().bodyHandler(body -> log.error(body.toString()));
+                    promise.fail("Error when getting Jira attachment (" + attachmentLink + ") information");
+                }
+            } else {
+                log.error(String.format("[SupportPivot@%s::getJiraPJ] Error when calling URL: %s %s",
+                        this.getClass().getName(), attachmentLink, AsyncResultHelper.getOrNullFailMessage(result)));
+                promise.fail("Error when getting Jira attachment (" + attachmentLink + ") information");
+            }
+        });
+
+        return promise.future();
+    }
+
     /**
      * Get Jira PJ via Jira API
+     *
+     * @deprecated Replaced by {@link JiraEndpoint#getJiraPJ(JiraAttachment)}
      */
+    @Deprecated
     private void getJiraPJ(final JsonObject attachmentInfos,
                            final Handler<Either<String, JsonObject>> handler) {
-
-
         String attachmentLink = attachmentInfos.getString(Field.CONTENT);
 
         final PivotHttpClientRequest getAttachmentrequest = httpClient.createGetRequest(attachmentLink);
@@ -509,9 +671,27 @@ public class JiraEndpoint extends AbstractEndpoint {
     /**
      * Serialize comments : date | author | content
      *
+     * @param comment JiraComment comment
+     * @return String with comment serialized
+     */
+    private String serializeComment(final JiraComment comment) {
+        String content = getDateFormatted(comment.getCreated(), true)
+                + " | " + comment.getAuthor().getDisplayName()
+                + " | " + getDateFormatted(comment.getCreated(), false)
+                + " | " + comment.getBody();
+
+        String origContent = comment.getBody();
+
+        return hasToSerialize(origContent) ? content : origContent;
+    }
+
+    /**
+     * Serialize comments : date | author | content
+     *
      * @param comment Json Object with a comment to serialize
      * @return String with comment serialized
      */
+    @Deprecated
     private String serializeComment(final JsonObject comment) {
         String content = getDateFormatted(comment.getString(Field.CREATED), true)
                 + " | " + comment.getJsonObject(Field.AUTHOR).getString(Field.DISPLAYNAME)
