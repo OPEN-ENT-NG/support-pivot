@@ -25,6 +25,9 @@ import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.helpers.DateHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
+import fr.openent.supportpivot.model.ConfigModel;
+import fr.openent.supportpivot.model.status.EntStatus;
+import fr.openent.supportpivot.model.status.StatusModel;
 import fr.wseduc.webutils.Either;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -63,16 +66,12 @@ public class JiraServiceImpl implements JiraService {
     private final String JIRA_AUTH_INFO;
     private final URI JIRA_REST_API_URI;
     private final String JIRA_PROJECT_NAME;
-    private final String ACADEMY_NAME;
     private final String DEFAULT_JIRA_TICKETTYPE;
     private final String DEFAULT_PRIORITY;
     private final JsonArray JIRA_ALLOWED_PRIORITY;
     private final JsonArray JIRA_ALLOWED_TICKETTYPE;
-    private final JsonObject JIRA_FIELD;
-    private final JsonObject JIRA_STATUS_MAPPING;
-    private final JsonObject ENT_STATUS_MAPPING;
-    private final String JIRA_STATUS_DEFAULT;
-    private final String ENT_STATUS_DEFAULT;
+    private final Map<String, String> JIRA_FIELD;
+    private final List<EntStatus> ENT_STATUS_MAPPING;
 
     private HttpClient httpClient;
     private static Base64.Encoder encoder = Base64.getMimeEncoder().withoutPadding();
@@ -83,25 +82,18 @@ public class JiraServiceImpl implements JiraService {
     private static final int HTTP_STATUS_404_NOT_FOUND = 404;
     private static final int HTTP_STATUS_201_CREATED = 201;
 
-    public JiraServiceImpl(Vertx vertx, JsonObject config) {
+    public JiraServiceImpl(Vertx vertx) {
+        ConfigModel config = ConfigManager.getInstance().getConfig();
 
         this.vertx = vertx;
-        String jiraLogin = config.getString(ConfigField.JIRA_LOGIN);
-        String jiraPassword = config.getString(ConfigField.JIRA_PASSWD);
-        this.JIRA_AUTH_INFO = jiraLogin + ":" + jiraPassword;
+        this.JIRA_AUTH_INFO = ConfigManager.getInstance().getJiraAuthInfo();
 
-        URI jira_host_uri = null;
-        try {
-            jira_host_uri = new URI(config.getString(ConfigField.JIRA_HOST));
-        } catch (URISyntaxException e) {
-            LOGGER.error("Bad parameter ent-core.json#jira-host ", e);
-        }
-        this.JIRA_HOST = jira_host_uri;
+        this.JIRA_HOST = ConfigManager.getInstance().getJiraHostUrl();
         assert JIRA_HOST != null;
 
         URI jira_rest_uri = null;
         try {
-            jira_rest_uri = new URI(config.getString(ConfigField.JIRA_URL));
+            jira_rest_uri = new URI(config.getJiraURL());
         } catch (URISyntaxException e) {
             LOGGER.error("Bad parameter ent-core.json#jira-url ", e);
             //TODO Break module starting
@@ -109,24 +101,20 @@ public class JiraServiceImpl implements JiraService {
         this.JIRA_REST_API_URI = jira_rest_uri;
         assert JIRA_REST_API_URI != null;
 
-        this.JIRA_PROJECT_NAME = config.getString(ConfigField.JIRA_PROJECT_KEY);
-        this.ACADEMY_NAME = config.getString(ConfigField.ACADEMY);
-        JIRA_FIELD = config.getJsonObject(ConfigField.JIRA_CUSTOM_FIELDS);
+        this.JIRA_PROJECT_NAME = config.getJiraProjectKey();
+        JIRA_FIELD = config.getJiraCustomFields();
 
         if (JIRA_FIELD.containsKey(JiraConstants.ID_EXTERNAL)) {
             //Retro-compatibility external fields are historical labeled iws
-            JIRA_FIELD.put(Field.ID_IWS, JIRA_FIELD.getString(ConfigField.ID_EXTERNAL));
-            JIRA_FIELD.put(Field.STATUS_IWS, JIRA_FIELD.getString(ConfigField.STATUS_EXTERNAL));
-            JIRA_FIELD.put(Field.RESOLUTION_IWS, JIRA_FIELD.getString(ConfigField.RESOLUTION_EXTERNAL));
+            JIRA_FIELD.put(Field.ID_IWS, JIRA_FIELD.getOrDefault(ConfigField.ID_EXTERNAL, ""));
+            JIRA_FIELD.put(Field.STATUS_IWS, JIRA_FIELD.getOrDefault(ConfigField.STATUS_EXTERNAL, ""));
+            JIRA_FIELD.put(Field.RESOLUTION_IWS, JIRA_FIELD.getOrDefault(ConfigField.RESOLUTION_EXTERNAL, ""));
         }
-        JIRA_STATUS_MAPPING = config.getJsonObject(ConfigField.JIRA_STATUS_MAPPING).getJsonObject(ConfigField.STATUTSJIRA);
-        ENT_STATUS_MAPPING = config.getJsonObject(EntConstants.ENT_STATUS_MAPPING, new JsonObject()).getJsonObject(EntConstants.STATUTS_ENT, new JsonObject());
-        JIRA_STATUS_DEFAULT = config.getJsonObject(JiraConstants.JIRA_STATUS_MAPPING, new JsonObject()).getString(JiraConstants.STATUTS_DEFAULT);
-        ENT_STATUS_DEFAULT = config.getJsonObject(EntConstants.ENT_STATUS_MAPPING, new JsonObject()).getString(EntConstants.STATUTSDEFAULTENT);
-        JIRA_ALLOWED_TICKETTYPE = config.getJsonArray(ConfigField.JIRA_ALLOWED_TICKETTYPE);
-        this.DEFAULT_JIRA_TICKETTYPE = config.getString(ConfigField.DEFAULT_TICKETTYPE);
-        this.DEFAULT_PRIORITY = config.getString(ConfigField.DEFAULT_PRIORITY);
-        this.JIRA_ALLOWED_PRIORITY = config.getJsonArray(ConfigField.JIRA_ALLOWED_PRIORITY);
+        ENT_STATUS_MAPPING = config.getEntStatusMapping();
+        JIRA_ALLOWED_TICKETTYPE = new JsonArray(config.getJiraAllowedPriority()).copy();
+        this.DEFAULT_JIRA_TICKETTYPE = config.getDefaultTicketType();
+        this.DEFAULT_PRIORITY = config.getDefaultPriority().getEnName();
+        this.JIRA_ALLOWED_PRIORITY = new JsonArray(config.getJiraAllowedPriority()).copy();
 
         this.httpClient = generateHttpClient(JIRA_HOST);
     }
@@ -146,10 +134,10 @@ public class JiraServiceImpl implements JiraService {
                 .setSsl(Field.HTTPS.equals(uri.getScheme()))
                 .setKeepAlive(true);
 
-        if (ConfigManager.getInstance().getProxyHost() != null) {
+        if (ConfigManager.getInstance().getConfig().getProxyHost() != null) {
             ProxyOptions proxy = new ProxyOptions();
-            proxy.setHost(ConfigManager.getInstance().getProxyHost());
-            proxy.setPort(ConfigManager.getInstance().getProxyPort());
+            proxy.setHost(ConfigManager.getInstance().getConfig().getProxyHost());
+            proxy.setPort(ConfigManager.getInstance().getConfig().getProxyPort());
             httpClientOptions.setProxyOptions(proxy);
         }
 
@@ -270,20 +258,19 @@ public class JiraServiceImpl implements JiraService {
         String currentPriority = JIRA_ALLOWED_PRIORITY.getString(PIVOT_PRIORITY_LEVEL.indexOf(jsonPriority));
 
         // status ent -> JIRA
-        String statusNameEnt = STATUS_NEW;
         String currentStatus = jsonPivotIn.getString(STATUSENT_FIELD);
-        if (ENT_STATUS_MAPPING.containsKey(currentStatus)) {
-            statusNameEnt = ENT_STATUS_MAPPING.getString(currentStatus);
-        }
+
+        //Todo mettre le status par defaut plutot que STATUS_NEW
+        String statusNameEnt = ENT_STATUS_MAPPING.stream().filter(entStatus -> entStatus.getName().equals(currentStatus)).map(StatusModel::getKey).findFirst().orElse(STATUS_NEW);;
         String title;
 
         // reporter assistanceMLN
         String currentReporter = JiraConstants.REPORTER_LDE;
-        if (!JIRA_FIELD.getString(EntConstants.IDENT_FIELD, "").isEmpty()) {
+        if (!JIRA_FIELD.getOrDefault(EntConstants.IDENT_FIELD, "").isEmpty()) {
             currentReporter = JiraConstants.REPORTER_ENT;
         }
 
-        if (!JIRA_FIELD.getString(EntConstants.IDENT_FIELD, "").isEmpty()) {
+        if (!JIRA_FIELD.getOrDefault(EntConstants.IDENT_FIELD, "").isEmpty()) {
             title = String.format("[%s %s] %s", ASSISTANCE_ENT, jsonPivotIn.getString(ID_FIELD), jsonPivotIn.getString(TITLE_FIELD));
         } else {
             title = jsonPivotIn.getString(TITLE_FIELD);
@@ -300,12 +287,12 @@ public class JiraServiceImpl implements JiraService {
                 .put(JiraConstants.DESCRIPTION_FIELD, jsonPivotIn.getString(DESCRIPTION_FIELD))
                 .put(JiraConstants.ISSUETYPE, new JsonObject()
                         .put(NAME, ticketType))
-                .put(JIRA_FIELD.getString(EntConstants.IDENT_FIELD), jsonPivotIn.getString(ID_FIELD))
-                .put(JIRA_FIELD.getString(EntConstants.STATUSENT_FIELD), statusNameEnt)
-                .put(JIRA_FIELD.getString(EntConstants.CREATION_FIELD), dateCreaField)
-                .put(JIRA_FIELD.getString(EntConstants.RESOLUTION_ENT), jsonPivotIn.getString(DATE_RESO_FIELD))
+                .put(JIRA_FIELD.getOrDefault(EntConstants.IDENT_FIELD, ""), jsonPivotIn.getString(ID_FIELD))
+                .put(JIRA_FIELD.getOrDefault(EntConstants.STATUSENT_FIELD, ""), statusNameEnt)
+                .put(JIRA_FIELD.getOrDefault(EntConstants.CREATION_FIELD, ""), dateCreaField)
+                .put(JIRA_FIELD.getOrDefault(EntConstants.RESOLUTION_ENT, ""), jsonPivotIn.getString(DATE_RESO_FIELD))
                 .put(JiraConstants.REPORTER, new JsonObject().put(NAME, currentReporter))
-                .put(JIRA_FIELD.getString(EntConstants.CREATOR), jsonPivotIn.getString(CREATOR_FIELD))
+                .put(JIRA_FIELD.getOrDefault(EntConstants.CREATOR, ""), jsonPivotIn.getString(CREATOR_FIELD))
                 .put(JiraConstants.PRIORITY, new JsonObject()
                         .put(NAME, currentPriority));
 
@@ -574,25 +561,27 @@ public class JiraServiceImpl implements JiraService {
         final JsonObject jsonJiraUpdateTicket = new JsonObject();
         JsonObject fields = new JsonObject();
         if (jsonPivotIn.getString(EntConstants.IDENT_FIELD) != null)
-            fields.put(JIRA_FIELD.getString(EntConstants.IDENT_FIELD), jsonPivotIn.getString(EntConstants.IDENT_FIELD));
+            fields.put(JIRA_FIELD.getOrDefault(EntConstants.IDENT_FIELD, ""), jsonPivotIn.getString(EntConstants.IDENT_FIELD));
         if (jsonPivotIn.getString(IDEXTERNAL_FIELD) != null)
-            fields.put(JIRA_FIELD.getString(IDEXTERNAL_FIELD), jsonPivotIn.getString(IDEXTERNAL_FIELD));
+            fields.put(JIRA_FIELD.getOrDefault(IDEXTERNAL_FIELD, ""), jsonPivotIn.getString(IDEXTERNAL_FIELD));
         if (jsonPivotIn.getString(STATUSENT_FIELD) != null) {
-            String statusNameEnt = EntConstants.STATUS_NAME_ENT;
             String currentStatus = jsonPivotIn.getString(STATUSENT_FIELD);
-            if (ENT_STATUS_MAPPING.containsKey(currentStatus)) {
-                statusNameEnt = ENT_STATUS_MAPPING.getString(currentStatus);
-            }
-            fields.put(JIRA_FIELD.getString(EntConstants.STATUSENT_FIELD), statusNameEnt);
+
+            String statusNameEnt = ENT_STATUS_MAPPING.stream()
+                    .filter(entStatus -> entStatus.getName().equals(currentStatus))
+                    .map(StatusModel::getKey)
+                    .findFirst()
+                    .orElse(EntConstants.STATUS_NAME_ENT);
+            fields.put(JIRA_FIELD.getOrDefault(EntConstants.STATUSENT_FIELD, ""), statusNameEnt);
         }
 
         if (jsonPivotIn.getString(STATUSEXTERNAL_FIELD) != null)
-            fields.put(JIRA_FIELD.getString(EntConstants.STATUSEXTERNAL_FIELD), jsonPivotIn.getString(STATUSEXTERNAL_FIELD));
+            fields.put(JIRA_FIELD.getOrDefault(EntConstants.STATUSEXTERNAL_FIELD, ""), jsonPivotIn.getString(STATUSEXTERNAL_FIELD));
         if (jsonPivotIn.getString(DATE_RESO_FIELD) != null)
-            fields.put(JIRA_FIELD.getString(EntConstants.RESOLUTION_ENT), jsonPivotIn.getString(DATE_RESO_FIELD));
+            fields.put(JIRA_FIELD.getOrDefault(EntConstants.RESOLUTION_ENT, ""), jsonPivotIn.getString(DATE_RESO_FIELD));
         if (jsonPivotIn.getString(DESCRIPTION_FIELD) != null)
             fields.put((EntConstants.DESCRIPTION_FIELD), jsonPivotIn.getString(DESCRIPTION_FIELD));
-        if (!JIRA_FIELD.getString(EntConstants.IDENT_FIELD).isEmpty()) {
+        if (!JIRA_FIELD.getOrDefault(EntConstants.IDENT_FIELD, "").isEmpty()) {
             title = String.format("[%s %s] %s", ASSISTANCE_ENT, jsonPivotIn.getString(ID_FIELD),jsonPivotIn.getString(TITLE_FIELD));
         } else {
             title =  jsonPivotIn.getString(TITLE_FIELD);
@@ -600,7 +589,7 @@ public class JiraServiceImpl implements JiraService {
         if (jsonPivotIn.getString(TITLE_FIELD) != null)
             fields.put(JiraConstants.TITLE_FIELD, title);
         if (jsonPivotIn.getString(CREATOR_FIELD) != null)
-            fields.put(JIRA_FIELD.getString(EntConstants.CREATOR), jsonPivotIn.getString(CREATOR_FIELD));
+            fields.put(JIRA_FIELD.getOrDefault(EntConstants.CREATOR, ""), jsonPivotIn.getString(CREATOR_FIELD));
         jsonJiraUpdateTicket.put(JiraConstants.FIELDS, fields);
 
         return jsonJiraUpdateTicket;
