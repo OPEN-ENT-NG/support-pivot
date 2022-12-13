@@ -78,4 +78,23 @@ public class Field {
     public static final String STATUS_EXTERNE = "status_externe";
     public static final String STATUTSENT = "statutsEnt";
     public static final String STATUTSDEFAULTENT = "statutsDefaultEnt";
+    public static final String SELF = "self";
+    public static final String EXPAND = "expand";
+    public static final String STARTAT = "startAt";
+    public static final String MAXRESULTS = "maxResults";
+    public static final String CUSTOM = "custom";
+    public static final String ICONURL = "iconUrl";
+    public static final String SUBTASK = "subtask";
+    public static final String AVATARID = "avatarId";
+    public static final String EMAILADDRESS = "emailAddress";
+    public static final String ACTIVE = "active";
+    public static final String TIMEZONE = "timeZone";
+    public static final String UPDATEAUTHOR = "updateAuthor";
+    public static final String COLORNAME = "colorName";
+    public static final String STATUSCATEGORY = "statusCategory";
+    public static final String SIZE = "size";
+    public static final String MIMETYPE = "mimeType";
+    public static final String THUMBNAIL = "thumbnail";
+    public static final String CUSTOMFIELD_ = "customfield_";
+    public static final String VALUE = "value";
 }

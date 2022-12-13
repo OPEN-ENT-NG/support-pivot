@@ -27,7 +27,9 @@ public class IModelHelper {
 
     @SuppressWarnings("unchecked")
     public static <T extends IModel<T>> List<T> toList(JsonArray results, Class<T> modelClass) {
-        return ((List<JsonObject>) results.getList()).stream()
+        return results.stream()
+                .filter(JsonObject.class::isInstance)
+                .map(JsonObject.class::cast)
                 .map(iModel -> {
                     try {
                         return modelClass.getConstructor(JsonObject.class).newInstance(iModel);
@@ -52,7 +54,7 @@ public class IModelHelper {
      * @param iModel Instance of {@link IModel} to convert to {@link JsonObject}
      * @return {@link JsonObject}
      */
-    public static JsonObject toJson(boolean ignoreNull, IModel<?> iModel) {
+    public static JsonObject toJson(IModel<?> iModel, boolean ignoreNull, boolean snakeCase) {
         JsonObject statisticsData = new JsonObject();
         final Field[] declaredFields = iModel.getClass().getDeclaredFields();
         Arrays.stream(declaredFields).forEach(field -> {
@@ -60,18 +62,18 @@ public class IModelHelper {
             field.setAccessible(true);
             try {
                 Object object = field.get(iModel);
-                String fieldName = field.getName();
+                String fieldName = snakeCase ? StringHelper.camelToSnake(field.getName()) : field.getName();
                 if (object == null) {
-                    if (!ignoreNull) statisticsData.putNull(StringHelper.camelToSnake(fieldName));
+                    if (!ignoreNull) statisticsData.putNull(fieldName);
                 }
                 else if (object instanceof IModel) {
-                    statisticsData.put(StringHelper.camelToSnake(fieldName), ((IModel<?>)object).toJson());
+                    statisticsData.put(fieldName, ((IModel<?>)object).toJson());
                 } else if (validJsonClasses.stream().anyMatch(aClass -> aClass.isInstance(object))) {
-                    statisticsData.put(StringHelper.camelToSnake(fieldName), object);
+                    statisticsData.put(fieldName, object);
                 } else if (object instanceof Enum) {
-                    statisticsData.put(StringHelper.camelToSnake(fieldName), (Enum) object);
+                    statisticsData.put(fieldName, (Enum) object);
                 } else if (object instanceof List) {
-                    statisticsData.put(StringHelper.camelToSnake(fieldName), listToJsonArray(((List<?>)object)));
+                    statisticsData.put(fieldName, listToJsonArray(((List<?>)object)));
                 }
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
