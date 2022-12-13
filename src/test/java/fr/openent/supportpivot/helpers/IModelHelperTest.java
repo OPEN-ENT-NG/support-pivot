@@ -61,7 +61,7 @@ public class IModelHelperTest {
 
     @Test
     public void testSubClassIModel(TestContext ctx) {
-        Reflections reflections = new Reflections("fr.openent.presences");
+        Reflections reflections = new Reflections("fr.openent.supportpivot");
         List<Class<?>> ignoredClassList = Arrays.asList(MyIModel.class, MyOtherIModel.class);
 
         Set<Class<?>> subTypes =
@@ -78,7 +78,7 @@ public class IModelHelperTest {
         }).collect(Collectors.toList());
 
         invalidModel.forEach(modelClass -> {
-            String message = String.format("[PresencesCommon@%s::testSubClassIModel]: The class %s must have public constructor with JsonObject parameter declared",
+            String message = String.format("[SupportPivot@%s::testSubClassIModel]: The class %s must have public constructor with JsonObject parameter declared",
                     this.getClass().getSimpleName(), modelClass.getSimpleName());
             log.fatal(message);
         });

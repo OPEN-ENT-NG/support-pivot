@@ -29,10 +29,10 @@ public class HttpClientService {
 
     private HttpClientOptions getOptions(URI uri) {
         final HttpClientOptions options = new HttpClientOptions();
-        if (ConfigManager.getInstance().getProxyHost() != null) {
+        if (ConfigManager.getInstance().getConfig().getProxyHost() != null) {
             ProxyOptions proxy = new ProxyOptions();
-            proxy.setHost(ConfigManager.getInstance().getProxyHost()); //"fr-proxy.groupinfra.com"
-            proxy.setPort(ConfigManager.getInstance().getProxyPort()); //3128
+            proxy.setHost(ConfigManager.getInstance().getConfig().getProxyHost()); //"fr-proxy.groupinfra.com"
+            proxy.setPort(ConfigManager.getInstance().getConfig().getProxyPort()); //3128
             options.setProxyOptions(proxy);
         }
 
