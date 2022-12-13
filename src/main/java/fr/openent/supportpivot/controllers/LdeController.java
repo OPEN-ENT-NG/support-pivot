@@ -52,7 +52,7 @@ public class LdeController extends ControllerHelper {
             if (event.succeeded()) {
                 Renders.renderJson(request, event.result());
             } else {
-                log.error(String.format("[SupportPivot@%s::getListeTicketsLDE]]GET /lde/tickets failed : %s", this.getClass().getName(), event.cause()));
+                log.error(String.format("[SupportPivot@%s::getListeTicketsLDE] GET /lde/tickets failed : %s", this.getClass().getName(), event.cause()));
                 Renders.badRequest(request, event.cause().toString());
             }
         });
@@ -70,7 +70,7 @@ public class LdeController extends ControllerHelper {
             if (event.succeeded()) {
                 Renders.renderJson(request, event.result().getJsonObject(0));
             } else {
-                log.error("GET /lde/ticket/" + id_param_value + " failed : ", event.cause());
+                log.error(String.format("[SupportPivot@%s::getTicketLDE] GET /lde/ticket/%s failed : %s", this.getClass().getName(), id_param_value, event.cause()));
                 Renders.badRequest(request, event.cause().toString());
             }
         });
@@ -83,7 +83,7 @@ public class LdeController extends ControllerHelper {
             if (event.succeeded()) {
                 Renders.renderJson(request, event.result());
             } else {
-                log.error("PUT /lde/ticket/ failed : ", event.cause());
+                log.error(String.format("[SupportPivot@%s::getTicketLDE] PUT /lde/ticket/ failed : %s", this.getClass().getName(), event.cause()));
                 Renders.badRequest(request, event.cause().toString());
             }
         }));

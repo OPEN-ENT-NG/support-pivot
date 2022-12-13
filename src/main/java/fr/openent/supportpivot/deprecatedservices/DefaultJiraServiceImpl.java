@@ -22,6 +22,7 @@ import fr.openent.supportpivot.constants.EntConstants;
 import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.helpers.DateHelper;
+import fr.openent.supportpivot.helpers.EitherHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.model.ConfigModel;
 import fr.openent.supportpivot.model.status.JiraStatus;
@@ -96,7 +97,7 @@ public class DefaultJiraServiceImpl implements JiraService {
         try {
             jira_rest_uri = new URI(config.getJiraURL());
         } catch (URISyntaxException e) {
-            LOGGER.error("Bad parameter ent-core.json#jira-url ", e);
+            LOGGER.error(String.format("[SupportPivot@%s::DefaultJiraServiceImpl] Bad parameter ent-core.json#jira-url %s", this.getClass().getName(), e.getMessage()));
             //TODO Break module starting
         }
         this.JIRA_REST_API_URI = jira_rest_uri;
@@ -167,12 +168,11 @@ public class DefaultJiraServiceImpl implements JiraService {
      * @param jsonPivotIn JSON in pivot format
      * @param handler     return JsonPivot from Jira or error message
      */
+    @Deprecated
     public void sendToJIRA(final JsonObject jsonPivotIn, final Handler<Either<String, JsonObject>> handler) {
-
         //ID_IWS is mandatory
         if (!jsonPivotIn.containsKey(IDIWS_FIELD)
                 || jsonPivotIn.getString(IDIWS_FIELD).isEmpty()) {
-
             handler.handle(new Either.Left<>("2;Mandatory Field " + IDIWS_FIELD));
             return;
         }
@@ -240,19 +240,22 @@ public class DefaultJiraServiceImpl implements JiraService {
                             final JsonArray jsonJiraComments = jsonPivotIn.getJsonArray(COMM_FIELD);
 
                             updateComments(response, jsonPivotIn, jsonJiraComments,
-                                    EitherCommentaires -> {
-                                        if (EitherCommentaires.isRight()) {
-                                            JsonObject jsonPivotCompleted = EitherCommentaires.right().getValue().getJsonObject(Field.JSONPIVOTCOMPLETED);
+                                    eitherCommentaires -> {
+                                        if (eitherCommentaires.isRight()) {
+                                            JsonObject jsonPivotCompleted = eitherCommentaires.right().getValue().getJsonObject(Field.JSONPIVOTCOMPLETED);
                                             final JsonArray jsonJiraPJ = jsonPivotIn.getJsonArray(ATTACHMENT_FIELD);
                                             updateJiraPJ(jsonPivotCompleted, jsonJiraPJ, jsonPivotIn, handler);
                                         } else {
+                                            LOGGER.error(String.format("[SupportPivot@%s::createJiraTicket] Error, when creating comments %s",
+                                                    this.getClass().getName(), EitherHelper.getOrNullLeftMessage(eitherCommentaires)));
                                             handler.handle(new Either.Left<>(
                                                     "999;Error, when creating comments."));
                                         }
                                     });
                         } else {
-                            LOGGER.error("Sent ticket to Jira : " + jsonJiraTicket);
-                            LOGGER.error("Error when calling URL " + JIRA_HOST.resolve(JIRA_REST_API_URI) + " : " + response.statusCode() + response.statusMessage() + ". Error when creating Jira ticket.");
+                            LOGGER.error(String.format("[SupportPivot@%s::createJiraTicket] Sent ticket to Jira : %s", this.getClass().getName(), jsonJiraTicket));
+                            LOGGER.error(String.format("[SupportPivot@%s::createJiraTicket] Error when calling URL %s %s %s. Error when creating Jira ticket.",
+                                    this.getClass().getName(), JIRA_HOST.resolve(JIRA_REST_API_URI), response.statusCode(), response.statusMessage()));
                             response.bodyHandler(event -> LOGGER.error("Jira error response :" + event.toString()));
                             handler.handle(new Either.Left<>("999;Error when creating Jira ticket"));
                         }
@@ -263,19 +266,15 @@ public class DefaultJiraServiceImpl implements JiraService {
 
             terminateRequest(createTicketRequest);
         } catch (Error e) {
-            LOGGER.error("Error when creating Jira ticket", e);
+            LOGGER.error(String.format("[SupportPivot@%s::createJiraTicket] Error when creating Jira ticket %s", this.getClass().getName(), e.getMessage()));
             handler.handle(new Either.Left<>("999;Error when creating Jira ticket: " + e.getMessage()));
         }
-
     }
 
     private void updateComments(final HttpClientResponse response, final JsonObject jsonPivot,
                                 final JsonArray jsonJiraComments,
                                 final Handler<Either<String, JsonObject>> handler) {
-
-
         response.bodyHandler(buffer -> {
-
             JsonObject infoNewJiraTicket = new JsonObject(buffer.toString());
             String idNewJiraTicket = infoNewJiraTicket.getString(Field.KEY);
 
@@ -295,10 +294,7 @@ public class DefaultJiraServiceImpl implements JiraService {
                         .put(Field.JSONPIVOTCOMPLETED, jsonPivot)
                 ));
             }
-
         });
-
-
     }
 
     /**
@@ -315,9 +311,11 @@ public class DefaultJiraServiceImpl implements JiraService {
 
                 // If ticket well created, then HTTP Status Code 201: The request has been fulfilled and has resulted in one or more new resources being created.
                 if (response.statusCode() != HTTP_STATUS_201_CREATED) {
+                    LOGGER.error(String.format("[SupportPivot@%s::sendJiraComments] POST %s",
+                            this.getClass().getName(), JIRA_HOST.resolve(urlNewTicket)));
+                    LOGGER.error(String.format("[SupportPivot@%s::sendJiraComments] Error when add Jira comment on %s : %s - %s - %s",
+                            this.getClass().getName(), idJira, response.statusCode(), response.statusMessage(), commentsLinkedList.getFirst().toString()));
                     handler.handle(new Either.Left<>("999;Error when add Jira comment : " + commentsLinkedList.getFirst().toString() + " : " + response.statusCode() + " " + response.statusMessage()));
-                    LOGGER.error("POST " + JIRA_HOST.resolve(urlNewTicket));
-                    LOGGER.error("Error when add Jira comment on " + idJira + " : " + response.statusCode() + " - " + response.statusMessage() + " - " + commentsLinkedList.getFirst().toString());
                     return;
                 }
                 //Recursive call
@@ -384,8 +382,9 @@ public class DefaultJiraServiceImpl implements JiraService {
             final HttpClientRequest postAttachmentsRequest = httpClient.post(urlNewTicket.toString(), response -> {
 
                 if (response.statusCode() != HTTP_STATUS_200_OK) {
+                    LOGGER.error(String.format("[SupportPivot@%s::sendJiraPJ] Error when add Jira attachment %s %s",
+                            this.getClass().getName(), idJira, pjLinkedList.getFirst().getString(Field.NOM, "")));
                     handler.handle(new Either.Left<>("999;Error when add Jira attachment : " + pjLinkedList.getFirst().getString("nom") + " : " + response.statusCode() + " " + response.statusMessage()));
-                    LOGGER.error("Error when add Jira attachment" + idJira + pjLinkedList.getFirst().getString("nom"));
                     return;
                 }
                 //Recursive call
@@ -449,6 +448,8 @@ public class DefaultJiraServiceImpl implements JiraService {
                                 //Is JIRA ticket had been created by IWS ?
                                 String jiraTicketIdIWS = jsonCurrentTicketInfos.getJsonObject(Field.FIELDS).getString(JIRA_FIELD.getOrDefault(Field.ID_IWS, ""));
                                 if (jiraTicketIdIWS == null) {
+                                    LOGGER.error(String.format("[SupportPivot@%s::checkMissingFields] Not an IWS ticket.",
+                                            this.getClass().getName()));
                                     handler.handle(new Either.Left<>("102;Not an IWS ticket."));
                                     return;
                                 }
@@ -456,6 +457,7 @@ public class DefaultJiraServiceImpl implements JiraService {
                                 //Is JIRA ticket had been created by same IWS issue ?
                                 String jsonPivotIdIWS = jsonPivotIn.getString(IDIWS_FIELD);
                                 if (!jiraTicketIdIWS.equals(jsonPivotIdIWS)) {
+                                    //todo delete
                                     handler.handle(new Either.Left<>("102;JIRA Ticket " + jiraTicketId + " already link with an another IWS issue"));
                                     return;
                                 }
@@ -487,9 +489,9 @@ public class DefaultJiraServiceImpl implements JiraService {
                                             for (Object comment : newComments) {
                                                 commentsLinkedList.add(comment.toString());
                                             }
-                                            sendJiraComments(jiraTicketId, commentsLinkedList, jsonPivotIn, EitherCommentaires -> {
-                                                if (EitherCommentaires.isRight()) {
-                                                    JsonObject jsonPivotCompleted = EitherCommentaires.right().getValue().getJsonObject(Field.JSONPIVOTCOMPLETED);
+                                            sendJiraComments(jiraTicketId, commentsLinkedList, jsonPivotIn, eitherCommentaires -> {
+                                                if (eitherCommentaires.isRight()) {
+                                                    JsonObject jsonPivotCompleted = eitherCommentaires.right().getValue().getJsonObject(Field.JSONPIVOTCOMPLETED);
 
                                                     // Compare PJ and add only new ones
                                                     JsonArray jsonPivotTicketPJ = jsonPivotIn.getJsonArray(Field.PJ, new JsonArray());
@@ -498,15 +500,17 @@ public class DefaultJiraServiceImpl implements JiraService {
                                                     updateJiraPJ(jsonPivotCompleted, newPJs, jsonPivotIn, handler);
 
                                                 } else {
-                                                    handler.handle(new Either.Left<>(
-                                                            "Error, when creating PJ."));
+                                                    LOGGER.error(String.format("[SupportPivot@%s::updateJiraTicket] Error, when creating PJ. %s",
+                                                            this.getClass().getName(), EitherHelper.getOrNullLeftMessage(eitherCommentaires)));
+                                                    handler.handle(new Either.Left<>("Error, when creating PJ."));
                                                 }
                                             });
                                         } else {
                                             handler.handle(new Either.Right<>(new JsonObject().put(Field.STATUS, Field.OK)));
                                         }
                                     } else {
-                                        LOGGER.error("Error when calling URL : " + modifyResp.statusMessage());
+                                        LOGGER.error(String.format("[SupportPivot@%s::updateJiraTicket] Error when calling URL: %s",
+                                                this.getClass().getName(), modifyResp.statusMessage()));
                                         handler.handle(new Either.Left<>("Error when update Jira ticket information"));
                                     }
                                 });
@@ -518,10 +522,13 @@ public class DefaultJiraServiceImpl implements JiraService {
                             });
                             break;
                         case (HTTP_STATUS_404_NOT_FOUND):
+                            LOGGER.error(String.format("[SupportPivot@%s::updateJiraTicket] Unknown JIRA Ticket: %s",
+                                    this.getClass().getName(), jiraTicketId));
                             handler.handle(new Either.Left<>("101;Unknown JIRA Ticket " + jiraTicketId));
                             break;
                         default:
-                            LOGGER.error("Error when calling URL : " + response.statusMessage());
+                            LOGGER.error(String.format("[SupportPivot@%s::updateJiraTicket] Error when calling URL: %s",
+                                    this.getClass().getName(), response.statusMessage()));
                             response.bodyHandler(event -> LOGGER.error("Jira response : " + event));
                             handler.handle(new Either.Left<>("999;Error when getting Jira ticket information"));
                     }
@@ -606,7 +613,8 @@ public class DefaultJiraServiceImpl implements JiraService {
             if (issueComment != null && issueComment.containsKey(Field.ID)) {
                 issueCommentId = issueComment.getString(Field.ID, "");
             } else {
-                LOGGER.error("Support : Invalid comment : " + rawComment);
+                LOGGER.error(String.format("[SupportPivot@%s::extractNewComments] Invalid comment : %s",
+                        this.getClass().getName(), rawComment));
                 continue;
             }
 
@@ -651,16 +659,15 @@ public class DefaultJiraServiceImpl implements JiraService {
             JsonObject pjIssuePivot = (JsonObject) oi;
             String issuePivotName;
 
-
             if (pjIssuePivot.containsKey(Field.NOM)) {
                 issuePivotName = pjIssuePivot.getString(Field.NOM, "");
             } else {
-                LOGGER.error("Support : Invalid PJ : " + pjIssuePivot);
+                LOGGER.error(String.format("[SupportPivot@%s::extractNewComments] Invalid PJ : %s",
+                        this.getClass().getName(), pjIssuePivot));
                 continue;
             }
 
             boolean existing = false;
-
             for (Object ot : inJiraPJs) {
                 if (!(ot instanceof JsonObject)) continue;
                 JsonObject pjTicketJiraPJ = (JsonObject) ot;
@@ -675,9 +682,7 @@ public class DefaultJiraServiceImpl implements JiraService {
                 pjToAdd.add(pjIssuePivot);
             }
         }
-
         return pjToAdd;
-
     }
 
     /**
@@ -707,14 +712,16 @@ public class DefaultJiraServiceImpl implements JiraService {
         final URI urlGetTicketGeneralInfo = JIRA_REST_API_URI.resolve(jiraTicketId);
 
         HttpClientRequest httpClientRequestGetInfo = httpClient.get(urlGetTicketGeneralInfo.toString(), response -> {
-            response.exceptionHandler(exception -> LOGGER.error("Jira request error : ", exception));
+            response.exceptionHandler(exception ->
+                    LOGGER.error(String.format("[SupportPivot@%s::getFromJira] Jira request error: %s", this.getClass().getName(), exception)));
             if (response.statusCode() == HTTP_STATUS_200_OK) {
                 response.bodyHandler(bufferGetInfosTicket -> {
                     JsonObject jsonGetInfosTicket = new JsonObject(bufferGetInfosTicket.toString());
                     convertJiraReponseToJsonPivot(jsonGetInfosTicket, handler);
                 });
             } else {
-                LOGGER.error("Error when calling URL : " + JIRA_HOST.resolve(urlGetTicketGeneralInfo) + ":" + response.statusCode() + " " + response.statusMessage());
+                LOGGER.error(String.format("[SupportPivot@%s::getFromJira] Error when calling URL: %s %s %s",
+                        this.getClass().getName(), JIRA_HOST.resolve(urlGetTicketGeneralInfo), response.statusCode(), response.statusMessage()));
                 response.bodyHandler(bufferGetInfosTicket -> LOGGER.error(bufferGetInfosTicket.toString()));
                 handler.handle(new Either.Left<>("Error when gathering Jira ticket information"));
             }
@@ -728,16 +735,14 @@ public class DefaultJiraServiceImpl implements JiraService {
      */
     public void convertJiraReponseToJsonPivot(final JsonObject jiraTicket,
                                               final Handler<Either<String, JsonObject>> handler) {
-
         JsonObject fields = jiraTicket.getJsonObject(Field.FIELDS);
 
         if (!fields.containsKey(JIRA_FIELD.getOrDefault(EntConstants.IDENT_FIELD, ""))
                 || fields.getString(JIRA_FIELD.getOrDefault(EntConstants.IDENT_FIELD, "")) == null) {
-            String message = String.format("[SupportPivot@%s::sendJiraTicketToSupport] Supportpivot Field " + JIRA_FIELD.getOrDefault(EntConstants.IDENT_FIELD, "") + " does not exist : %s",
-                    this.getClass().getSimpleName());
+            String message = String.format("[SupportPivot@%s::sendJiraTicketToSupport] Supportpivot Field %s does not exist",
+                    this.getClass().getSimpleName(), JIRA_FIELD.getOrDefault(EntConstants.IDENT_FIELD, ""));
             handler.handle(new Either.Left<>(message));
         } else {
-
             final JsonObject jsonPivot = new JsonObject();
 
             jsonPivot.put(IDJIRA_FIELD, jiraTicket.getString(ID));
@@ -762,7 +767,6 @@ public class DefaultJiraServiceImpl implements JiraService {
             } else {
                 jsonPivot.put(DESCRIPTION_FIELD, "");
             }
-
 
             String currentPriority = fields.getJsonObject(Field.PRIORITY).getString(Field.NAME);
             //TODO use Enum to remove magic String
@@ -871,7 +875,6 @@ public class DefaultJiraServiceImpl implements JiraService {
 
                 final JsonObject attachmentInfos = (JsonObject) attachment;
                 getJiraPJ(attachmentInfos, getJiraPjResp -> {
-
                             if (getJiraPjResp.isRight()) {
                                 String b64FilePJ = getJiraPjResp.right().getValue().getString(Field.B64ATTACHMENT);
                                 JsonObject currentPJ = new JsonObject();
@@ -904,8 +907,6 @@ public class DefaultJiraServiceImpl implements JiraService {
      */
     private void getJiraPJ(final JsonObject attachmentInfos,
                            final Handler<Either<String, JsonObject>> handler) {
-
-
         String attachmentLink = attachmentInfos.getString(Field.CONTENT);
 
         final HttpClientRequest getAttachmentrequest = httpClient.get(attachmentLink, response -> {
@@ -915,16 +916,15 @@ public class DefaultJiraServiceImpl implements JiraService {
                     handler.handle(new Either.Right<>(
                             new JsonObject().put(Field.STATUS, Field.OK)
                                     .put(Field.B64ATTACHMENT, b64Attachment)));
-
                 });
             } else {
-                LOGGER.error("Error when calling URL : " + attachmentLink + ":" + response.statusMessage());
+                LOGGER.error(String.format("[SupportPivot@%s::process] Error when calling URL : %s %s",
+                        this.getClass().getName(), attachmentLink, response.statusMessage()));
                 handler.handle(new Either.Left<>("Error when getting Jira attachment (" + attachmentLink + ") information"));
             }
         });
 
         terminateRequest(getAttachmentrequest);
-
     }
 
     /**

@@ -28,7 +28,4 @@ public class JiraConstants {
 
     public static final String REPORTER_ENT = "assistanceMLN";
     public static final String REPORTER_LDE = "lde";
-
-    public static final String JIRA_STATUS_MAPPING = "jira-status-mapping";
-    public static final String STATUTS_DEFAULT = "statutsDefault";
 }

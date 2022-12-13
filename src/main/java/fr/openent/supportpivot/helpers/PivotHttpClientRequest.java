@@ -32,19 +32,14 @@ public class PivotHttpClientRequest {
 
     @SuppressWarnings("unused")
     public void startRequest(Handler<AsyncResult<HttpClientResponse>> handler) {
-
-
-        httpClientRequest.handler(response ->
-                {
-
-                    response.exceptionHandler(exception ->
-                            {
-                                log.error("Error when execute http query" , exception);
-                                handler.handle(Future.failedFuture(exception));
-                            }
-                    );
-                    handler.handle(Future.succeededFuture(response));
-                });
+        httpClientRequest.handler(response -> {
+            response.exceptionHandler(exception -> {
+                log.error(String.format("[SupportPivot@%s::checkMissingFields] Error when execute http query %s",
+                        this.getClass().getName(), exception));
+                handler.handle(Future.failedFuture(exception));
+            });
+            handler.handle(Future.succeededFuture(response));
+        });
 
         httpClientRequest.exceptionHandler(response -> handler.handle(Future.failedFuture(response)));
         terminateRequest(httpClientRequest);
