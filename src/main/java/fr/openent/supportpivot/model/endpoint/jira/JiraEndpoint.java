@@ -3,6 +3,7 @@ package fr.openent.supportpivot.model.endpoint.jira;
 import fr.openent.supportpivot.constants.EntConstants;
 import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.JiraConstants;
+import fr.openent.supportpivot.enums.PriorityEnum;
 import fr.openent.supportpivot.helpers.*;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.model.ConfigModel;
@@ -361,22 +362,7 @@ public class JiraEndpoint extends AbstractEndpoint {
             jsonPivot.put(DESCRIPTION_FIELD, fields.getDescription());
 
             String currentPriority = fields.getPriority().getName();
-            //Todo use Enum to remove magic String
-            switch (currentPriority) {
-                case "High":
-                case "Majeure":
-                    currentPriority = PRIORITY_MAJOR;
-                    break;
-                case "Highest":
-                case "Bloquante":
-                    currentPriority = PRIORITY_BLOCKING;
-                    break;
-                case "Lowest":
-                case "Mineure":
-                default:
-                    currentPriority = PRIORITY_MINOR;
-                    break;
-            }
+            currentPriority = PriorityEnum.getValue(currentPriority).getPivotName();
 
             jsonPivot.put(PRIORITY_FIELD, currentPriority);
 

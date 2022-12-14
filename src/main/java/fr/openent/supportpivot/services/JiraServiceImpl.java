@@ -114,7 +114,7 @@ public class JiraServiceImpl implements JiraService {
         ENT_STATUS_MAPPING = config.getEntStatusMapping();
         JIRA_ALLOWED_TICKETTYPE = new JsonArray(config.getJiraAllowedPriority()).copy();
         this.DEFAULT_JIRA_TICKETTYPE = config.getDefaultTicketType();
-        this.DEFAULT_PRIORITY = config.getDefaultPriority().getEnName();
+        this.DEFAULT_PRIORITY = config.getDefaultPriority();
         this.JIRA_ALLOWED_PRIORITY = new JsonArray(config.getJiraAllowedPriority()).copy();
 
         this.httpClient = generateHttpClient(JIRA_HOST);
