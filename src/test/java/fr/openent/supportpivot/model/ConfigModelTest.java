@@ -23,7 +23,7 @@ public class ConfigModelTest {
         confJson.remove("jira-custom-fields");
         confexpected.remove("jira-custom-fields");
 
-        ctx.assertEquals(confJson.toString(), confexpected.put("default-priority", "Lowest").toString());
+        ctx.assertEquals(confJson.toString(), confexpected.toString());
     }
 
     public static JsonObject getConfig1() {
