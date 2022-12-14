@@ -4,7 +4,7 @@ import fr.openent.supportpivot.deprecatedservices.DefaultDemandeServiceImpl;
 import fr.openent.supportpivot.deprecatedservices.DemandeService;
 import fr.openent.supportpivot.services.*;
 import fr.openent.supportpivot.services.routers.CrifRouterService;
-import fr.openent.supportpivot.services.routers.MdpRouterService;
+import fr.openent.supportpivot.services.routers.RouterService;
 import fr.wseduc.webutils.email.EmailSender;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
@@ -31,33 +31,27 @@ public class ServiceManager {
         EmailFactory emailFactory = new EmailFactory(vertx, config);
         EmailSender emailSender = emailFactory.getSender();
 
-       mongoService = new MongoService(ConfigManager.getInstance().getConfig().getMongoCollection());
-       demandeService = new DefaultDemandeServiceImpl(vertx, config, emailSender, mongoService);
+        mongoService = new MongoService(ConfigManager.getInstance().getConfig().getMongoCollection());
+        demandeService = new DefaultDemandeServiceImpl(vertx, config, emailSender, mongoService);
         HttpClientService httpClientService = new HttpClientService(vertx);
 
-        switch( ConfigManager.getInstance().getConfig().getCollectivity() ) {
-            case "MDP":
-                log.info("Start Pivot with MDP Routeur.");
-                //TODO MDP Manager
-                routeurService = new MdpRouterService();
-                break;
+        switch (ConfigManager.getInstance().getConfig().getCollectivity()) {
             case "CRIF":
                 log.info("Start Pivot with CRIF Routeur.");
                 JiraService jiraService = new JiraServiceImpl(vertx);
-                routeurService = new CrifRouterService(httpClientService,jiraService);
+                routeurService = new CrifRouterService(httpClientService, jiraService);
                 break;
             default:
-                //todo delete
-                log.error("Unknown value when starting Pivot Service. collectivity: " + ConfigManager.getInstance().getConfig().getCollectivity());
-        } 
+                log.error(String.format("[SupportPivot@%s::ServiceManager] Unknown value when starting Pivot Service. collectivity: %s",
+                        this.getClass().getName(), ConfigManager.getInstance().getConfig().getCollectivity()));
+        }
     }
 
     public DemandeService getDemandeService() { return demandeService; }
+
     public MongoService getMongoService() { return mongoService; }
+
     public RouterService getRouteurService() { return routeurService; }
 
     public static ServiceManager getInstance(){ return serviceManager;}
-
-
-
 }

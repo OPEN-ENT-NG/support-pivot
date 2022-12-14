@@ -1,4 +1,4 @@
-package fr.openent.supportpivot.services;
+package fr.openent.supportpivot.services.routers;
 
 import fr.openent.supportpivot.model.ticket.PivotTicket;
 import io.vertx.core.AsyncResult;
@@ -10,8 +10,6 @@ public interface RouterService {
 
 
     void dispatchTicket(String source, PivotTicket ticket, Handler<AsyncResult<PivotTicket>> handler);
-
-    //fonctions publiques prendre ticket + endpoint+ contenu ticket
 
     void toPivotTicket(String source, JsonObject ticketdata,
                        Handler<AsyncResult<JsonObject>> handler);

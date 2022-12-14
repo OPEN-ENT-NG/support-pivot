@@ -28,7 +28,7 @@ import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.managers.ServiceManager;
 import fr.openent.supportpivot.model.endpoint.Endpoint;
 import fr.openent.supportpivot.services.MongoService;
-import fr.openent.supportpivot.services.RouterService;
+import fr.openent.supportpivot.services.routers.RouterService;
 import fr.wseduc.bus.BusAddress;
 import fr.wseduc.rs.Get;
 import fr.wseduc.security.SecuredAction;
