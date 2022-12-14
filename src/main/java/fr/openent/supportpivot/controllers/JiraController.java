@@ -4,7 +4,7 @@ import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.managers.ServiceManager;
 import fr.openent.supportpivot.model.endpoint.Endpoint;
-import fr.openent.supportpivot.services.RouterService;
+import fr.openent.supportpivot.services.routers.RouterService;
 import fr.wseduc.rs.Get;
 import fr.wseduc.webutils.http.Renders;
 import fr.wseduc.webutils.security.SecuredAction;
