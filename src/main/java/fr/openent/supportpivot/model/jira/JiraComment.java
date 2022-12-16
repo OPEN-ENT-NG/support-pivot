@@ -28,6 +28,9 @@ public class JiraComment implements IModel<JiraComment> {
         }
     }
 
+    public JiraComment() {
+    }
+
     @Override
     public JsonObject toJson() {
         return IModelHelper.toJson(this, true, false);
