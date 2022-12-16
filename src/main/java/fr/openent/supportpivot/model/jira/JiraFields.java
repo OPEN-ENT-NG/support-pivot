@@ -48,6 +48,9 @@ public class JiraFields implements IModel<JiraFields> {
         this.resolutiondate = jsonObject.getString(Field.RESOLUTIONDATE, "");
     }
 
+    public JiraFields() {
+    }
+
     @Override
     public JsonObject toJson() {
         return IModelHelper.toJson(this, true, false);
