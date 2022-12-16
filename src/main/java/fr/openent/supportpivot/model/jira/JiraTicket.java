@@ -20,6 +20,9 @@ public class JiraTicket implements IModel<JiraTicket> {
         this.fields = new JiraFields(jsonObject.getJsonObject(Field.FIELDS, new JsonObject()));
     }
 
+    public JiraTicket() {
+    }
+
     @Override
     public JsonObject toJson() {
         return IModelHelper.toJson(this, true, false);

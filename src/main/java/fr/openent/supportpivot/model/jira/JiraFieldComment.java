@@ -21,6 +21,9 @@ public class JiraFieldComment implements IModel<JiraFieldComment> {
         this.startAt = jsonObject.getInteger(Field.STARTAT, 0);
     }
 
+    public JiraFieldComment() {
+    }
+
     @Override
     public JsonObject toJson() {
         return IModelHelper.toJson(this, true, false);

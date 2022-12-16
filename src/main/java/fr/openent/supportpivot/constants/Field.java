@@ -97,4 +97,17 @@ public class Field {
     public static final String THUMBNAIL = "thumbnail";
     public static final String CUSTOMFIELD_ = "customfield_";
     public static final String VALUE = "value";
+    public static final String COLLECTIVITE = "collectivite";
+    public static final String ACADEMIE = "academie";
+    public static final String MAJ = "maj";
+    public static final String DEMANDEUR = "demandeur";
+    public static final String TYPE_DEMANDE = "type_demande";
+    public static final String TITRE = "titre";
+    public static final String PRIORITE = "priorite";
+    public static final String MODULES = "modules";
+    public static final String DATE_CREATION = "date_creation";
+    public static final String STATUT_EXTERNE = "statut_externe";
+    public static final String ATTRIBUTION = "attribution";
+    public static final String DATE_RESOLUTION_JIRA = "date_resolution_jira";
+    public static final String DATE_RESOLUTION_ENT = "date_resolution_ent";
 }
