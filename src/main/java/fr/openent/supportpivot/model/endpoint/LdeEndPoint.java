@@ -1,8 +1,10 @@
 package fr.openent.supportpivot.model.endpoint;
 
+import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.helpers.DateHelper;
 import fr.openent.supportpivot.helpers.EitherHelper;
-import fr.openent.supportpivot.model.ticket.PivotTicket;
+import fr.openent.supportpivot.model.pivot.PivotPJ;
+import fr.openent.supportpivot.model.pivot.PivotTicket;
 import fr.wseduc.webutils.Either;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -25,8 +27,7 @@ public class LdeEndPoint extends AbstractEndpoint {
     public void process(JsonObject ticketData, Handler<AsyncResult<PivotTicket>> handler) {
         checkTicketData(ticketData, result -> {
             if (result.isRight()) {
-                PivotTicket ticket = new PivotTicket();
-                ticket.setJsonObject(ticketData);
+                PivotTicket ticket = new PivotTicket(ticketData);
                 handler.handle(Future.succeededFuture(ticket));
             } else {
                 log.error(String.format("[SupportPivot@%s::process] Fail to process %s", this.getClass().getName(), EitherHelper.getOrNullLeftMessage(result)));
@@ -44,28 +45,27 @@ public class LdeEndPoint extends AbstractEndpoint {
         handler.handle(Future.succeededFuture(prepareJson(ticket, true)));
     }
 
+    //TODO use LdeTicket model
     private JsonObject prepareJson(PivotTicket pivotTicket, boolean isComplete) {
-        JsonObject ticket = isComplete ? pivotTicket.getJsonTicket() : new JsonObject();
-        ticket.put(PivotTicket.IDJIRA_FIELD, pivotTicket.getJiraId());
-        if(pivotTicket.getExternalId() != null) ticket.put(PivotTicket.IDEXTERNAL_FIELD, pivotTicket.getExternalId());
-        if(pivotTicket.getTitle() != null) ticket.put(PivotTicket.TITLE_FIELD, pivotTicket.getTitle());
+        PivotTicket pivotTicketClone = pivotTicket.clone();
+        JsonObject ticket = isComplete ? pivotTicketClone.toJson() : new JsonObject();
+        ticket.put(Field.ID_JIRA, pivotTicketClone.getIdJira());
+        if(pivotTicketClone.getIdExterne() != null) ticket.put(Field.ID_EXTERNE, pivotTicketClone.getIdExterne());
+        if(pivotTicketClone.getTitre() != null) ticket.put(Field.TITRE, pivotTicketClone.getTitre());
         DateTimeFormatter inFormatter = DateTimeFormatter.ofPattern(DateHelper.DATE_FORMAT_PARSE_UTC);
         DateTimeFormatter outFormatter = DateTimeFormatter.ofPattern(DateHelper.SQL_FORMAT_WITHOUT_SEPARATOR);
-        ZonedDateTime createdDate = inFormatter.parse(pivotTicket.getRawCreatedAt(), ZonedDateTime::from);
-        ticket.put(PivotTicket.RAWDATE_CREA_FIELD, outFormatter.format(createdDate));
-        ZonedDateTime updatedDate = inFormatter.parse(pivotTicket.getRawUpdatedAt(), ZonedDateTime::from);
-        ticket.put(PivotTicket.RAWDATE_UPDATE_FIELD, outFormatter.format(updatedDate));
+        ZonedDateTime createdDate = inFormatter.parse(pivotTicketClone.getCreation(), ZonedDateTime::from);
+        ticket.put(Field.CREATION, outFormatter.format(createdDate));
+        ZonedDateTime updatedDate = inFormatter.parse(pivotTicketClone.getMaj(), ZonedDateTime::from);
+        ticket.put(Field.MAJ, outFormatter.format(updatedDate));
 
         // Remove endlines from base64 before sending to LDE
         JsonArray filteredPjs = new JsonArray();
-        for(Object o : pivotTicket.getPjs()) {
-            if(!(o instanceof JsonObject)) continue;
-            JsonObject pj = (JsonObject)o;
-            pj.put(PivotTicket.ATTACHMENT_CONTENT_FIELD,
-                    pj.getString(PivotTicket.ATTACHMENT_CONTENT_FIELD).replace("\r\n", ""));
-            filteredPjs.add(pj);
+        for(PivotPJ pivotPJ : pivotTicketClone.getPj()) {
+            pivotPJ.setContenu(pivotPJ.getContenu().replace("\r\n", ""));
+            filteredPjs.add(pivotPJ.toJson());
         }
-        ticket.put(PivotTicket.ATTACHMENT_FIELD, filteredPjs);
+        ticket.put(Field.PJ, filteredPjs);
         return ticket;
     }
 

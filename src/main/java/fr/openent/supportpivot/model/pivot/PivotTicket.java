@@ -6,10 +6,11 @@ import fr.openent.supportpivot.model.IModel;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class PivotTicket implements IModel<PivotTicket> {
+public class PivotTicket implements IModel<PivotTicket>, Cloneable{
     private String idJira;
     private String statutJira;
     private String dateResolutionJira;
@@ -56,7 +57,7 @@ public class PivotTicket implements IModel<PivotTicket> {
                 .filter(String.class::isInstance)
                 .map(String.class::cast)
                 .collect(Collectors.toList());
-        this.statutEnt = jsonObject.getString(Field.STATUS_ENT);
+        this.statutEnt = jsonObject.getString(Field.STATUT_ENT);
         this.statutJira = jsonObject.getString(Field.STATUT_JIRA);
         this.dateCreation = jsonObject.getString(Field.DATE_CREATION);
         this.idExterne = jsonObject.getString(Field.ID_EXTERNE);
@@ -280,5 +281,18 @@ public class PivotTicket implements IModel<PivotTicket> {
     public PivotTicket setDateResolutionEnt(String dateResolutionEnt) {
         this.dateResolutionEnt = dateResolutionEnt;
         return this;
+    }
+
+    @Override
+    public PivotTicket clone() {
+        try {
+            PivotTicket clone = (PivotTicket) super.clone();
+            clone.setModule(new ArrayList<>(this.module));
+            clone.setCommentaires(new ArrayList<>(this.commentaires));
+            clone.setPj(this.getPj().stream().map(PivotPJ::clone).collect(Collectors.toList()));
+            return clone;
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError();
+        }
     }
 }

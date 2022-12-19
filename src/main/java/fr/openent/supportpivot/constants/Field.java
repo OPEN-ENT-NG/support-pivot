@@ -111,4 +111,5 @@ public class Field {
     public static final String DATE_RESOLUTION_JIRA = "date_resolution_jira";
     public static final String DATE_RESOLUTION_ENT = "date_resolution_ent";
     public static final String ATTACHMENTS = "attachments";
+    public static final String STATUT_ENT = "statut_ent";
 }

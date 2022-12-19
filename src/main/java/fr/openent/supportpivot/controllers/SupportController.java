@@ -21,7 +21,6 @@ package fr.openent.supportpivot.controllers;
 import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.constants.PivotConstants;
-import fr.openent.supportpivot.deprecatedservices.DemandeService;
 import fr.openent.supportpivot.helpers.AsyncResultHelper;
 import fr.openent.supportpivot.helpers.EitherHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
@@ -55,7 +54,6 @@ import java.util.Map;
  */
 public class SupportController extends ControllerHelper {
 
-    private DemandeService demandeService;
     private MongoService mongoService;
     private RouterService routerService;
 
@@ -66,7 +64,6 @@ public class SupportController extends ControllerHelper {
 
         ServiceManager serviceManager = ServiceManager.getInstance();
 
-        this.demandeService = serviceManager.getDemandeService();
         this.mongoService = serviceManager.getMongoService();
         this.routerService = serviceManager.getRouteurService();
     }
@@ -160,6 +157,8 @@ public class SupportController extends ControllerHelper {
     @Get("updateJira/:idjira")
     public void jiraUpdateEndpoint(final HttpServerRequest request) {
         final String idJira = request.params().get(JiraConstants.ID_JIRA);
-        demandeService.sendJiraTicketToSupport(request, idJira, getDefaultResponseHandler(request));
+        //TODO see if we realy need this
+        //demandeService.sendJiraTicketToSupport(request, idJira, getDefaultResponseHandler(request));
+        Renders.renderError(request);
     }
 }

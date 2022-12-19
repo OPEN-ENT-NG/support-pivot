@@ -1,6 +1,6 @@
 package fr.openent.supportpivot.model.endpoint;
 
-import fr.openent.supportpivot.model.ticket.PivotTicket;
+import fr.openent.supportpivot.model.pivot.PivotTicket;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;

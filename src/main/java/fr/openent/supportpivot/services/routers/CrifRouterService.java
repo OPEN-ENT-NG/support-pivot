@@ -1,5 +1,6 @@
 package fr.openent.supportpivot.services.routers;
 
+import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.constants.PivotConstants;
 import fr.openent.supportpivot.helpers.AsyncResultHelper;
@@ -7,7 +8,7 @@ import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.model.endpoint.EndpointFactory;
 import fr.openent.supportpivot.model.endpoint.LdeEndPoint;
 import fr.openent.supportpivot.model.endpoint.jira.JiraEndpoint;
-import fr.openent.supportpivot.model.ticket.PivotTicket;
+import fr.openent.supportpivot.model.pivot.PivotTicket;
 import fr.openent.supportpivot.services.HttpClientService;
 import fr.openent.supportpivot.services.JiraService;
 import fr.openent.supportpivot.services.MongoService;
@@ -22,7 +23,6 @@ import io.vertx.core.logging.LoggerFactory;
 import java.util.List;
 
 import static fr.openent.supportpivot.constants.PivotConstants.*;
-import static fr.openent.supportpivot.model.ticket.PivotTicket.IDJIRA_FIELD;
 
 public class CrifRouterService implements RouterService {
 
@@ -40,7 +40,7 @@ public class CrifRouterService implements RouterService {
     @Override
     public void dispatchTicket(String source, PivotTicket ticket, Handler<AsyncResult<PivotTicket>> handler) {
         if (SOURCES.LDE.toString().equals(source)) {
-            if (!ticket.getJiraId().isEmpty()) {
+            if (ticket.getIdJira() != null && !ticket.getIdJira().isEmpty()) {
                 jiraEndpoint.send(ticket, jiraEndpointSendResult -> {
                     if (jiraEndpointSendResult.succeeded()) {
                         handler.handle(Future.succeededFuture(jiraEndpointSendResult.result()));
@@ -51,11 +51,11 @@ public class CrifRouterService implements RouterService {
                     }
                 });
             } else {
-                log.error(String.format("[SupportPivot@%s::dispatchTicket] %s is mandatory for IDF router.", this.getClass().getName(), IDJIRA_FIELD));
-                handler.handle(Future.failedFuture(IDJIRA_FIELD + " is mandatory for IDF router."));
+                log.error(String.format("[SupportPivot@%s::dispatchTicket] %s is mandatory for IDF router.", this.getClass().getName(), Field.ID_JIRA));
+                handler.handle(Future.failedFuture(Field.ID_JIRA + " is mandatory for IDF router."));
             }
         } else {
-            if (ticket.getJiraId() == null) {
+            if (ticket.getIdJira() == null) {
                 jiraEndpoint.send(ticket, jiraEndpointSendResult -> {
                     if (jiraEndpointSendResult.succeeded()) {
                         handler.handle(Future.succeededFuture(jiraEndpointSendResult.result()));
@@ -66,23 +66,25 @@ public class CrifRouterService implements RouterService {
                     }
                 });
             } else {
-                log.error(String.format("[SupportPivot@%s::dispatchTicket] %s is mandatory for IDF router.", this.getClass().getName(), IDJIRA_FIELD));
-                handler.handle(Future.failedFuture(IDJIRA_FIELD + " is mandatory for IDF router."));
+                log.error(String.format("[SupportPivot@%s::dispatchTicket] %s is mandatory for IDF router.", this.getClass().getName(), Field.ID_JIRA));
+                handler.handle(Future.failedFuture(Field.ID_JIRA + " is mandatory for IDF router."));
             }
         }
     }
 
+
+    //Todo use future and return Pivot ticket
     @Override
     public void toPivotTicket(String source, JsonObject ticketdata, Handler<AsyncResult<JsonObject>> handler) {
         if (SOURCES.LDE.toString().equals(source)) {
             mongoService.saveTicket(ATTRIBUTION_LDE, ticketdata);
             ldeEndpoint.process(ticketdata, ldeEndpointProcessResult -> {
                 if (ldeEndpointProcessResult.succeeded()) {
-                    dispatchTicket(source, ldeEndpointProcessResult.result(), dispatchResult -> {
-                        if (dispatchResult.succeeded()) {
-                            handler.handle(Future.succeededFuture(dispatchResult.result().getJsonTicket()));
+                    dispatchTicket(source, ldeEndpointProcessResult.result(), pivotTicket -> {
+                        if (pivotTicket.succeeded()) {
+                            handler.handle(Future.succeededFuture(pivotTicket.result().toJson()));
                         } else {
-                            handler.handle(Future.failedFuture(dispatchResult.cause()));
+                            handler.handle(Future.failedFuture(pivotTicket.cause()));
                         }
                     });
                 } else {
@@ -92,11 +94,10 @@ public class CrifRouterService implements RouterService {
             });
         } else {
             mongoService.saveTicket(ATTRIBUTION_ENT, ticketdata.getJsonObject(ISSUE, new JsonObject()));
-            PivotTicket ticket = new PivotTicket();
-            ticket.setJsonObject(ticketdata.getJsonObject(PivotConstants.ISSUE));
+            PivotTicket ticket = new PivotTicket(ticketdata.getJsonObject(PivotConstants.ISSUE));
             dispatchTicket(source, ticket, dispatchJiraResult -> {
                 if (dispatchJiraResult.succeeded()) {
-                    handler.handle(Future.succeededFuture(dispatchJiraResult.result().getJsonTicket()));
+                    handler.handle(Future.succeededFuture(dispatchJiraResult.result().toJson()));
                 } else {
                     handler.handle(Future.failedFuture(dispatchJiraResult.cause()));
                 }
@@ -122,7 +123,7 @@ public class CrifRouterService implements RouterService {
             } else {
                 ldeEndpoint.process(data, ldeEndpointProcessResult -> {
                     if (ldeEndpointProcessResult.succeeded()) {
-                        JsonObject pivotTicket = ldeEndpointProcessResult.result().getJsonTicket();
+                        JsonObject pivotTicket = ldeEndpointProcessResult.result().toJson();
                         jiraEndpoint.process(pivotTicket, jiraEndpointProcessResult -> {
                             if (jiraEndpointProcessResult.succeeded()) {
                                 PivotTicket pivotFormatTicket = jiraEndpointProcessResult.result();
