@@ -32,16 +32,13 @@ import fr.openent.supportpivot.model.pivot.PivotPJ;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
 import fr.openent.supportpivot.model.status.config.EntStatusConfig;
 import fr.openent.supportpivot.model.status.config.StatusConfigModel;
-import fr.wseduc.webutils.Either;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -677,26 +674,32 @@ public class JiraServiceImpl implements JiraService {
         return buffer.toString();
     }
 
+    //Todo maybe use this function to get jira ticket in other function, if not delete this
+    //todo return JiraTicket
     @Override
-    public void getFromJira(final HttpServerRequest request, final String jiraTicketId,
-                            final Handler<Either<String, JsonObject>> handler) {
+    public Future<JsonObject> getFromJira(final String jiraTicketId) {
+        Promise<JsonObject> promise = Promise.promise();
+
         final URI urlGetTicketGeneralInfo = JIRA_REST_API_URI.resolve(jiraTicketId);
 
+        //Todo use webclient service
         HttpClientRequest httpClientRequestGetInfo = httpClient.get(urlGetTicketGeneralInfo.toString(), response -> {
             response.exceptionHandler(exception -> LOGGER.error("Jira request error : ", exception));
             if (response.statusCode() == HTTP_STATUS_200_OK) {
                 response.bodyHandler(bufferGetInfosTicket -> {
                     JsonObject jsonGetInfosTicket = new JsonObject(bufferGetInfosTicket.toString());
-                    handler.handle(new Either.Right<>(jsonGetInfosTicket));
+                    promise.complete(jsonGetInfosTicket);
                 });
             } else {
                 LOGGER.error(String.format("[SupportPivot@%s::getFromJira] Error when calling URL : %s : %s %s ",
                         this.getClass().getSimpleName(), JIRA_HOST.resolve(urlGetTicketGeneralInfo), response.statusCode(), response.statusMessage()));
                 response.bodyHandler(bufferGetInfosTicket -> LOGGER.error(bufferGetInfosTicket.toString()));
-                handler.handle(new Either.Left<>("Error when gathering Jira ticket information"));
+                promise.fail("Error when gathering Jira ticket information");
             }
         });
 
         terminateRequest(httpClientRequestGetInfo);
+
+        return promise.future();
     }
 }

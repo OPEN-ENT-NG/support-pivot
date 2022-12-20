@@ -39,13 +39,11 @@ public interface JiraService {
      */
     Future<PivotTicket> sendToJIRA(final PivotTicket pivotTicket);
 
-    //Todo use futur and jira ticket and java doc
     /**
-     * Get jira
+     * Get jira JiraTicket from this id
      *
-     * @param request
-     * @param idJira
-     * @param handler
+     * @param jiraTicketId jira ticket id
+     * @return a future with jira ticket if succeeded
      */
-    void getFromJira(HttpServerRequest request, String idJira, final Handler<Either<String, JsonObject>> handler);
+    Future<JsonObject> getFromJira(final String jiraTicketId);
 }

@@ -42,7 +42,7 @@ public class JiraEndpointTest {
     HttpClientService httpClientService;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         JsonObject conf = ConfigModelTest.getConfig1();
         ConfigManager.init(conf);
         vertx = Vertx.vertx();
@@ -99,7 +99,7 @@ public class JiraEndpointTest {
         PowerMockito.spy(JiraEndpoint.class);
         this.jiraEndpoint = PowerMockito.mock(JiraEndpoint.class);
         PowerMockito.doReturn(Future.succeededFuture("B64URL")).when(this.jiraEndpoint, "getJiraPJ", Mockito.any());
-        PowerMockito.doCallRealMethod().when(this.jiraEndpoint).convertJiraReponseToJsonPivot(Mockito.any(JiraTicket.class), Mockito.any());
+        PowerMockito.doCallRealMethod().when(this.jiraEndpoint).convertJiraReponseToJsonPivot(Mockito.any(JiraTicket.class));
         PowerMockito.doCallRealMethod().when(this.jiraEndpoint, "stringEncode", Mockito.anyString());
 
         String expected = "{\"id_jira\":\"FICTEST-336\",\"collectivite\":\"CRIF\",\"academie\":\"CRIF\",\"creation\":\"2022-09-07T17:38:57.960+0200\"," +
@@ -108,10 +108,11 @@ public class JiraEndpointTest {
                 "\"priorite\":\"Mineur\",\"modules\":[\"HDF\"],\"id_ent\":\"631\",\"commentaires\":[null,null,null,null,null,null,null,null,null]," +
                 "\"statut_ent\":\"Ouvert\",\"statut_jira\":\"Ouvert\",\"date_creation\":\"07/09/2022 17:38\",\"id_externe\":\"lde_5002\"," +
                 "\"statut_externe\":\"En traitement ED\",\"attribution\":\"RECTORAT\",\"pj\":[{\"nom\":\"images_LDE.png\",\"contenu\":\"B64URL\"}]}";
-        this.jiraEndpoint.convertJiraReponseToJsonPivot(new JiraTicket(getJiraTicket1()), event -> {
-            ctx.assertEquals(event.right().getValue().toString(), expected);
-            async.complete();
-        });
+        this.jiraEndpoint.convertJiraReponseToJsonPivot(new JiraTicket(getJiraTicket1()))
+                .onSuccess(event -> {
+                    ctx.assertEquals(event.toString(), expected);
+                    async.complete();
+                });
 
         async.awaitSuccess(10000);
     }
