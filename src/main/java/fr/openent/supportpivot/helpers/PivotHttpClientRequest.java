@@ -35,7 +35,7 @@ public class PivotHttpClientRequest {
         httpClientRequest.handler(response -> {
             response.exceptionHandler(exception -> {
                 log.error(String.format("[SupportPivot@%s::checkMissingFields] Error when execute http query %s",
-                        this.getClass().getName(), exception));
+                        this.getClass().getSimpleName(), exception));
                 handler.handle(Future.failedFuture(exception));
             });
             handler.handle(Future.succeededFuture(response));

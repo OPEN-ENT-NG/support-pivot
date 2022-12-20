@@ -34,7 +34,6 @@ public class Field {
     public static final String CREATE = "create";
     public static final String CREATION = "creation";
     public static final String ISSUES = "issues";
-    public static final String IDJIRA = "idjira";
     public static final String TOTAL = "total";
     public static final String KEY = "key";
     public static final String UPDATED = "updated";
@@ -112,4 +111,5 @@ public class Field {
     public static final String DATE_RESOLUTION_ENT = "date_resolution_ent";
     public static final String ATTACHMENTS = "attachments";
     public static final String STATUT_ENT = "statut_ent";
+    public static final String LDE = "LDE";
 }

@@ -3,7 +3,6 @@ package fr.openent.supportpivot.model;
 import fr.openent.supportpivot.constants.ConfigField;
 import fr.openent.supportpivot.constants.EntConstants;
 import fr.openent.supportpivot.constants.Field;
-import fr.openent.supportpivot.enums.PriorityEnum;
 import fr.openent.supportpivot.model.status.config.EntStatusConfig;
 import fr.openent.supportpivot.model.status.config.JiraStatusConfig;
 import io.vertx.core.json.JsonArray;
@@ -43,7 +42,7 @@ public class ConfigModel implements IModel<ConfigModel> {
     public ConfigModel(JsonObject config) {
         this.collectivity = config.getString(ConfigField.COLLECTIVITY, "");
         if(this.collectivity == null || collectivity.isEmpty()) {
-            log.warn(String.format("[SupportPivot@%s::ConfigModel] Default collectivity absent from configuration", this.getClass().getName()));
+            log.warn(String.format("[SupportPivot@%s::ConfigModel] Default collectivity absent from configuration", this.getClass().getSimpleName()));
         }
         //We remove "support.demandes" from config
         this.mongoCollection = config.getString(ConfigField.MONGO_COLLECTION);
