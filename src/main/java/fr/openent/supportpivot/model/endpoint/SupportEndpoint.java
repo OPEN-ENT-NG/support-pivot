@@ -3,7 +3,10 @@ package fr.openent.supportpivot.model.endpoint;
 import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.PivotConstants;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
-import io.vertx.core.*;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -39,10 +42,10 @@ class SupportEndpoint extends  AbstractEndpoint {
                                     .put(Field.ISSUE, ticket.toJson()),
                             handlerToAsyncHandler(message -> {
                                 if (PivotConstants.ENT_BUS_OK_STATUS.equals(message.body().getString(Field.STATUS))) {
-                                    log.info(String.format("[SupportPivot@%s::send] %s", this.getClass().getName(), message.body()));
+                                    log.info(String.format("[SupportPivot@%s::send] %s", this.getClass().getSimpleName(), message.body()));
                                     handler.handle(Future.succeededFuture(new PivotTicket()));
                                 } else {
-                                    log.error(String.format("[SupportPivot@%s::send] Fail to send to support %s", this.getClass().getName(), message.body().toString()));
+                                    log.error(String.format("[SupportPivot@%s::send] Fail to send to support %s", this.getClass().getSimpleName(), message.body().toString()));
                                     handler.handle(Future.failedFuture(message.body().toString()));
                                 }
                             })

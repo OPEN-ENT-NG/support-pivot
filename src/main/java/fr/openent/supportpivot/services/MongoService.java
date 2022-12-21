@@ -39,7 +39,7 @@ public class MongoService {
         mongo.insert(mongoCollection, jsonPivot, MongoDbResult.validActionResultHandler(event -> {
             if (event.isLeft()) {
                 String message = EitherHelper.getOrNullLeftMessage(event);
-                log.error(String.format("[SupportPivot@%s::saveTicket] Could not save json to mongoDB %s", this.getClass().getName(), message));
+                log.error(String.format("[SupportPivot@%s::saveTicket] Could not save json to mongoDB %s", this.getClass().getSimpleName(), message));
             }
         }));
     }

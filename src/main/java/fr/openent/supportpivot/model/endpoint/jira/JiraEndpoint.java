@@ -1,19 +1,19 @@
 package fr.openent.supportpivot.model.endpoint.jira;
 
-import fr.openent.supportpivot.constants.EntConstants;
 import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.enums.PriorityEnum;
 import fr.openent.supportpivot.helpers.*;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.model.ConfigModel;
+import fr.openent.supportpivot.model.endpoint.AbstractEndpoint;
 import fr.openent.supportpivot.model.jira.*;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
 import fr.openent.supportpivot.model.status.config.JiraStatusConfig;
-import fr.openent.supportpivot.model.endpoint.AbstractEndpoint;
 import fr.openent.supportpivot.services.HttpClientService;
 import fr.openent.supportpivot.services.JiraService;
 import fr.wseduc.webutils.Either;
+import io.netty.util.concurrent.SucceededFuture;
 import io.vertx.core.*;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
@@ -30,14 +30,10 @@ import java.text.Format;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static fr.openent.supportpivot.constants.JiraConstants.ATTRIBUTION_FILTERNAME;
-import static fr.openent.supportpivot.constants.JiraConstants.ATTRIBUTION_FILTER_DATE;
-import static fr.openent.supportpivot.constants.JiraConstants.ATTRIBUTION_FILTER_CUSTOMFIELD;
+import static fr.openent.supportpivot.constants.JiraConstants.*;
 import static fr.openent.supportpivot.constants.PivotConstants.*;
 
 
@@ -57,7 +53,7 @@ public class JiraEndpoint extends AbstractEndpoint {
             httpClient.setBasicAuth(ConfigManager.getInstance().getConfig().getJiraLogin(), ConfigManager.getInstance().getConfig().getJiraPasswd());
 
         } catch (URISyntaxException e) {
-            log.error(String.format("[SupportPivot@%s::JiraEndpoint] Invalid uri %s", this.getClass().getName(), e.getMessage()));
+            log.error(String.format("[SupportPivot@%s::JiraEndpoint] Invalid uri %s", this.getClass().getSimpleName(), e.getMessage()));
         }
 
         this.jiraService = jiraService;
@@ -73,14 +69,13 @@ public class JiraEndpoint extends AbstractEndpoint {
                 if (response.statusCode() == 200) {
                     processSearchResponse(response, handler);
                 } else {
-                    log.error(String.format("[SupportPivot@%s::getPivotTicket] Fail to get jira ticket %s", this.getClass().getName(), response.statusCode()));
+                    log.error(String.format("[SupportPivot@%s::getPivotTicket] Fail to get jira ticket %s", this.getClass().getSimpleName(), response.statusCode()));
                     response.bodyHandler(body -> log.error(response.statusCode() + " " + response.statusMessage() + "  " + body));
                     handler.handle(Future.failedFuture("process jira ticket failed"));
                 }
             } else {
                 handler.handle(Future.failedFuture(getJiraTicketResult.cause()));
             }
-
         });
     }
 
@@ -130,7 +125,7 @@ public class JiraEndpoint extends AbstractEndpoint {
                         future.complete(new PivotTicket(event.right().getValue()));
                     } else {
                         log.error(String.format("[SupportPivot@%s::processSearchResponse] Fail to convert ticket %s",
-                                this.getClass().getName(), EitherHelper.getOrNullLeftMessage(event)));
+                                this.getClass().getSimpleName(), EitherHelper.getOrNullLeftMessage(event)));
                         future.fail(event.left().getValue());
                     }
                 });
@@ -153,7 +148,7 @@ public class JiraEndpoint extends AbstractEndpoint {
 
     @Override
     public void process(JsonObject ticketData, Handler<AsyncResult<PivotTicket>> handler) {
-        final String id_jira = ticketData.getString(Field.IDJIRA);
+        final String id_jira = ticketData.getString(Field.ID_JIRA);
 
         this.getJiraTicketByJiraId(id_jira, result -> {
             if (result.failed()) {
@@ -168,15 +163,15 @@ public class JiraEndpoint extends AbstractEndpoint {
                                 PivotTicket pivotTicket = new PivotTicket(resultPivot.right().getValue());
                                 handler.handle(Future.succeededFuture(pivotTicket));
                             } else {
-                                log.error(String.format("[SupportPivot@%s::processSearchResponse] Fail to convert ticket %s",
-                                        this.getClass().getName(), EitherHelper.getOrNullLeftMessage(resultPivot)));
+                                log.error(String.format("[SupportPivot@%s::process] Fail to convert ticket %s",
+                                        this.getClass().getSimpleName(), EitherHelper.getOrNullLeftMessage(resultPivot)));
                                 handler.handle(Future.failedFuture("process jira ticket failed " + resultPivot.left().getValue()));
                             }
                         });
                     });
                 } else {
-                    log.error(String.format("[SupportPivot@%s::processSearchResponse] Fail to get jira ticket %s %s",
-                            this.getClass().getName(), response.statusCode(), response.statusMessage()));
+                    log.error(String.format("[SupportPivot@%s::process] Fail to get jira ticket %s %s",
+                            this.getClass().getSimpleName(), response.statusCode(), response.statusMessage()));
                     response.bodyHandler(body -> log.error(response.statusCode() + " " + response.statusMessage() + "  " + body));
                     handler.handle(Future.failedFuture("process jira ticket failed"));
                 }
@@ -200,19 +195,19 @@ public class JiraEndpoint extends AbstractEndpoint {
                                     .onSuccess(pivotTicketResult -> handler.handle(Future.succeededFuture(pivotTicketResult)))
                                     .onFailure(error -> {
                                         log.error(String.format("[SupportPivot@%s::send] Fail to send to jira %s",
-                                                this.getClass().getName(), error.getMessage()));
+                                                this.getClass().getSimpleName(), error.getMessage()));
                                         handler.handle(Future.failedFuture(error));
                                     });
                         });
                     } else {
                         log.error(String.format("[SupportPivot@%s::send] Fail to get jira ticket %s %s %s",
-                                this.getClass().getName(), response.request().uri(), response.statusCode(), response.statusMessage()));
+                                this.getClass().getSimpleName(), response.request().uri(), response.statusCode(), response.statusMessage()));
                         response.bodyHandler(buffer -> log.error(buffer.getString(0, buffer.length())));
                         handler.handle(Future.failedFuture("A problem occurred when trying to get ticket from jira (externalID: " + ticket.getIdExterne() + ")"));
                     }
                 } else {
                     log.error(String.format("[SupportPivot@%s::send] Error when getJiraTicket %s",
-                            this.getClass().getName(), AsyncResultHelper.getOrNullFailMessage(result)));
+                            this.getClass().getSimpleName(), AsyncResultHelper.getOrNullFailMessage(result)));
                     handler.handle(Future.failedFuture("A problem occurred when trying to get ticket from jira (externalID: " + ticket.getIdExterne()));
                 }
             });
@@ -240,13 +235,13 @@ public class JiraEndpoint extends AbstractEndpoint {
                                     .onSuccess(pivotTicketResult -> handler.handle(Future.succeededFuture(pivotTicketResult)))
                                     .onFailure(error -> {
                                         log.error(String.format("[SupportPivot@%s::send] Fail to send to jira %s",
-                                                this.getClass().getName(), error));
+                                                this.getClass().getSimpleName(), error));
                                         handler.handle(Future.failedFuture(error));
                                     });
                         });
                     } else {
                         log.error(String.format("[SupportPivot@%s::send] Fail to get jira ticket %s %s %s",
-                                this.getClass().getName(), response.request().uri(), response.statusCode(), response.statusMessage()));
+                                this.getClass().getSimpleName(), response.request().uri(), response.statusCode(), response.statusMessage()));
                         response.bodyHandler(buffer -> log.error(buffer.getString(0, buffer.length())));
                         String message = String.format("[SupportPivot@%s::send] Supportpivot A problem occurred when trying to get ticket from jira (externalID: " +
                                 ticket.getIdExterne() + " ) : %s", this.getClass().getSimpleName(), result.cause());
@@ -295,7 +290,7 @@ public class JiraEndpoint extends AbstractEndpoint {
                     handler.handle(Future.succeededFuture(result.result()));
                 } else {
                     log.error(String.format("[SupportPivot@%s::executeJiraRequest] Fail to execute jira request %s",
-                            this.getClass().getName(), AsyncResultHelper.getOrNullFailMessage(result)));
+                            this.getClass().getSimpleName(), AsyncResultHelper.getOrNullFailMessage(result)));
                     handler.handle(Future.failedFuture(AsyncResultHelper.getOrNullFailMessage(result)));
                 }
             });
@@ -415,7 +410,7 @@ public class JiraEndpoint extends AbstractEndpoint {
                                 allPJConverted.add(currentPJ);
                             } else {
                                 log.error(String.format("[SupportPivot@%s::convertJiraReponseToJsonPivot] Fail to get jira PJ %s",
-                                        this.getClass().getName(), AsyncResultHelper.getOrNullFailMessage(PJFuture)));
+                                        this.getClass().getSimpleName(), AsyncResultHelper.getOrNullFailMessage(PJFuture)));
                             }
                         });
                         jsonPivot.put(Field.PJ, allPJConverted);
@@ -423,7 +418,7 @@ public class JiraEndpoint extends AbstractEndpoint {
                     })
                     .onFailure(event -> {
                         log.error((String.format("[SupportPivot@%s::convertJiraReponseToJsonPivot] Fail to get all jira PJ %s",
-                                this.getClass().getName(), event.getMessage())));
+                                this.getClass().getSimpleName(), event.getMessage())));
                         handler.handle(new Either.Left<>(event.getMessage()));
                     });
         }
@@ -443,13 +438,13 @@ public class JiraEndpoint extends AbstractEndpoint {
                     });
                 } else {
                     log.error(String.format("[SupportPivot@%s::getJiraPJ] Error when calling URL: %s %s %s",
-                            this.getClass().getName(), attachmentLink, result.result().statusCode(), AsyncResultHelper.getOrNullFailMessage(result)));
+                            this.getClass().getSimpleName(), attachmentLink, result.result().statusCode(), AsyncResultHelper.getOrNullFailMessage(result)));
                     result.result().bodyHandler(body -> log.error(body.toString()));
                     promise.fail("Error when getting Jira attachment (" + attachmentLink + ") information");
                 }
             } else {
                 log.error(String.format("[SupportPivot@%s::getJiraPJ] Error when calling URL: %s %s",
-                        this.getClass().getName(), attachmentLink, AsyncResultHelper.getOrNullFailMessage(result)));
+                        this.getClass().getSimpleName(), attachmentLink, AsyncResultHelper.getOrNullFailMessage(result)));
                 promise.fail("Error when getting Jira attachment (" + attachmentLink + ") information");
             }
         });

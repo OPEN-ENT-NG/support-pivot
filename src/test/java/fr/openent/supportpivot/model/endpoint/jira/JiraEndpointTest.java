@@ -1,6 +1,5 @@
 package fr.openent.supportpivot.model.endpoint.jira;
 
-import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.helpers.PivotHttpClient;
 import fr.openent.supportpivot.helpers.PivotHttpClientRequest;
 import fr.openent.supportpivot.managers.ConfigManager;
@@ -9,18 +8,14 @@ import fr.openent.supportpivot.model.jira.JiraAttachment;
 import fr.openent.supportpivot.model.jira.JiraTicket;
 import fr.openent.supportpivot.services.HttpClientService;
 import fr.openent.supportpivot.services.JiraServiceImpl;
-import fr.openent.supportpivot.services.MongoService;
 import fr.wseduc.mongodb.MongoDb;
-import fr.wseduc.webutils.Either;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.buffer.impl.BufferImpl;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.impl.HttpClientImpl;
 import io.vertx.core.http.impl.HttpClientResponseImpl;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;

@@ -1,9 +1,7 @@
 package fr.openent.supportpivot.model.endpoint;
 
-import fr.openent.supportpivot.constants.Field;
-import fr.openent.supportpivot.helpers.DateHelper;
 import fr.openent.supportpivot.helpers.EitherHelper;
-import fr.openent.supportpivot.model.pivot.PivotPJ;
+import fr.openent.supportpivot.model.lde.LdeTicket;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
 import fr.wseduc.webutils.Either;
 import io.vertx.core.AsyncResult;
@@ -14,9 +12,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class LdeEndPoint extends AbstractEndpoint {
 
@@ -30,7 +27,7 @@ public class LdeEndPoint extends AbstractEndpoint {
                 PivotTicket ticket = new PivotTicket(ticketData);
                 handler.handle(Future.succeededFuture(ticket));
             } else {
-                log.error(String.format("[SupportPivot@%s::process] Fail to process %s", this.getClass().getName(), EitherHelper.getOrNullLeftMessage(result)));
+                log.error(String.format("[SupportPivot@%s::process] Fail to process %s", this.getClass().getSimpleName(), EitherHelper.getOrNullLeftMessage(result)));
                 handler.handle(Future.failedFuture(result.left().toString()));
             }
         });
@@ -41,40 +38,17 @@ public class LdeEndPoint extends AbstractEndpoint {
         handler.handle(Future.succeededFuture(ticket));
     }
 
-    public void sendBack(PivotTicket ticket, Handler<AsyncResult<JsonObject>> handler)  {
-        handler.handle(Future.succeededFuture(prepareJson(ticket, true)));
+    public void sendBack(PivotTicket ticket, Handler<AsyncResult<LdeTicket>> handler)  {
+        handler.handle(Future.succeededFuture(prepareJson(ticket)));
     }
 
     //TODO use LdeTicket model
-    private JsonObject prepareJson(PivotTicket pivotTicket, boolean isComplete) {
-        PivotTicket pivotTicketClone = pivotTicket.clone();
-        JsonObject ticket = isComplete ? pivotTicketClone.toJson() : new JsonObject();
-        ticket.put(Field.ID_JIRA, pivotTicketClone.getIdJira());
-        if(pivotTicketClone.getIdExterne() != null) ticket.put(Field.ID_EXTERNE, pivotTicketClone.getIdExterne());
-        if(pivotTicketClone.getTitre() != null) ticket.put(Field.TITRE, pivotTicketClone.getTitre());
-        DateTimeFormatter inFormatter = DateTimeFormatter.ofPattern(DateHelper.DATE_FORMAT_PARSE_UTC);
-        DateTimeFormatter outFormatter = DateTimeFormatter.ofPattern(DateHelper.SQL_FORMAT_WITHOUT_SEPARATOR);
-        ZonedDateTime createdDate = inFormatter.parse(pivotTicketClone.getCreation(), ZonedDateTime::from);
-        ticket.put(Field.CREATION, outFormatter.format(createdDate));
-        ZonedDateTime updatedDate = inFormatter.parse(pivotTicketClone.getMaj(), ZonedDateTime::from);
-        ticket.put(Field.MAJ, outFormatter.format(updatedDate));
-
-        // Remove endlines from base64 before sending to LDE
-        JsonArray filteredPjs = new JsonArray();
-        for(PivotPJ pivotPJ : pivotTicketClone.getPj()) {
-            pivotPJ.setContenu(pivotPJ.getContenu().replace("\r\n", ""));
-            filteredPjs.add(pivotPJ.toJson());
-        }
-        ticket.put(Field.PJ, filteredPjs);
-        return ticket;
+    private LdeTicket prepareJson(PivotTicket pivotTicket) {
+        return new LdeTicket(pivotTicket);
     }
 
-    public void prepareJsonList(List<PivotTicket> pivotTickets, Handler<AsyncResult<JsonArray>> handler) {
-        JsonArray jsonTickets = new JsonArray();
-        for (PivotTicket pivotTicket : pivotTickets) {
-            jsonTickets.add(prepareJson(pivotTicket, false));
-        }
-        handler.handle(Future.succeededFuture(jsonTickets));
+    public List<LdeTicket> prepareJsonList(List<PivotTicket> pivotTickets) {
+        return pivotTickets.stream().map(LdeTicket::new).collect(Collectors.toList());
     }
 
     private void checkTicketData(JsonObject ticketData, Handler<Either> handler) {

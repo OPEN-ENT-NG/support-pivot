@@ -2,8 +2,10 @@ package fr.openent.supportpivot.controllers;
 
 import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.PivotConstants;
+import fr.openent.supportpivot.helpers.IModelHelper;
 import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.managers.ServiceManager;
+import fr.openent.supportpivot.model.lde.LdeTicket;
 import fr.openent.supportpivot.services.routers.RouterService;
 import fr.wseduc.rs.Get;
 import fr.wseduc.rs.Put;
@@ -19,6 +21,7 @@ import io.vertx.core.logging.LoggerFactory;
 import org.entcore.common.controller.ControllerHelper;
 import org.vertx.java.core.http.RouteMatcher;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -48,12 +51,14 @@ public class LdeController extends ControllerHelper {
         JsonObjectSafe data = new JsonObjectSafe();
         data.put(Field.TYPE, Field.LIST);
         data.putSafe(Field.DATE, date);
-        routerService.readTickets(SOURCE_LDE, data, event -> {
-            if (event.succeeded()) {
-                Renders.renderJson(request, event.result());
+        routerService.readTickets(SOURCE_LDE, data, listTicketResult -> {
+            if (listTicketResult.succeeded()) {
+                List<LdeTicket> ldeTicketList = listTicketResult.result();
+                ldeTicketList.forEach(LdeTicket::listFormat);
+                Renders.renderJson(request, IModelHelper.toJsonArray(listTicketResult.result()));
             } else {
-                log.error(String.format("[SupportPivot@%s::getListeTicketsLDE] GET /lde/tickets failed : %s", this.getClass().getName(), event.cause()));
-                Renders.badRequest(request, event.cause().toString());
+                log.error(String.format("[SupportPivot@%s::getListeTicketsLDE] GET /lde/tickets failed : %s", this.getClass().getSimpleName(), listTicketResult.cause()));
+                Renders.badRequest(request, listTicketResult.cause().toString());
             }
         });
     }
@@ -64,13 +69,15 @@ public class LdeController extends ControllerHelper {
         String id_param_value = request.params().get(Field.ID);
         //router trigger ( src = lde + idLDE )
         JsonObject data = new JsonObject()
-                .put(Field.IDJIRA, id_param_value)
+                .put(Field.ID_JIRA, id_param_value)
                 .put(Field.TYPE, Field.TICKET);
         routerService.readTickets(SOURCE_LDE, data, event -> {
-            if (event.succeeded()) {
-                Renders.renderJson(request, event.result().getJsonObject(0));
+            if (event.succeeded() && !event.result().isEmpty()) {
+                Renders.renderJson(request, event.result().get(0).toJson());
+            } else if (event.succeeded()) {
+                Renders.notFound(request, String.format("Jira ticket with id %s not found.", id_param_value));
             } else {
-                log.error(String.format("[SupportPivot@%s::getTicketLDE] GET /lde/ticket/%s failed : %s", this.getClass().getName(), id_param_value, event.cause()));
+                log.error(String.format("[SupportPivot@%s::getTicketLDE] GET /lde/ticket/%s failed : %s", this.getClass().getSimpleName(), id_param_value, event.cause()));
                 Renders.badRequest(request, event.cause().toString());
             }
         });
@@ -83,10 +90,9 @@ public class LdeController extends ControllerHelper {
             if (event.succeeded()) {
                 Renders.renderJson(request, event.result());
             } else {
-                log.error(String.format("[SupportPivot@%s::getTicketLDE] PUT /lde/ticket/ failed : %s", this.getClass().getName(), event.cause()));
+                log.error(String.format("[SupportPivot@%s::getTicketLDE] PUT /lde/ticket/ failed : %s", this.getClass().getSimpleName(), event.cause()));
                 Renders.badRequest(request, event.cause().toString());
             }
         }));
     }
-
 }
