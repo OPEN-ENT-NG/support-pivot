@@ -72,7 +72,7 @@ public class ConfigManager {
     public String getjiraCustomFieldIdForIdent() { return config.getJiraCustomFields().getOrDefault(Field.ID_ENT, ""); }
 
     private void initPublicConfig() {
-        publicConfig.put(ConfigField.JIRA_PASSWD, hidePasswd(rawConfig.getString(ConfigField.JIRA_PASSWD, "")));
+        publicConfig.put(ConfigField.JIRA_DASH_PASSWD, hidePasswd(rawConfig.getString(ConfigField.JIRA_DASH_PASSWD, "")));
     }
 
     private String hidePasswd(String passwd) {
@@ -89,7 +89,7 @@ public class ConfigManager {
         try {
             new URL(config.getJiraHost()).toURI();
         }catch (Exception e) {
-            log.error(String.format("[SupportPivot@%s::checkMissingFields] entcore.json : parameter %s is not a valid URL %s", this.getClass().getSimpleName(), ConfigField.JIRA_HOST, e));
+            log.error(String.format("[SupportPivot@%s::checkMissingFields] entcore.json : parameter %s is not a valid URL %s", this.getClass().getSimpleName(), ConfigField.JIRA_DASH_HOST, e));
         }
     }
 
