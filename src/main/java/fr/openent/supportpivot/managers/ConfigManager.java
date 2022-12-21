@@ -44,14 +44,14 @@ public class ConfigManager {
                 Field.RESPONSE_TECHNICAL, Field.UAI);
         requiredFieldsList.stream()
                 .filter(field -> !config.getJiraCustomFields().containsKey(field))
-                .forEach(field -> log.error(String.format("[SupportPivot@%s::checkMissingFields] Missing jira custom field %s", this.getClass().getName(), field)));
+                .forEach(field -> log.error(String.format("[SupportPivot@%s::checkMissingFields] Missing jira custom field %s", this.getClass().getSimpleName(), field)));
     }
 
     public URI getJiraBaseUrl() {
         try {
             return new URI(config.getJiraHost()).resolve(config.getJiraBaseUri());
         } catch (URISyntaxException e) {
-            log.error(String.format("[SupportPivot@%s::getJiraBaseUrl] Bad URL jira-host / jira-base-uri :  %s / %s", this.getClass().getName(), config.getJiraHost(), config.getJiraBaseUri()));
+            log.error(String.format("[SupportPivot@%s::getJiraBaseUrl] Bad URL jira-host / jira-base-uri :  %s / %s", this.getClass().getSimpleName(), config.getJiraHost(), config.getJiraBaseUri()));
             return URI.create("");
         }
     }
@@ -60,7 +60,7 @@ public class ConfigManager {
         try {
             return new URI(config.getJiraHost());
         } catch (URISyntaxException e) {
-            log.error(String.format("[SupportPivot@%s::getJiraHostUrl] Bad URL jira-host :  %s ", this.getClass().getName(), config.getJiraHost()));
+            log.error(String.format("[SupportPivot@%s::getJiraHostUrl] Bad URL jira-host :  %s ", this.getClass().getSimpleName(), config.getJiraHost()));
             return URI.create("");
         }
     }
@@ -89,7 +89,7 @@ public class ConfigManager {
         try {
             new URL(config.getJiraHost()).toURI();
         }catch (Exception e) {
-            log.error(String.format("[SupportPivot@%s::checkMissingFields] entcore.json : parameter %s is not a valid URL %s", this.getClass().getName(), ConfigField.JIRA_HOST, e));
+            log.error(String.format("[SupportPivot@%s::checkMissingFields] entcore.json : parameter %s is not a valid URL %s", this.getClass().getSimpleName(), ConfigField.JIRA_HOST, e));
         }
     }
 

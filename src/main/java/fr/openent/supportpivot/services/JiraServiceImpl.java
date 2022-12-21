@@ -103,7 +103,7 @@ public class JiraServiceImpl implements JiraService {
         try {
             jira_rest_uri = new URI(config.getJiraURL());
         } catch (URISyntaxException e) {
-            LOGGER.error(String.format("[SupportPivot@%s::JiraServiceImpl] Bad parameter ent-core.json#jira-url %s", this.getClass().getName(), e.getMessage()));
+            LOGGER.error(String.format("[SupportPivot@%s::JiraServiceImpl] Bad parameter ent-core.json#jira-url %s", this.getClass().getSimpleName(), e.getMessage()));
             //TODO Break module starting
         }
         this.JIRA_REST_API_URI = jira_rest_uri;
@@ -160,7 +160,7 @@ public class JiraServiceImpl implements JiraService {
         }
 
         httpClientRequest.exceptionHandler(exception -> {
-            LOGGER.error(String.format("[SupportPivot@%s::terminateRequest] Error when update Jira ticket %s", this.getClass().getName(), exception.getMessage()));
+            LOGGER.error(String.format("[SupportPivot@%s::terminateRequest] Error when update Jira ticket %s", this.getClass().getSimpleName(), exception.getMessage()));
         });
         httpClientRequest.end();
     }
@@ -180,7 +180,7 @@ public class JiraServiceImpl implements JiraService {
         //ID_EXTERNAL is mandatory
         if (pivotTicket.getIdExterne() == null || pivotTicket.getIdExterne().isEmpty()) {
             LOGGER.error(String.format("[SupportPivot@%s::sendToJIRA] Error to send ticket to jira. ID_EXTERNAL is mandatory %s",
-                    this.getClass().getName(), pivotTicket.toJson()));
+                    this.getClass().getSimpleName(), pivotTicket.toJson()));
             return Future.failedFuture("2;Mandatory Field " + Field.ID_EXTERNE);
         }
 
@@ -208,17 +208,17 @@ public class JiraServiceImpl implements JiraService {
                                         .onSuccess(event -> promise.complete(pivotTicket))
                                         .onFailure(error -> {
                                             LOGGER.error(String.format("[SupportPivot@%s::createJiraTicket] Error to create ticket to jira. Create comment fail %s",
-                                                    this.getClass().getName(), error.getMessage()));
+                                                    this.getClass().getSimpleName(), error.getMessage()));
                                             promise.fail("999;Error, when creating comments.");
                                         });
                             });
                         } else {
                             LOGGER.error(String.format("[SupportPivot@%s::createJiraTicket] Sent ticket to Jira : %s",
-                                    this.getClass().getName(), prepareTicketForCreation(pivotTicket)));
+                                    this.getClass().getSimpleName(), prepareTicketForCreation(pivotTicket)));
                             LOGGER.error(String.format("[SupportPivot@%s::createJiraTicket] Error when calling URL %s : %s %s. Error when creating Jira ticket.",
-                                    this.getClass().getName(), JIRA_HOST.resolve(JIRA_REST_API_URI), response.statusCode(), response.statusMessage()));
+                                    this.getClass().getSimpleName(), JIRA_HOST.resolve(JIRA_REST_API_URI), response.statusCode(), response.statusMessage()));
                             response.bodyHandler(event -> LOGGER.error(String.format("[SupportPivot@%s::createJiraTicket] Jira error response :%s",
-                                    this.getClass().getName(), event.toString())));
+                                    this.getClass().getSimpleName(), event.toString())));
                             promise.fail("999;Error when creating Jira ticket");
                         }
                     });
@@ -229,7 +229,7 @@ public class JiraServiceImpl implements JiraService {
             terminateRequest(createTicketRequest);
         } catch (Error e) {
             LOGGER.error(String.format("[SupportPivot@%s::createJiraTicket] Error when creating Jira ticket %s",
-                    this.getClass().getName(), e.getMessage()));
+                    this.getClass().getSimpleName(), e.getMessage()));
             promise.fail("999;Error when creating Jira ticket: " + e.getMessage());
         }
 
@@ -316,7 +316,7 @@ public class JiraServiceImpl implements JiraService {
             }
             current.onSuccess(event -> promise.complete())
                     .onFailure(error -> {
-                        LOGGER.error(String.format("[SupportPivot@%s::updateComments] Fail to send one comment %s", this.getClass().getName(), error.getMessage()));
+                        LOGGER.error(String.format("[SupportPivot@%s::updateComments] Fail to send one comment %s", this.getClass().getSimpleName(), error.getMessage()));
                         promise.fail(error.getMessage());
                     });
         } else {
@@ -340,9 +340,9 @@ public class JiraServiceImpl implements JiraService {
             // If ticket well created, then HTTP Status Code 201: The request has been fulfilled and has resulted in one or more new resources being created.
             if (response.statusCode() != HTTP_STATUS_201_CREATED) {
                 promise.fail("999;Error when add Jira comment : " + comment + " : " + response.statusCode() + " " + response.statusMessage());
-                LOGGER.error(String.format("[SupportPivot@%s::sendJiraComment] POST %s", this.getClass().getName(), JIRA_HOST.resolve(urlNewTicket)));
+                LOGGER.error(String.format("[SupportPivot@%s::sendJiraComment] POST %s", this.getClass().getSimpleName(), JIRA_HOST.resolve(urlNewTicket)));
                 LOGGER.error(String.format("[SupportPivot@%s::sendJiraComment] Error when add Jira comment on %s : %s - %s - %s",
-                        this.getClass().getName(), idJira, response.statusCode(), response.statusMessage(), comment));
+                        this.getClass().getSimpleName(), idJira, response.statusCode(), response.statusMessage(), comment));
             } else {
                 promise.complete();
             }
@@ -375,7 +375,7 @@ public class JiraServiceImpl implements JiraService {
         current.onSuccess(event -> promise.complete())
                 .onFailure(error -> {
                     LOGGER.error(String.format("[SupportPivot@%s::sendMultipleJiraPJ] Fail to send one Jira PJ %s",
-                            this.getClass().getName(), error.getMessage()));
+                            this.getClass().getSimpleName(), error.getMessage()));
                     promise.fail(error.getMessage());
                 });
 
@@ -396,7 +396,7 @@ public class JiraServiceImpl implements JiraService {
             if (response.statusCode() != HTTP_STATUS_200_OK) {
                 promise.fail("999;Error when add Jira attachment : " + pj.getNom() + " : " + response.statusCode() + " " + response.statusMessage());
                 LOGGER.error(String.format("[SupportPivot@%s::sendJiraPJ] Error when add Jira attachment %s %s",
-                        this.getClass().getName(), jiraTicketId, pj.getNom()));
+                        this.getClass().getSimpleName(), jiraTicketId, pj.getNom()));
             } else {
                 promise.complete();
             }
@@ -478,12 +478,12 @@ public class JiraServiceImpl implements JiraService {
                                                 .onSuccess(event -> promise.complete(pivotTicket))
                                                 .onFailure(error -> {
                                                     LOGGER.error(String.format("[SupportPivot@%s::updateJiraTicket] Error, when creating PJ %s",
-                                                            this.getClass().getName(), error.getMessage()));
+                                                            this.getClass().getSimpleName(), error.getMessage()));
                                                     promise.fail("Error, when creating PJ.");
                                                 });
                                     } else {
                                         LOGGER.error(String.format("[SupportPivot@%s::updateJiraTicket] Error when calling URL %s : %s",
-                                                this.getClass().getName(), urlUpdateJiraTicket, modifyResp.statusMessage()));
+                                                this.getClass().getSimpleName(), urlUpdateJiraTicket, modifyResp.statusMessage()));
                                         modifyResp.bodyHandler(body -> LOGGER.error(body.toString()));
                                         promise.fail("Error when update Jira ticket information");
                                     }
@@ -620,7 +620,7 @@ public class JiraServiceImpl implements JiraService {
 
             if (issueComment == null || !issueComment.containsKey(Field.ID)) {
                 LOGGER.error(String.format("[SupportPivot@%s::extractNewComments] Invalid comment: %s",
-                        this.getClass().getName(), incomingComment));
+                        this.getClass().getSimpleName(), incomingComment));
                 continue;
             }
             String issueCommentId = issueComment.getString(Field.ID, "");
@@ -691,7 +691,7 @@ public class JiraServiceImpl implements JiraService {
                 });
             } else {
                 LOGGER.error(String.format("[SupportPivot@%s::getFromJira] Error when calling URL : %s : %s %s ",
-                        this.getClass().getName(), JIRA_HOST.resolve(urlGetTicketGeneralInfo), response.statusCode(), response.statusMessage()));
+                        this.getClass().getSimpleName(), JIRA_HOST.resolve(urlGetTicketGeneralInfo), response.statusCode(), response.statusMessage()));
                 response.bodyHandler(bufferGetInfosTicket -> LOGGER.error(bufferGetInfosTicket.toString()));
                 handler.handle(new Either.Left<>("Error when gathering Jira ticket information"));
             }

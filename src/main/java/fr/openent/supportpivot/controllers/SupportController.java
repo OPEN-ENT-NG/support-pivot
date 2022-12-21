@@ -77,7 +77,7 @@ public class SupportController extends ControllerHelper {
                 Renders.renderJson(request, event.right().getValue(), 200);
             } else {
                 log.error(String.format("[SupportPivot@%s::getDefaultResponseHandler] %s",
-                        this.getClass().getName(), EitherHelper.getOrNullLeftMessage(event)));
+                        this.getClass().getSimpleName(), EitherHelper.getOrNullLeftMessage(event)));
                 String errorCode = event.left().getValue();
                 String errorCodeMsg = "";
                 if (errorCode.contains(";")) {
@@ -103,7 +103,7 @@ public class SupportController extends ControllerHelper {
                 Renders.renderJson(request, result.result(), 200);
             } else {
                 log.error(String.format("[SupportPivot@%s::getDefaultResponseHandler] %s",
-                        this.getClass().getName(), AsyncResultHelper.getOrNullFailMessage(result)));
+                        this.getClass().getSimpleName(), AsyncResultHelper.getOrNullFailMessage(result)));
                 String errorCode = result.cause().getMessage();
                 String errorCodeMsg = "";
                 if (errorCode.contains(";")) {

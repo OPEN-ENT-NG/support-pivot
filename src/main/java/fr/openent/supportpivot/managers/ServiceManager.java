@@ -1,6 +1,9 @@
 package fr.openent.supportpivot.managers;
 
-import fr.openent.supportpivot.services.*;
+import fr.openent.supportpivot.services.HttpClientService;
+import fr.openent.supportpivot.services.JiraService;
+import fr.openent.supportpivot.services.JiraServiceImpl;
+import fr.openent.supportpivot.services.MongoService;
 import fr.openent.supportpivot.services.routers.CrifRouterService;
 import fr.openent.supportpivot.services.routers.RouterService;
 import fr.wseduc.webutils.email.EmailSender;
@@ -39,7 +42,7 @@ public class ServiceManager {
                 break;
             default:
                 log.error(String.format("[SupportPivot@%s::ServiceManager] Unknown value when starting Pivot Service. collectivity: %s",
-                        this.getClass().getName(), ConfigManager.getInstance().getConfig().getCollectivity()));
+                        this.getClass().getSimpleName(), ConfigManager.getInstance().getConfig().getCollectivity()));
         }
     }
 
