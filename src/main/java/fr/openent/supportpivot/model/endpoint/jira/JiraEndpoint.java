@@ -8,6 +8,7 @@ import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.model.ConfigModel;
 import fr.openent.supportpivot.model.endpoint.AbstractEndpoint;
 import fr.openent.supportpivot.model.jira.*;
+import fr.openent.supportpivot.model.pivot.PivotPJ;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
 import fr.openent.supportpivot.model.status.config.JiraStatusConfig;
 import fr.openent.supportpivot.services.HttpClientService;
@@ -118,14 +119,14 @@ public class JiraEndpoint extends AbstractEndpoint {
                     JiraSearch jiraSearch = new JiraSearch(new JsonObject(body));
                     List<Future<PivotTicket>> futures = new ArrayList<>();
                     jiraSearch.getIssues().forEach(issue -> {
-                        Future<PivotTicket> future = Future.future();
-                        futures.add(future);
+                        Promise<PivotTicket> promisePivotTicket = Promise.promise();
+                        futures.add(promisePivotTicket.future());
                         convertJiraReponseToJsonPivot(issue)
-                                .onSuccess(event -> future.complete(new PivotTicket(event)))
+                                .onSuccess(promisePivotTicket::complete)
                                 .onFailure(error -> {
                                     log.error(String.format("[SupportPivot@%s::processSearchResponse] Fail to convert ticket %s",
                                             this.getClass().getSimpleName(), error));
-                                    future.fail(error);
+                                    promisePivotTicket.fail(error);
                                 });
                     });
 
@@ -161,10 +162,7 @@ public class JiraEndpoint extends AbstractEndpoint {
                     JiraTicket jiraTicket = new JiraTicket(new JsonObject(body));
                     return convertJiraReponseToJsonPivot(jiraTicket);
                 })
-                .onSuccess(pivotTicketJson -> {
-                    PivotTicket pivotTicket = new PivotTicket(pivotTicketJson);
-                    promise.complete(pivotTicket);
-                })
+                .onSuccess(promise::complete)
                 .onFailure(error -> {
                     log.error(String.format("[SupportPivot@%s::process] Fail to convert ticket %s",
                             this.getClass().getSimpleName(), error));
@@ -290,10 +288,8 @@ public class JiraEndpoint extends AbstractEndpoint {
         }
     }
 
-
-    //todo use PivotTicket model
-    public Future<JsonObject> convertJiraReponseToJsonPivot(final JiraTicket jiraTicket) {
-        Promise<JsonObject> promise = Promise.promise();
+    public Future<PivotTicket> convertJiraReponseToJsonPivot(final JiraTicket jiraTicket) {
+        Promise<PivotTicket> promise = Promise.promise();
 
         ConfigModel config = ConfigManager.getInstance().getConfig();
         Map<String, String> jiraCustomFields = config.getJiraCustomFields();
@@ -302,42 +298,41 @@ public class JiraEndpoint extends AbstractEndpoint {
 
         JiraFields fields = jiraTicket.getFields();
 
-        final JsonObjectSafe jsonPivot = new JsonObjectSafe();
+        PivotTicket pivotTicket = new PivotTicket();
 
-        jsonPivot.putSafe(Field.ID_JIRA, jiraTicket.getKey());
-        jsonPivot.putSafe(Field.COLLECTIVITE, config.getCollectivity());
-        jsonPivot.putSafe(Field.ACADEMIE, config.getCollectivity());
+        pivotTicket.setIdJira(jiraTicket.getKey());
+        pivotTicket.setCollectivite(config.getCollectivity());
+        pivotTicket.setAcademie(config.getCollectivity());
         if (fields == null) {
-            promise.complete(jsonPivot);
+            promise.complete(pivotTicket);
         } else {
             String creatorField = jiraCustomFields.getOrDefault(Field.CREATOR, "");
             String creationField = jiraCustomFields.getOrDefault(Field.CREATION, "");
             String uaiField = jiraCustomFields.getOrDefault(Field.UAI, "");
             String idEntField = jiraCustomFields.getOrDefault(Field.ID_ENT, "");
             String statusEntField = jiraCustomFields.getOrDefault(Field.STATUS_ENT, "");
-            String resolutionIws = jiraCustomFields.getOrDefault(Field.RESOLUTION_IWS, "");
             String resolutionEnt = jiraCustomFields.getOrDefault(Field.RESOLUTION_ENT, "");
             String responseTechnical = jiraCustomFields.getOrDefault(Field.RESPONSE_TECHNICAL, "");
             String idExternalField = jiraCustomFields.getOrDefault(Field.ID_EXTERNE, "");
             String statusExterne = jiraCustomFields.getOrDefault(Field.STATUS_EXTERNE, "");
 
-            jsonPivot.putSafe(Field.CREATION, fields.getCreated());
-            jsonPivot.putSafe(Field.MAJ, fields.getUpdated());
-            jsonPivot.put(Field.DEMANDEUR, fields.getCustomFields(stringEncode(creatorField), ""));
+            pivotTicket.setCreation(fields.getCreated());
+            pivotTicket.setMaj(fields.getUpdated());
+            pivotTicket.setDemandeur(fields.getCustomFields(stringEncode(creatorField), ""));
 
-            jsonPivot.putSafe(Field.TYPE_DEMANDE, fields.getIssuetype() == null ? null : fields.getIssuetype().getName());
-            jsonPivot.putSafe(Field.TITRE, fields.getSummary());
-            jsonPivot.putSafe(Field.UAI, fields.getCustomFields(uaiField, ""));
-            jsonPivot.put(Field.DESCRIPTION, fields.getDescription());
+            pivotTicket.setTypeDemande(fields.getIssuetype() == null ? null : fields.getIssuetype().getName());
+            pivotTicket.setTitre(fields.getSummary());
+            pivotTicket.setUai(fields.getCustomFields(uaiField, ""));
+            pivotTicket.setDescription(fields.getDescription());
 
             String currentPriority = fields.getPriority().getName();
             currentPriority = PriorityEnum.getValue(currentPriority).getPivotName();
 
-            jsonPivot.put(Field.PRIORITE, currentPriority);
+            pivotTicket.setPriorite(currentPriority);
 
-            jsonPivot.putSafe(Field.MODULES, new JsonArray(fields.getLabels()).copy());
+            pivotTicket.setModules(new ArrayList<>(fields.getLabels()));
 
-            jsonPivot.put(Field.ID_ENT, fields.getCustomFields(idEntField, ""));
+            pivotTicket.setIdEnt(fields.getCustomFields(idEntField, ""));
 
             if (fields.getComment() != null) {
                 List<JiraComment> jiraCommentList = fields.getComment().getComments();
@@ -345,10 +340,10 @@ public class JiraEndpoint extends AbstractEndpoint {
                         .filter(jiraComment -> jiraComment.getVisibility() == null)
                         .map(this::serializeComment)
                         .collect(Collectors.toList());
-                jsonPivot.put(Field.COMMENTAIRES, new JsonArray(commentString));
+                pivotTicket.setCommentaires(commentString);
             }
 
-            jsonPivot.putSafe(Field.STATUT_ENT, fields.getCustomFields(statusEntField, ""));
+            pivotTicket.setStatutEnt(fields.getCustomFields(statusEntField, ""));
 
             String currentStatus = fields.getStatus().getName();
 
@@ -358,25 +353,24 @@ public class JiraEndpoint extends AbstractEndpoint {
                     .findFirst()
                     .orElse(defaultJiraStatusConfig.getKey());
 
-            jsonPivot.put(Field.STATUT_JIRA, currentStatusToIWS);
+            pivotTicket.setStatutJira(currentStatusToIWS);
 
 
-            jsonPivot.putSafe(Field.DATE_CREATION, fields.getCustomFields(creationField, null));
-            jsonPivot.putSafe(Field.DATE_RESOLUTION_ENT, fields.getCustomFields(resolutionEnt, null));
-            jsonPivot.putSafe(Field.RESPONSE_TECHNICAL, fields.getCustomFields(responseTechnical, null));
-            jsonPivot.putSafe(Field.ID_EXTERNE, fields.getCustomFields(idExternalField, null));
-            jsonPivot.putSafe(Field.STATUT_EXTERNE, fields.getCustomFields(statusExterne, null));
+            pivotTicket.setDateCreation(fields.getCustomFields(creationField, null));
+            pivotTicket.setDateResolutionEnt(fields.getCustomFields(resolutionEnt, null));
+            pivotTicket.setIdExterne(fields.getCustomFields(idExternalField, null));
+            pivotTicket.setStatutExterne(fields.getCustomFields(statusExterne, null));
 
             if (fields.getResolutiondate() != null && !fields.getResolutiondate().isEmpty()) {
                 String dateFormated = getDateFormatted(fields.getResolutiondate(), false);
-                jsonPivot.put(Field.DATE_RESOLUTION_JIRA, dateFormated);
+                pivotTicket.setDateResolutionJira(dateFormated);
             }
 
-            jsonPivot.put(Field.ATTRIBUTION, ATTRIBUTION_IWS);
+            pivotTicket.setAttribution(ATTRIBUTION_IWS);
 
             //if no attachment handle the response
             if (fields.getAttachment().isEmpty()) {
-                return Future.succeededFuture(jsonPivot);
+                return Future.succeededFuture(pivotTicket);
             }
 
             Map<JiraAttachment, Future<String>> attachmentsPJFutureMap = new HashMap<>();
@@ -389,20 +383,20 @@ public class JiraEndpoint extends AbstractEndpoint {
             }
 
             future.onSuccess(res -> {
-                        final JsonArray allPJConverted = new JsonArray();
+                        final List<PivotPJ> allPJConverted = new ArrayList<>();
                         attachmentsPJFutureMap.forEach((attachment, PJFuture) -> {
                             if (PJFuture.succeeded()) {
-                                JsonObject currentPJ = new JsonObject();
-                                currentPJ.put(Field.NOM, attachment.getFilename());
-                                currentPJ.put(Field.CONTENU, PJFuture.result());
-                                allPJConverted.add(currentPJ);
+                                PivotPJ pivotPJ = new PivotPJ();
+                                pivotPJ.setNom(attachment.getFilename());
+                                pivotPJ.setContenu(PJFuture.result());
+                                allPJConverted.add(pivotPJ);
                             } else {
                                 log.error(String.format("[SupportPivot@%s::convertJiraReponseToJsonPivot] Fail to get jira PJ %s",
                                         this.getClass().getSimpleName(), AsyncResultHelper.getOrNullFailMessage(PJFuture)));
                             }
                         });
-                        jsonPivot.put(Field.PJ, allPJConverted);
-                        promise.complete(jsonPivot);
+                        pivotTicket.setPj(allPJConverted);
+                        promise.complete(pivotTicket);
                     })
                     .onFailure(event -> {
                         log.error((String.format("[SupportPivot@%s::convertJiraReponseToJsonPivot] Fail to get all jira PJ %s",

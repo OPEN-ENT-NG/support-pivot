@@ -29,7 +29,7 @@ public class PivotTicket implements IModel<PivotTicket>, Cloneable{
     private String uai;
     private String description;
     private String priorite;
-    private List<String> module;
+    private List<String> modules;
     private List<String> commentaires;
     //Todo delete doublon creation
     private String dateCreation;
@@ -48,7 +48,7 @@ public class PivotTicket implements IModel<PivotTicket>, Cloneable{
         this.uai = jsonObject.getString(Field.UAI);
         this.description = jsonObject.getString(Field.DESCRIPTION);
         this.priorite = jsonObject.getString(Field.PRIORITE);
-        this.module = jsonObject.getJsonArray(Field.MODULES, new JsonArray()).stream()
+        this.modules = jsonObject.getJsonArray(Field.MODULES, new JsonArray()).stream()
                 .filter(String.class::isInstance)
                 .map(String.class::cast)
                 .collect(Collectors.toList());
@@ -175,12 +175,12 @@ public class PivotTicket implements IModel<PivotTicket>, Cloneable{
         return this;
     }
 
-    public List<String> getModule() {
-        return module;
+    public List<String> getModules() {
+        return modules;
     }
 
-    public PivotTicket setModule(List<String> module) {
-        this.module = module;
+    public PivotTicket setModules(List<String> modules) {
+        this.modules = modules;
         return this;
     }
 
@@ -287,7 +287,7 @@ public class PivotTicket implements IModel<PivotTicket>, Cloneable{
     public PivotTicket clone() {
         try {
             PivotTicket clone = (PivotTicket) super.clone();
-            clone.setModule(new ArrayList<>(this.module));
+            clone.setModules(new ArrayList<>(this.modules));
             clone.setCommentaires(new ArrayList<>(this.commentaires));
             clone.setPj(this.getPj().stream().map(PivotPJ::clone).collect(Collectors.toList()));
             return clone;

@@ -18,6 +18,7 @@
 
 package fr.openent.supportpivot.services;
 
+import fr.openent.supportpivot.model.jira.JiraTicket;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
 import fr.wseduc.webutils.Either;
 import io.vertx.core.Future;
@@ -45,5 +46,5 @@ public interface JiraService {
      * @param jiraTicketId jira ticket id
      * @return a future with jira ticket if succeeded
      */
-    Future<JsonObject> getFromJira(final String jiraTicketId);
+    Future<JiraTicket> getFromJira(final String jiraTicketId);
 }
