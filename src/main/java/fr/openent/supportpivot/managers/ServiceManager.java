@@ -1,7 +1,5 @@
 package fr.openent.supportpivot.managers;
 
-import fr.openent.supportpivot.deprecatedservices.DefaultDemandeServiceImpl;
-import fr.openent.supportpivot.deprecatedservices.DemandeService;
 import fr.openent.supportpivot.services.*;
 import fr.openent.supportpivot.services.routers.CrifRouterService;
 import fr.openent.supportpivot.services.routers.RouterService;
@@ -16,7 +14,6 @@ public class ServiceManager {
     protected static final Logger log = LoggerFactory.getLogger(ServiceManager.class);
     private static ServiceManager serviceManager = null;
 
-    private DefaultDemandeServiceImpl demandeService;
     private MongoService mongoService;
     private RouterService routeurService;
 
@@ -32,7 +29,6 @@ public class ServiceManager {
         EmailSender emailSender = emailFactory.getSender();
 
         mongoService = new MongoService(ConfigManager.getInstance().getConfig().getMongoCollection());
-        demandeService = new DefaultDemandeServiceImpl(vertx, config, emailSender, mongoService);
         HttpClientService httpClientService = new HttpClientService(vertx);
 
         switch (ConfigManager.getInstance().getConfig().getCollectivity()) {
@@ -46,8 +42,6 @@ public class ServiceManager {
                         this.getClass().getName(), ConfigManager.getInstance().getConfig().getCollectivity()));
         }
     }
-
-    public DemandeService getDemandeService() { return demandeService; }
 
     public MongoService getMongoService() { return mongoService; }
 
