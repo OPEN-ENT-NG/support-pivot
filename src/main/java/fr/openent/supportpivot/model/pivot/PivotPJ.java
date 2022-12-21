@@ -5,7 +5,7 @@ import fr.openent.supportpivot.helpers.IModelHelper;
 import fr.openent.supportpivot.model.IModel;
 import io.vertx.core.json.JsonObject;
 
-public class PivotPJ implements IModel<PivotPJ> {
+public class PivotPJ implements IModel<PivotPJ>, Cloneable {
     private String nom;
     private String contenu;
 
@@ -38,5 +38,14 @@ public class PivotPJ implements IModel<PivotPJ> {
     public PivotPJ setContenu(String contenu) {
         this.contenu = contenu;
         return this;
+    }
+
+    @Override
+    public PivotPJ clone() {
+        try {
+            return (PivotPJ) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError();
+        }
     }
 }

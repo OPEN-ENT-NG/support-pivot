@@ -18,7 +18,9 @@
 
 package fr.openent.supportpivot.services;
 
+import fr.openent.supportpivot.model.pivot.PivotTicket;
 import fr.wseduc.webutils.Either;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonObject;
@@ -29,17 +31,21 @@ import io.vertx.core.json.JsonObject;
  */
 public interface JiraService {
     /**
-     * Add issue from IWS to JIRA
-     * - Check every mandatory field is present in jsonPivot, then send for treatment
-     * - Replace empty values by default ones
-     * - Replace modules names
-     * @param jsonPivot JSON object in PIVOT format
+     * Send pivot information -- to Jira<
+     * A ticket is created with the Jira API with all the pivot information received
+     *
+     * @param pivotTicket pivot format
+     * @return a success future with the pivot ticket modified
      */
-    void sendToJIRA(JsonObject jsonPivot, final Handler<Either<String, JsonObject>> handler);
+    Future<PivotTicket> sendToJIRA(final PivotTicket pivotTicket);
 
+    //Todo use futur and jira ticket and java doc
     /**
-     * Update issue from JIRA to IWS
-     * @param idJira String
+     * Get jira
+     *
+     * @param request
+     * @param idJira
+     * @param handler
      */
     void getFromJira(HttpServerRequest request, String idJira, final Handler<Either<String, JsonObject>> handler);
 }

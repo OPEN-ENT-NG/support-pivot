@@ -100,19 +100,12 @@ public class JiraEndpointTest {
 
     @Test
     public void convertJiraReponseToJsonPivotTest(TestContext ctx) throws Exception {
-        Async async = ctx.async(2);
+        Async async = ctx.async();
         PowerMockito.spy(JiraEndpoint.class);
         this.jiraEndpoint = PowerMockito.mock(JiraEndpoint.class);
         PowerMockito.doReturn(Future.succeededFuture("B64URL")).when(this.jiraEndpoint, "getJiraPJ", Mockito.any());
         PowerMockito.doCallRealMethod().when(this.jiraEndpoint).convertJiraReponseToJsonPivot(Mockito.any(JiraTicket.class), Mockito.any());
         PowerMockito.doCallRealMethod().when(this.jiraEndpoint, "stringEncode", Mockito.anyString());
-        PowerMockito.doAnswer(invocation -> {
-            Handler<Either<String, JsonObject>> handler = invocation.getArgument(1);
-            handler.handle(new Either.Right<>(
-                    new JsonObject().put(Field.STATUS, Field.OK)
-                            .put(Field.B64ATTACHMENT, "B64URL")));
-            return null;
-        }).when(this.jiraEndpoint, "getJiraPJ", Mockito.any(), Mockito.any());
 
         String expected = "{\"id_jira\":\"FICTEST-336\",\"collectivite\":\"CRIF\",\"academie\":\"CRIF\",\"creation\":\"2022-09-07T17:38:57.960+0200\"," +
                 "\"maj\":\"2022-12-06T16:01:29.309+0100\",\"demandeur\":\"PRUDON Nathalie | nom.prenom@gmail.com | null | Francois-Mauriac | 1016024A\"," +
@@ -122,14 +115,7 @@ public class JiraEndpointTest {
                 "\"statut_externe\":\"En traitement ED\",\"attribution\":\"RECTORAT\",\"pj\":[{\"nom\":\"images_LDE.png\",\"contenu\":\"B64URL\"}]}";
         this.jiraEndpoint.convertJiraReponseToJsonPivot(new JiraTicket(getJiraTicket1()), event -> {
             ctx.assertEquals(event.right().getValue().toString(), expected);
-            async.countDown();
-        });
-
-        //This part can be deleted when convertJiraReponseToJsonPivot(JsonObject, Handler) is deleted
-        PowerMockito.doCallRealMethod().when(this.jiraEndpoint).convertJiraReponseToJsonPivot(Mockito.any(JsonObject.class), Mockito.any());
-        this.jiraEndpoint.convertJiraReponseToJsonPivot(getJiraTicket1(), event -> {
-            ctx.assertEquals(event.right().getValue().toString(), expected);
-            async.countDown();
+            async.complete();
         });
 
         async.awaitSuccess(10000);

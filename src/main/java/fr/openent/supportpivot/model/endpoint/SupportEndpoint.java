@@ -2,7 +2,7 @@ package fr.openent.supportpivot.model.endpoint;
 
 import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.PivotConstants;
-import fr.openent.supportpivot.model.ticket.PivotTicket;
+import fr.openent.supportpivot.model.pivot.PivotTicket;
 import io.vertx.core.*;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
@@ -27,18 +27,16 @@ class SupportEndpoint extends  AbstractEndpoint {
     @Override
     public void process(JsonObject ticketData, Handler<AsyncResult<PivotTicket>> handler) {
         final JsonObject issue = ticketData.getJsonObject(Field.ISSUE);
-        PivotTicket ticket = new PivotTicket();
-        ticket.setJsonObject(issue);
+        PivotTicket ticket = new PivotTicket(issue);
         handler.handle(Future.succeededFuture(ticket));
     }
 
     @Override
     public void send(PivotTicket ticket, Handler<AsyncResult<PivotTicket>> handler) {
         try {
-            eventBus
-                    .send(PivotConstants.BUS_SEND, new JsonObject()
+            eventBus.send(PivotConstants.BUS_SEND, new JsonObject()
                                     .put(Field.ACTION, Field.CREATE)
-                                    .put(Field.ISSUE, ticket.getJsonTicket()),
+                                    .put(Field.ISSUE, ticket.toJson()),
                             handlerToAsyncHandler(message -> {
                                 if (PivotConstants.ENT_BUS_OK_STATUS.equals(message.body().getString(Field.STATUS))) {
                                     log.info(String.format("[SupportPivot@%s::send] %s", this.getClass().getName(), message.body()));
