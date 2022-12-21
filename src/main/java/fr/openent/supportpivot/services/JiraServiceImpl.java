@@ -27,10 +27,17 @@ import fr.openent.supportpivot.helpers.DateHelper;
 import fr.openent.supportpivot.helpers.EitherHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.model.ConfigModel;
+import fr.openent.supportpivot.model.jira.JiraAttachment;
+import fr.openent.supportpivot.model.jira.JiraComment;
+import fr.openent.supportpivot.model.jira.JiraTicket;
+import fr.openent.supportpivot.model.pivot.PivotPJ;
+import fr.openent.supportpivot.model.pivot.PivotTicket;
 import fr.openent.supportpivot.model.status.config.EntStatusConfig;
 import fr.openent.supportpivot.model.status.config.StatusConfigModel;
 import fr.wseduc.webutils.Either;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.*;
@@ -174,7 +181,9 @@ public class JiraServiceImpl implements JiraService {
      *
      * @param jsonPivotIn JSON in pivot format
      * @param handler     return JsonPivot from Jira or error message
+     * @deprecated Replaced by {@link #sendToJIRA(PivotTicket)}
      */
+    @Deprecated
     public void sendToJIRA(final JsonObject jsonPivotIn, final Handler<Either<String, JsonObject>> handler) {
 
         //ID_EXTERNAL is mandatory
@@ -199,6 +208,33 @@ public class JiraServiceImpl implements JiraService {
         }
     }
 
+    /**
+     * Send pivot information -- to Jira<
+     * A ticket is created with the Jira API with all the pivot information received
+     *
+     * @param pivotTicket pivot format
+     * @return a success future with the pivot ticket modified
+     */
+    public Future<PivotTicket> sendToJIRA(final PivotTicket pivotTicket) {
+        //ID_EXTERNAL is mandatory
+        if (pivotTicket.getIdExterne() == null || pivotTicket.getIdExterne().isEmpty()) {
+            LOGGER.error(String.format("[SupportPivot@%s::sendToJIRA] Error to send ticket to jira. ID_EXTERNAL is mandatory %s",
+                    this.getClass().getName(), pivotTicket.toJson()));
+            return Future.failedFuture("2;Mandatory Field " + IDEXTERNAL_FIELD);
+        }
+
+        if (pivotTicket.getIdJira() != null && !pivotTicket.getIdJira().isEmpty()) {
+            return this.updateJiraTicket(pivotTicket);
+        } else {
+            return this.createJiraTicket(pivotTicket);
+        }
+    }
+
+
+    /**
+     * @deprecated Replaced by {@link #createJiraTicket(PivotTicket)}
+     */
+    @Deprecated
     private void createJiraTicket(JsonObject jsonPivotIn, Handler<Either<String, JsonObject>> handler) {
         try {
             // Create ticket via Jira API
@@ -241,9 +277,57 @@ public class JiraServiceImpl implements JiraService {
                     this.getClass().getName(), e.getMessage()));
             handler.handle(new Either.Left<>("999;Error when creating Jira ticket: " + e.getMessage()));
         }
-
     }
 
+    private Future<PivotTicket> createJiraTicket(PivotTicket pivotTicket) {
+        Promise<PivotTicket> promise = Promise.promise();
+        try {
+            // Create ticket via Jira API
+            final HttpClientRequest createTicketRequest = httpClient.post(JIRA_REST_API_URI.toString(),
+                    response -> {
+                        // HTTP Status Code 201: The request has been fulfilled and has resulted in one or more new resources being created.
+                        if (response.statusCode() == HTTP_STATUS_201_CREATED) {
+                            response.bodyHandler(body -> {
+                                JiraTicket jiraTicket = new JiraTicket(new JsonObject(body));
+                                pivotTicket.setIdJira(jiraTicket.getId());
+                                pivotTicket.setStatutJira(Field.NOUVEAU);
+                                updateComments(pivotTicket.getCommentaires(), jiraTicket)
+                                        .compose(unused -> sendMultipleJiraPJ(pivotTicket.getIdJira(), pivotTicket.getPj()))
+                                        .onSuccess(event -> promise.complete(pivotTicket))
+                                        .onFailure(error -> {
+                                            LOGGER.error(String.format("[SupportPivot@%s::createJiraTicket] Error to create ticket to jira. Create comment fail %s",
+                                                    this.getClass().getName(), error.getMessage()));
+                                            promise.fail("999;Error, when creating comments.");
+                                        });
+                            });
+                        } else {
+                            LOGGER.error(String.format("[SupportPivot@%s::createJiraTicket] Sent ticket to Jira : %s",
+                                    this.getClass().getName(), prepareTicketForCreation(pivotTicket)));
+                            LOGGER.error(String.format("[SupportPivot@%s::createJiraTicket] Error when calling URL %s : %s %s. Error when creating Jira ticket.",
+                                    this.getClass().getName(), JIRA_HOST.resolve(JIRA_REST_API_URI), response.statusCode(), response.statusMessage()));
+                            response.bodyHandler(event -> LOGGER.error(String.format("[SupportPivot@%s::createJiraTicket] Jira error response :%s",
+                                    this.getClass().getName(), event.toString())));
+                            promise.fail("999;Error when creating Jira ticket");
+                        }
+                    });
+            createTicketRequest
+                    .setChunked(true)
+                    .write(prepareTicketForCreation(pivotTicket).encode());
+
+            terminateRequest(createTicketRequest);
+        } catch (Error e) {
+            LOGGER.error(String.format("[SupportPivot@%s::createJiraTicket] Error when creating Jira ticket %s",
+                    this.getClass().getName(), e.getMessage()));
+            promise.fail("999;Error when creating Jira ticket: " + e.getMessage());
+        }
+
+        return promise.future();
+    }
+
+    /**
+     * @deprecated {@link #prepareTicketForCreation(PivotTicket)}
+     */
+    @Deprecated
     public JsonObject PrepareTicketForCreation(JsonObject jsonPivotIn) {
 
         final JsonObject jsonJiraTicket = new JsonObject();
@@ -316,13 +400,84 @@ public class JiraServiceImpl implements JiraService {
         return jsonJiraTicket;
     }
 
+    public JsonObject prepareTicketForCreation(PivotTicket pivotTicket) {
+
+        final JsonObject jsonJiraTicket = new JsonObject();
+
+        //changeFormatDate
+        Date date = DateHelper.convertStringToDate(pivotTicket.getDateCreation());
+        String dateCreaField = DateHelper.convertDateFormat(date);
+
+        //Ticket Type
+        String ticketType = pivotTicket.getTypeDemande();
+        if (!JIRA_ALLOWED_TICKETTYPE.contains(ticketType)) {
+            ticketType = DEFAULT_JIRA_TICKETTYPE;
+        }
+
+        // priority PIVOT -> JIRA
+        String jsonPriority = pivotTicket.getPriorite();
+        if (!PIVOT_PRIORITY_LEVEL.contains(jsonPriority)) {
+            jsonPriority = DEFAULT_PRIORITY;
+        }
+        String currentPriority = JIRA_ALLOWED_PRIORITY.getString(PIVOT_PRIORITY_LEVEL.indexOf(jsonPriority));
+
+        // status ent -> JIRA
+        String currentStatus = pivotTicket.getStatutEnt();
+
+        //Todo mettre le status par defaut plutot que STATUS_NEW
+        String statusNameEnt = ENT_STATUS_MAPPING.stream()
+                .filter(entStatusConfig -> entStatusConfig.getName().equals(currentStatus))
+                .map(StatusConfigModel::getKey)
+                .findFirst()
+                .orElse(STATUS_NEW);
+
+        // reporter assistanceMLN
+        String currentReporter = JiraConstants.REPORTER_LDE;
+        String title;
+        if (!JIRA_FIELD.getOrDefault(EntConstants.IDENT_FIELD, "").isEmpty()) {
+            currentReporter = JiraConstants.REPORTER_ENT;
+            title = String.format("[%s %s] %s", ASSISTANCE_ENT, pivotTicket.getIdEnt(), pivotTicket.getTitre());
+        } else {
+            title = pivotTicket.getTitre();
+        }
+
+        List<String> newModules = pivotTicket.getModule().stream()
+                .map(this::moduleEntToPivot)
+                .collect(Collectors.toList());
+
+        JsonObject field = new JsonObject()
+                .put(JiraConstants.PROJECT, new JsonObject()
+                        .put(JiraConstants.PROJECT_KEY, JIRA_PROJECT_NAME))
+                .put(JiraConstants.TITLE_FIELD, title)
+                .put(JiraConstants.DESCRIPTION_FIELD, pivotTicket.getDescription())
+                .put(JiraConstants.ISSUETYPE, new JsonObject()
+                        .put(NAME, ticketType))
+                .put(JIRA_FIELD.getOrDefault(EntConstants.IDENT_FIELD, ""), pivotTicket.getIdEnt())
+                .put(JIRA_FIELD.getOrDefault(EntConstants.STATUSENT_FIELD, ""), statusNameEnt)
+                .put(JIRA_FIELD.getOrDefault(EntConstants.CREATION_FIELD, ""), dateCreaField)
+                .put(JIRA_FIELD.getOrDefault(EntConstants.RESOLUTION_ENT, ""), pivotTicket.getDateResolutionEnt())
+                .put(JiraConstants.REPORTER, new JsonObject().put(NAME, currentReporter))
+                .put(JIRA_FIELD.getOrDefault(EntConstants.CREATOR, ""), pivotTicket.getDemandeur())
+                .put(JiraConstants.PRIORITY, new JsonObject()
+                        .put(NAME, currentPriority));
+
+        if (!newModules.isEmpty() && !JiraConstants.NOTEXIST.equals(newModules.get(0))) {
+            field.put(JiraConstants.COMPONENTS, new JsonArray().add(new JsonObject().put(JiraConstants.NAME, newModules.get(0))));
+        }
+
+        jsonJiraTicket.put(JiraConstants.FIELDS, field);
+
+        return jsonJiraTicket;
+    }
+
+    /**
+     * @deprecated Replaced by {@link #updateComments(List, JiraTicket)}
+     */
+    @Deprecated
     private void updateComments(final HttpClientResponse response, final JsonObject jsonPivot,
                                 final JsonArray jsonJiraComments,
                                 final Handler<Either<String, JsonObject>> handler) {
-
-
         response.bodyHandler(buffer -> {
-
             JsonObject infoNewJiraTicket = new JsonObject(buffer.toString());
             String idNewJiraTicket = infoNewJiraTicket.getString(ID);
 
@@ -345,11 +500,33 @@ public class JiraServiceImpl implements JiraService {
         });
     }
 
+    private Future<Void> updateComments(List<String> newComments, JiraTicket jiraTicket) {
+        Promise<Void> promise = Promise.promise();
+        
+        if (newComments != null && !newComments.isEmpty()) {
+            Future<Void> current = Future.succeededFuture();
+            for (String comment: newComments) {
+                current = current.compose(unused -> sendJiraComment(jiraTicket.getId(), comment));
+            }
+            current.onSuccess(event -> promise.complete())
+                    .onFailure(error -> {
+                        LOGGER.error(String.format("[SupportPivot@%s::updateComments] Fail to send one comment %s", this.getClass().getName(), error.getMessage()));
+                        promise.fail(error.getMessage());
+                    });
+        } else {
+           promise.complete();
+        }
+
+        return promise.future();
+    }
+
     /**
      * Send Jira Comments
      *
      * @param idJira arrayComments
+     * @deprecated Replaced by {@link #sendJiraComment(String, String)}
      */
+    @Deprecated
     private void sendJiraComments(final String idJira, final LinkedList commentsLinkedList, final JsonObject jsonPivot,
                                   final Handler<Either<String, JsonObject>> handler) {
         if (commentsLinkedList.size() > 0) {
@@ -384,10 +561,43 @@ public class JiraServiceImpl implements JiraService {
     }
 
     /**
+     * Send one Jira Comments
+     *
+     * @param idJira jira ticket id
+     * @param comment comment to send
+     */
+    private Future<Void> sendJiraComment(final String idJira, final String comment) {
+        Promise<Void> promise = Promise.promise();
+        final URI urlNewTicket = JIRA_REST_API_URI.resolve(idJira + "/" + Field.COMMENT);
+        final HttpClientRequest commentTicketRequest = httpClient.post(urlNewTicket.toString(), response -> {
+
+            // If ticket well created, then HTTP Status Code 201: The request has been fulfilled and has resulted in one or more new resources being created.
+            if (response.statusCode() != HTTP_STATUS_201_CREATED) {
+                promise.fail("999;Error when add Jira comment : " + comment + " : " + response.statusCode() + " " + response.statusMessage());
+                LOGGER.error(String.format("[SupportPivot@%s::sendJiraComment] POST %s", this.getClass().getName(), JIRA_HOST.resolve(urlNewTicket)));
+                LOGGER.error(String.format("[SupportPivot@%s::sendJiraComment] Error when add Jira comment on %s : %s - %s - %s",
+                        this.getClass().getName(), idJira, response.statusCode(), response.statusMessage(), comment));
+            } else {
+                promise.complete();
+            }
+        });
+        commentTicketRequest.setChunked(true);
+
+        final JsonObject jsonCommTicket = new JsonObject();
+        jsonCommTicket.put(Field.BODY, comment);
+        commentTicketRequest.write(jsonCommTicket.encode());
+
+        terminateRequest(commentTicketRequest);
+        return promise.future();
+    }
+
+    /**
      * Send PJ from IWS to JIRA
      *
      * @param jsonPivotCompleted jsonJiraPJ jsonPivot handler
+     * @deprecated Replaced by {@link #sendMultipleJiraPJ(String, List)}
      */
+    @Deprecated
     private void updateJiraPJ(final JsonObject jsonPivotCompleted,
                               final JsonArray jsonJiraPJ,
                               final JsonObject jsonPivot,
@@ -414,10 +624,37 @@ public class JiraServiceImpl implements JiraService {
     }
 
     /**
+     * Send multiple PJ to JIRA
+     *
+     * @param jiraTicketId jira ticket id
+     * @param pivotPJList list of {@link PivotPJ} list of pivotPj to send
+     */
+    private Future<Void> sendMultipleJiraPJ(String jiraTicketId, List<PivotPJ> pivotPJList) {
+        Promise<Void> promise = Promise.promise();
+        if (pivotPJList == null || pivotPJList.isEmpty()) {
+            return Future.succeededFuture();
+        }
+        Future<Void> current = Future.succeededFuture();
+        for (PivotPJ pj : pivotPJList) {
+            current.compose(unused -> sendJiraPJ(jiraTicketId, pj));
+        }
+        current.onSuccess(event -> promise.complete())
+                .onFailure(error -> {
+                    LOGGER.error(String.format("[SupportPivot@%s::sendMultipleJiraPJ] Fail to send one Jira PJ %s",
+                            this.getClass().getName(), error.getMessage()));
+                    promise.fail(error.getMessage());
+                });
+
+        return promise.future();
+    }
+
+    /**
      * Send Jira PJ
      *
      * @param idJira, pjLinkedList, jsonPivot, jsonPivotCompleted, handler
+     * @deprecated Replaced by {@link #sendJiraPJ(String, PivotPJ)}
      */
+    @Deprecated
     private void sendJiraPJ(final String idJira,
                             final LinkedList<JsonObject> pjLinkedList,
                             final JsonObject jsonPivotCompleted,
@@ -477,6 +714,68 @@ public class JiraServiceImpl implements JiraService {
         }
     }
 
+    /**
+     * Send Jira PJ
+     *
+     * @param jiraTicketId jira ticket id
+     * @param pj {@link PivotPJ} to send
+     */
+    private Future<Void> sendJiraPJ(final String jiraTicketId, final PivotPJ pj) {
+        Promise<Void> promise = Promise.promise();
+        final URI urlNewTicket = JIRA_REST_API_URI.resolve(jiraTicketId + "/" + Field.ATTACHMENTS);
+        final HttpClientRequest postAttachmentsRequest = httpClient.post(urlNewTicket.toString(), response -> {
+
+            if (response.statusCode() != HTTP_STATUS_200_OK) {
+                promise.fail("999;Error when add Jira attachment : " + pj.getNom() + " : " + response.statusCode() + " " + response.statusMessage());
+                LOGGER.error(String.format("[SupportPivot@%s::sendJiraPJ] Error when add Jira attachment %s %s",
+                        this.getClass().getName(), jiraTicketId, pj.getNom()));
+            } else {
+                promise.complete();
+            }
+        });
+
+        String currentBoundary = generateBoundary();
+
+        postAttachmentsRequest.putHeader("X-Atlassian-Token", "no-check")
+                .putHeader("Content-Type", "multipart/form-data; boundary=" + currentBoundary);
+
+        String debRequest = "--" + currentBoundary + "\r\n" +
+                "Content-Type: application/octet-stream\r\n" +
+                "Content-Disposition: form-data; name=\"file\"; filename=\"" +
+                pj.getNom()
+                + "\"\r\n\r\n";
+
+        String finRequest = "\r\n--" + currentBoundary + "--";
+
+        byte[] debBytes = debRequest.getBytes();
+        byte[] pjBytes = decoder.decode(pj.getContenu());
+        byte[] finBytes = finRequest.getBytes();
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try {
+            outputStream.write(debBytes);
+            outputStream.write(pjBytes);
+            outputStream.write(finBytes);
+        } catch (IOException e) {
+            LOGGER.error(String.format("[SupportPivot@%s::process] Fail to write buffer %s",
+                    this.getClass().getSimpleName(), e.getMessage()));
+            promise.fail(e);
+            return promise.future();
+        }
+        byte[] all = outputStream.toByteArray();
+
+        postAttachmentsRequest.putHeader("Content-Length", all.length + "")
+                .write(Buffer.buffer(all));
+
+        terminateRequest(postAttachmentsRequest);
+
+        return promise.future();
+    }
+
+    /**
+     * @deprecated Replace by {@link #updateJiraTicket(PivotTicket)}
+     */
+    @Deprecated
     public void updateJiraTicket(final JsonObject jsonPivotIn, final String jiraTicketId,
                                  final Handler<Either<String, JsonObject>> handler) {
         final URI urlGetTicketGeneralInfo = JIRA_REST_API_URI.resolve(jiraTicketId);
@@ -507,7 +806,7 @@ public class JiraServiceImpl implements JiraService {
                                                 String content = comment.toString();
                                                 String[] elem = comment.toString().split(Pattern.quote("|"));
                                                 if (elem.length == COMMENT_LENGTH) {
-                                                   content = " " + elem[0] + "|" + "\n" + elem[1] + "|" + "\n" + elem[2] + "|" + "\n" + "\n" + elem[3];
+                                                    content = " " + elem[0] + "|" + "\n" + elem[1] + "|" + "\n" + elem[2] + "|" + "\n" + "\n" + elem[3];
                                                 }
 
                                                 commentsLinkedList.add(content);
@@ -558,6 +857,80 @@ public class JiraServiceImpl implements JiraService {
         terminateRequest(getTicketInfosRequest);
     }
 
+    public Future<PivotTicket> updateJiraTicket(final PivotTicket pivotTicket) {
+        Promise<PivotTicket> promise = Promise.promise();
+        final URI urlGetTicketGeneralInfo = JIRA_REST_API_URI.resolve(pivotTicket.getIdJira());
+
+        final HttpClientRequest getTicketInfosRequest = httpClient.get(urlGetTicketGeneralInfo.toString(),
+                response -> {
+
+                    switch (response.statusCode()) {
+                        case (HTTP_STATUS_200_OK):
+                            response.bodyHandler(bufferGetInfosTicket -> {
+                                JiraTicket jiraTicket = new JiraTicket(new JsonObject(bufferGetInfosTicket.toString()));
+                                //Convert jsonPivotIn into jsonJiraTicket
+
+                                //Update Jira
+                                final URI urlUpdateJiraTicket = JIRA_REST_API_URI.resolve(pivotTicket.getIdJira());
+                                final HttpClientRequest modifyTicketRequest = httpClient.put(urlUpdateJiraTicket.toString(), modifyResp -> {
+                                    if (modifyResp.statusCode() == HTTP_STATUS_204_NO_CONTENT) {
+
+                                        // Compare comments and add only new ones
+                                        List<String> newComments = getNewComments(pivotTicket, jiraTicket);
+                                        Future<Void> current = Future.succeededFuture();
+                                        for (String comment : newComments) {
+                                            String[] elem = comment.split(Pattern.quote("|"));
+                                            if (elem.length == COMMENT_LENGTH) {
+                                                comment = " " + elem[0] + "|" + "\n" + elem[1] + "|" + "\n" + elem[2] + "|" + "\n" + "\n" + elem[3];
+                                            }
+
+                                            String finalComment = comment;
+                                            current = current.compose(unused -> sendJiraComment(jiraTicket.getId(), finalComment));
+                                        }
+                                        current.compose(event -> {
+                                                    // Compare PJ and add only new ones
+                                                    List<PivotPJ> newPJs = getNewPJs(pivotTicket, jiraTicket);
+                                                    return sendMultipleJiraPJ(jiraTicket.getId(), newPJs);
+                                                })
+                                                .onSuccess(event -> promise.complete(pivotTicket))
+                                                .onFailure(error -> {
+                                                    LOGGER.error(String.format("[SupportPivot@%s::updateJiraTicket] Error, when creating PJ %s",
+                                                            this.getClass().getName(), error.getMessage()));
+                                                    promise.fail("Error, when creating PJ.");
+                                                });
+                                    } else {
+                                        LOGGER.error(String.format("[SupportPivot@%s::updateJiraTicket] Error when calling URL %s : %s",
+                                                this.getClass().getName(), urlUpdateJiraTicket, modifyResp.statusMessage()));
+                                        modifyResp.bodyHandler(body -> LOGGER.error(body.toString()));
+                                        promise.fail("Error when update Jira ticket information");
+                                    }
+                                });
+
+                                modifyTicketRequest.setChunked(true)
+                                        .write(this.ticketPrepareForUpdate(pivotTicket).encode());
+
+                                terminateRequest(modifyTicketRequest);
+                            });
+                            break;
+                        case (HTTP_STATUS_404_NOT_FOUND):
+                            promise.fail("101;Unknown JIRA Ticket " + pivotTicket.getIdJira());
+                            break;
+                        default:
+                            LOGGER.error("Error when calling URL : " + response.statusMessage());
+                            response.bodyHandler(event -> LOGGER.error("Jira response : " + event));
+                            promise.fail("999;Error when getting Jira ticket information");
+                    }
+                }
+        );
+        terminateRequest(getTicketInfosRequest);
+        
+        return promise.future();
+    }
+
+    /**
+     * @deprecated  Replaced by {@link #ticketPrepareForUpdate(PivotTicket)}
+     */
+    @Deprecated
     public JsonObject ticketPrepareForUpdate(JsonObject jsonPivotIn) {
         String title = "";//const and find default value
         final JsonObject jsonJiraUpdateTicket = new JsonObject();
@@ -592,6 +965,46 @@ public class JiraServiceImpl implements JiraService {
             fields.put(JiraConstants.TITLE_FIELD, title);
         if (jsonPivotIn.getString(CREATOR_FIELD) != null)
             fields.put(JIRA_FIELD.getOrDefault(EntConstants.CREATOR, ""), jsonPivotIn.getString(CREATOR_FIELD));
+        jsonJiraUpdateTicket.put(JiraConstants.FIELDS, fields);
+
+        return jsonJiraUpdateTicket;
+    }
+
+    //todo return JiraTicket/new model JiraTicketUpdate ?
+    public JsonObject ticketPrepareForUpdate(PivotTicket pivotTicket) {
+        String title = "";//const and find default value
+        final JsonObject jsonJiraUpdateTicket = new JsonObject();
+        JsonObject fields = new JsonObject();
+        if (pivotTicket.getIdEnt() != null)
+            fields.put(JIRA_FIELD.getOrDefault(EntConstants.IDENT_FIELD, ""), pivotTicket.getIdEnt());
+        if (pivotTicket.getIdExterne() != null)
+            fields.put(JIRA_FIELD.getOrDefault(IDEXTERNAL_FIELD, ""), pivotTicket.getIdExterne());
+        if (pivotTicket.getStatutEnt() != null) {
+            String currentStatus = pivotTicket.getStatutEnt();
+
+            String statusNameEnt = ENT_STATUS_MAPPING.stream()
+                    .filter(entStatusConfig -> entStatusConfig.getName().equals(currentStatus))
+                    .map(StatusConfigModel::getKey)
+                    .findFirst()
+                    .orElse(EntConstants.STATUS_NAME_ENT);
+            fields.put(JIRA_FIELD.getOrDefault(EntConstants.STATUSENT_FIELD, ""), statusNameEnt);
+        }
+
+        if (pivotTicket.getStatutExterne() != null)
+            fields.put(JIRA_FIELD.getOrDefault(EntConstants.STATUSEXTERNAL_FIELD, ""), pivotTicket.getStatutExterne());
+        if (pivotTicket.getDateResolutionEnt() != null)
+            fields.put(JIRA_FIELD.getOrDefault(EntConstants.RESOLUTION_ENT, ""), pivotTicket.getDateResolutionEnt());
+        if (pivotTicket.getDescription() != null)
+            fields.put((EntConstants.DESCRIPTION_FIELD), pivotTicket.getDescription());
+        if (!JIRA_FIELD.getOrDefault(EntConstants.IDENT_FIELD, "").isEmpty()) {
+            title = String.format("[%s %s] %s", ASSISTANCE_ENT, pivotTicket.getIdEnt(), pivotTicket.getTitre());
+        } else {
+            title =  pivotTicket.getTitre();
+        }
+        if (pivotTicket.getTitre() != null)
+            fields.put(JiraConstants.TITLE_FIELD, title);
+        if (pivotTicket.getDemandeur() != null)
+            fields.put(JIRA_FIELD.getOrDefault(EntConstants.CREATOR, ""), pivotTicket.getDemandeur());
         jsonJiraUpdateTicket.put(JiraConstants.FIELDS, fields);
 
         return jsonJiraUpdateTicket;
@@ -660,7 +1073,9 @@ public class JiraServiceImpl implements JiraService {
      * @param inJiraComments   comments of Jira ticket
      * @param incomingComments comment of Bugtracker issue
      * @return comments that needs to be added in ticket
+     * @deprecated Replaced by {@link #getNewComments(PivotTicket, JiraTicket)}
      */
+    @Deprecated
     private JsonArray extractNewComments(JsonArray inJiraComments, JsonArray incomingComments) {
         JsonArray commentsToAdd = new fr.wseduc.webutils.collections.JsonArray();
         for (Object incomingComment : incomingComments) {
@@ -702,6 +1117,48 @@ public class JiraServiceImpl implements JiraService {
         return commentsToAdd;
     }
 
+    /**     
+     * Get all new comment not present in jiraTicket
+     * 
+     * @param pivotTicket pivot ticket where the new PJ is.
+     * @param jiraTicket jira ticket to see if PJ already exist
+     * @return list of comment in pivot comment format
+     */
+    private List<String> getNewComments(PivotTicket pivotTicket, JiraTicket jiraTicket) {
+        List<String> commentsToAdd = new ArrayList<>();
+        for (String incomingComment : pivotTicket.getCommentaires()) {
+            JsonObject issueComment = unserializeComment(incomingComment);
+
+            if (issueComment == null || !issueComment.containsKey(Field.ID)) {
+                LOGGER.error(String.format("[SupportPivot@%s::extractNewComments] Invalid comment: %s",
+                        this.getClass().getName(), incomingComment));
+                continue;
+            }
+            String issueCommentId = issueComment.getString(Field.ID, "");
+
+            boolean existing = false;
+            for (JiraComment jiraComment : jiraTicket.getFields().getComment().getComments()) {
+                String ticketCommentCreated = jiraComment.getCreated().trim();
+                String ticketCommentId = getDateFormatted(ticketCommentCreated, true);
+                String ticketCommentContent = jiraComment.getBody().trim();
+                JsonObject ticketCommentPivotContent = unserializeComment(ticketCommentContent);
+                String ticketCommentPivotId = "";
+                if (ticketCommentPivotContent != null) {
+                    ticketCommentPivotId = ticketCommentPivotContent.getString(Field.ID);
+                }
+                if (issueCommentId.equals(ticketCommentId)
+                        || issueCommentId.equals(ticketCommentPivotId)) {
+                    existing = true;
+                    break;
+                }
+            }
+            if (!existing) {
+                commentsToAdd.add(incomingComment);
+            }
+        }
+        return commentsToAdd;
+    }
+
     /**
      * Compare PJ.
      * Add every comment to ticket not already existing
@@ -709,7 +1166,9 @@ public class JiraServiceImpl implements JiraService {
      * @param inJiraPJs   PJ of Jira ticket
      * @param incomingPJs PJ of pivot issue
      * @return comments that needs to be added in ticket
+     * @deprecated Replaced by {@link #getNewPJs(PivotTicket, JiraTicket)}
      */
+    @Deprecated
     private JsonArray extractNewPJs(JsonArray inJiraPJs, JsonArray incomingPJs) {
         JsonArray pjToAdd = new fr.wseduc.webutils.collections.JsonArray();
 
@@ -742,6 +1201,19 @@ public class JiraServiceImpl implements JiraService {
             }
         }
         return pjToAdd;
+    }
+
+    /**
+     * Get all new PJ not present in jiraTicket
+     *
+     * @param pivotTicket pivot ticket where the new PJ is.
+     * @param jiraTicket jira ticket to see if PJ already exist
+     * @return list of new {@link PivotPJ}
+     */
+    private List<PivotPJ> getNewPJs(PivotTicket pivotTicket, JiraTicket jiraTicket) {
+        return pivotTicket.getPj().stream()
+                .filter(pj -> jiraTicket.getFields().getAttachment().stream().anyMatch(jiraAttachment -> pj.getNom().equals(jiraAttachment.getFilename())))
+                .collect(Collectors.toList());
     }
 
     /**
