@@ -396,11 +396,16 @@ public class JiraEndpoint extends AbstractEndpoint {
                 return;
             }
 
-            Map<JiraAttachment, Future<String>> attachmentsPJFutureMap = fields.getAttachment().stream()
-                    .collect(Collectors.toMap(jiraAttachment -> jiraAttachment, this::getJiraPJ));
+            Map<JiraAttachment, Future<String>> attachmentsPJFutureMap = new HashMap<>();
 
-            CompositeFuture.any(attachmentsPJFutureMap.values().stream().map(Future.class::cast).collect(Collectors.toList()))
-                    .onSuccess(res -> {
+            Future<String> future = Future.succeededFuture();
+
+            for (JiraAttachment jiraAttachment : fields.getAttachment()) {
+                future = future.compose(res -> this.getJiraPJ(jiraAttachment));
+                attachmentsPJFutureMap.put(jiraAttachment, future);
+            }
+
+            future.onSuccess(res -> {
                         final JsonArray allPJConverted = new JsonArray();
                         attachmentsPJFutureMap.forEach((attachment, PJFuture) -> {
                             if (PJFuture.succeeded()) {

@@ -657,7 +657,7 @@ public class JiraServiceImpl implements JiraService {
      */
     private List<PivotPJ> getNewPJs(PivotTicket pivotTicket, JiraTicket jiraTicket) {
         return pivotTicket.getPj().stream()
-                .filter(pj -> jiraTicket.getFields().getAttachment().stream().anyMatch(jiraAttachment -> pj.getNom().equals(jiraAttachment.getFilename())))
+                .filter(pj -> jiraTicket.getFields().getAttachment().stream().noneMatch(jiraAttachment -> pj.getNom().equals(jiraAttachment.getFilename())))
                 .collect(Collectors.toList());
     }
 
