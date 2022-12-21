@@ -160,5 +160,4 @@ public class CrifRouterService implements RouterService {
         data.putSafe(JiraConstants.ATTRIBUTION_FILTER_DATE, minDate);
         jiraEndpoint.getPivotTicket(data, handler);
     }
-
 }
