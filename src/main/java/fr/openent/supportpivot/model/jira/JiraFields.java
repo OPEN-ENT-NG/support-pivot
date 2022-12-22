@@ -53,7 +53,9 @@ public class JiraFields implements IModel<JiraFields> {
 
     @Override
     public JsonObject toJson() {
-        return IModelHelper.toJson(this, true, false);
+        JsonObject jsonObject = IModelHelper.toJson(this, true, false);
+        customFields.forEach(jsonObject::put);
+        return jsonObject;
     }
 
     public String getCustomFields(String key, String defaultValue) {

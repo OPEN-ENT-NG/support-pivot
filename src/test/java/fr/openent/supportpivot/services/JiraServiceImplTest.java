@@ -106,7 +106,7 @@ public class JiraServiceImplTest {
         Future<PivotTicket> future = Whitebox.invokeMethod(this.jiraService, "createJiraTicket", pivotTicket);
 
         future.onSuccess(pivotTicketResult -> {
-            ctx.assertEquals(pivotTicketResult.getIdJira(), "50605");
+            ctx.assertEquals(pivotTicketResult.getIdJira(), "FICTEST-336");
             ctx.assertEquals(pivotTicketResult.getStatutJira(), "Nouveau");
             async.complete();
         });
@@ -118,7 +118,7 @@ public class JiraServiceImplTest {
     public void prepareTicketForCreationTest(TestContext ctx) {
         PivotTicket pivotTicket = PowerMockito.spy(new PivotTicket());
         pivotTicket.setDateCreation("2000-01-05T08:30:00.000");
-        pivotTicket.setModule(Arrays.asList("/pages"));
+        pivotTicket.setModules(Arrays.asList("/pages"));
         pivotTicket.setTypeDemande("Highest");
         pivotTicket.setPriorite("Bloquant");
         pivotTicket.setStatutEnt("Resolu");
@@ -316,12 +316,12 @@ public class JiraServiceImplTest {
         pivotTicket.setDescription("Description");
         pivotTicket.setTitre("Titre");
         pivotTicket.setDemandeur("Demander");
-        JsonObject result = Whitebox.invokeMethod(this.jiraService, "ticketPrepareForUpdate", pivotTicket);
+        JiraTicket jiraTicket = Whitebox.invokeMethod(this.jiraService, "ticketPrepareForUpdate", pivotTicket);
 
         String expected = "{\"fields\":{\"customfield_12708\":\"idEnt\",\"customfield_13401\":\"idExterne\",\"customfield_12711\":\"3\"," +
                 "\"customfield_13402\":\"statusExterne\",\"customfield_12706\":\"2000-01-15T08:30:00.000\",\"description\":\"Description\"," +
                 "\"summary\":\"[Assistance ENT idEnt] Titre\",\"customfield_11405\":\"Demander\"}}";
-        ctx.assertEquals(result.toString(), expected);
+        ctx.assertEquals(jiraTicket.toJson(), new JsonObject(expected));
     }
 
     @Test

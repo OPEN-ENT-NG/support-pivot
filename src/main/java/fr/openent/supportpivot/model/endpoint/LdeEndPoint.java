@@ -44,7 +44,6 @@ public class LdeEndPoint extends AbstractEndpoint {
         handler.handle(Future.succeededFuture(prepareJson(ticket)));
     }
 
-    //TODO use LdeTicket model
     private LdeTicket prepareJson(PivotTicket pivotTicket) {
         return new LdeTicket(pivotTicket);
     }

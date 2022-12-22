@@ -60,7 +60,6 @@ public class CrifRouterService implements RouterService {
     public Future<PivotTicket> toPivotTicket(String source, JsonObject ticketdata) {
         Promise<PivotTicket> promise = Promise.promise();
 
-        //Todo better log on failure
         if (SOURCES.LDE.toString().equals(source)) {
             mongoService.saveTicket(ATTRIBUTION_LDE, ticketdata)
                     .compose(unused -> ldeEndpoint.process(ticketdata))
@@ -78,7 +77,11 @@ public class CrifRouterService implements RouterService {
                         return dispatchTicket(source, ticket);
                     })
                     .onSuccess(promise::complete)
-                    .onFailure(promise::fail);
+                    .onFailure(error -> {
+                        log.error(String.format("[SupportPivot@%s::toPivotTicket] Fail to get ticket from %s %s",
+                                this.getClass().getSimpleName(), source, error.getMessage()));
+                        promise.fail(error);
+                    });
         }
 
         return promise.future();
