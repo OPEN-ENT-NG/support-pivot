@@ -101,16 +101,19 @@ public class JiraEndpointTest {
         PowerMockito.doReturn(Future.succeededFuture("B64URL")).when(this.jiraEndpoint, "getJiraPJ", Mockito.any());
         PowerMockito.doCallRealMethod().when(this.jiraEndpoint).convertJiraReponseToJsonPivot(Mockito.any(JiraTicket.class));
         PowerMockito.doCallRealMethod().when(this.jiraEndpoint, "stringEncode", Mockito.anyString());
+        PowerMockito.doReturn("").when(this.jiraEndpoint, "serializeComment", Mockito.any());
 
-        String expected = "{\"id_jira\":\"FICTEST-336\",\"collectivite\":\"CRIF\",\"academie\":\"CRIF\",\"creation\":\"2022-09-07T17:38:57.960+0200\"," +
-                "\"maj\":\"2022-12-06T16:01:29.309+0100\",\"demandeur\":\"PRUDON Nathalie | nom.prenom@gmail.com | null | Francois-Mauriac | 1016024A\"," +
-                "\"type_demande\":\"Assistance\",\"titre\":\"[Assistance ENT 629] test\",\"uai\":\"12345678X\",\"description\":\"test\"," +
-                "\"priorite\":\"Mineur\",\"modules\":[\"HDF\"],\"id_ent\":\"631\",\"commentaires\":[null,null,null,null,null,null,null,null,null]," +
-                "\"statut_ent\":\"Ouvert\",\"statut_jira\":\"Ouvert\",\"date_creation\":\"07/09/2022 17:38\",\"id_externe\":\"lde_5002\"," +
-                "\"statut_externe\":\"En traitement ED\",\"attribution\":\"RECTORAT\",\"pj\":[{\"nom\":\"images_LDE.png\",\"contenu\":\"B64URL\"}]}";
+        String expected = "{\"id_jira\":\"FICTEST-336\",\"statut_jira\":\"Ouvert\",\"id_ent\":\"631\",\"statut_ent\":\"Ouvert\"," +
+                "\"id_externe\":\"lde_5002\",\"statut_externe\":\"En traitement ED\",\"collectivite\":\"CRIF\"," +
+                "\"academie\":\"CRIF\",\"creation\":\"2022-09-07T17:38:57.960+0200\",\"maj\":\"2022-12-06T16:01:29.309+0100\"," +
+                "\"demandeur\":\"PRUDON Nathalie | nom.prenom@gmail.com | null | Francois-Mauriac | 1016024A\"," +
+                "\"type_demande\":\"Assistance\",\"titre\":\"[Assistance ENT 629] test\",\"uai\":\"12345678X\"," +
+                "\"description\":\"test\",\"priorite\":\"Mineur\",\"modules\":[\"HDF\"],\"commentaires\":" +
+                "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"],\"date_creation\":\"07/09/2022 17:38\"," +
+                "\"attribution\":\"RECTORAT\",\"pj\":[{\"nom\":\"images_LDE.png\",\"contenu\":\"B64URL\"}]}";
         this.jiraEndpoint.convertJiraReponseToJsonPivot(new JiraTicket(getJiraTicket1()))
-                .onSuccess(event -> {
-                    ctx.assertEquals(event.toString(), expected);
+                .onSuccess(pivotTicket -> {
+                    ctx.assertEquals(pivotTicket.toJson().toString(), expected);
                     async.complete();
                 });
 
