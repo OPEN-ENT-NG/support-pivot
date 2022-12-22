@@ -33,6 +33,7 @@ import fr.openent.supportpivot.model.pivot.PivotPJ;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
 import fr.openent.supportpivot.model.status.config.EntStatusConfig;
 import fr.openent.supportpivot.model.status.config.StatusConfigModel;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -58,8 +59,6 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static fr.openent.supportpivot.constants.PivotConstants.*;
-
 /**
  * Created by mercierq on 09/02/2018.
  * Default implementation for JiraService
@@ -83,10 +82,11 @@ public class JiraServiceImpl implements JiraService {
     private static Base64.Encoder encoder = Base64.getMimeEncoder().withoutPadding();
     private static Base64.Decoder decoder = Base64.getMimeDecoder();
 
-    private static final int HTTP_STATUS_200_OK = 200;
-    private static final int HTTP_STATUS_204_NO_CONTENT = 204;
-    private static final int HTTP_STATUS_404_NOT_FOUND = 404;
-    private static final int HTTP_STATUS_201_CREATED = 201;
+    public static final List<String> PIVOT_PRIORITY_LEVEL = Arrays.asList(
+            Field.MINEUR,
+            Field.MAJEUR,
+            Field.BLOQUANT);
+    public static final int COMMENT_LENGTH = 4;
 
     public JiraServiceImpl(Vertx vertx) {
         ConfigModel config = ConfigManager.getInstance().getConfig();
@@ -196,7 +196,7 @@ public class JiraServiceImpl implements JiraService {
             final HttpClientRequest createTicketRequest = httpClient.post(JIRA_REST_API_URI.toString(),
                     response -> {
                         // HTTP Status Code 201: The request has been fulfilled and has resulted in one or more new resources being created.
-                        if (response.statusCode() == HTTP_STATUS_201_CREATED) {
+                        if (response.statusCode() == HttpResponseStatus.CREATED.code()) {
                             response.bodyHandler(body -> {
                                 JiraTicket jiraTicket = new JiraTicket(new JsonObject(body));
                                 pivotTicket.setIdJira(jiraTicket.getKey());
@@ -263,14 +263,14 @@ public class JiraServiceImpl implements JiraService {
                 .filter(entStatusConfig -> entStatusConfig.getName().equals(currentStatus))
                 .map(StatusConfigModel::getKey)
                 .findFirst()
-                .orElse(STATUS_NEW);
+                .orElse(Field.OUVERT);
 
         // reporter assistanceMLN
         String currentReporter = JiraConstants.REPORTER_LDE;
         String title;
         if (!JIRA_FIELD.getOrDefault(EntConstants.IDENT_FIELD, "").isEmpty()) {
             currentReporter = JiraConstants.REPORTER_ENT;
-            title = String.format("[%s %s] %s", ASSISTANCE_ENT, pivotTicket.getIdEnt(), pivotTicket.getTitre());
+            title = String.format("[%s %s] %s", Field.ASSISTANCE_ENT, pivotTicket.getIdEnt(), pivotTicket.getTitre());
         } else {
             title = pivotTicket.getTitre();
         }
@@ -285,15 +285,15 @@ public class JiraServiceImpl implements JiraService {
                 .put(JiraConstants.TITLE_FIELD, title)
                 .put(JiraConstants.DESCRIPTION_FIELD, pivotTicket.getDescription())
                 .put(JiraConstants.ISSUETYPE, new JsonObject()
-                        .put(NAME, ticketType))
+                        .put(Field.NAME, ticketType))
                 .put(JIRA_FIELD.getOrDefault(EntConstants.IDENT_FIELD, ""), pivotTicket.getIdEnt())
                 .put(JIRA_FIELD.getOrDefault(EntConstants.STATUSENT_FIELD, ""), statusNameEnt)
                 .put(JIRA_FIELD.getOrDefault(EntConstants.CREATION_FIELD, ""), dateCreaField)
                 .put(JIRA_FIELD.getOrDefault(EntConstants.RESOLUTION_ENT, ""), pivotTicket.getDateResolutionEnt())
-                .put(JiraConstants.REPORTER, new JsonObject().put(NAME, currentReporter))
+                .put(JiraConstants.REPORTER, new JsonObject().put(Field.NAME, currentReporter))
                 .put(JIRA_FIELD.getOrDefault(EntConstants.CREATOR, ""), pivotTicket.getDemandeur())
                 .put(JiraConstants.PRIORITY, new JsonObject()
-                        .put(NAME, currentPriority));
+                        .put(Field.NAME, currentPriority));
 
         if (!newModules.isEmpty() && !JiraConstants.NOTEXIST.equals(newModules.get(0))) {
             field.put(JiraConstants.COMPONENTS, new JsonArray().add(new JsonObject().put(JiraConstants.NAME, newModules.get(0))));
@@ -336,7 +336,7 @@ public class JiraServiceImpl implements JiraService {
         final HttpClientRequest commentTicketRequest = httpClient.post(urlNewTicket.toString(), response -> {
 
             // If ticket well created, then HTTP Status Code 201: The request has been fulfilled and has resulted in one or more new resources being created.
-            if (response.statusCode() != HTTP_STATUS_201_CREATED) {
+            if (response.statusCode() != HttpResponseStatus.CREATED.code()) {
                 promise.fail("999;Error when add Jira comment : " + comment + " : " + response.statusCode() + " " + response.statusMessage());
                 LOGGER.error(String.format("[SupportPivot@%s::sendJiraComment] POST %s", this.getClass().getSimpleName(), JIRA_HOST.resolve(urlNewTicket)));
                 LOGGER.error(String.format("[SupportPivot@%s::sendJiraComment] Error when add Jira comment on %s : %s - %s - %s",
@@ -391,7 +391,7 @@ public class JiraServiceImpl implements JiraService {
         final URI urlNewTicket = JIRA_REST_API_URI.resolve(jiraTicketId + "/" + Field.ATTACHMENTS);
         final HttpClientRequest postAttachmentsRequest = httpClient.post(urlNewTicket.toString(), response -> {
 
-            if (response.statusCode() != HTTP_STATUS_200_OK) {
+            if (response.statusCode() != HttpResponseStatus.OK.code()) {
                 promise.fail("999;Error when add Jira attachment : " + pj.getNom() + " : " + response.statusCode() + " " + response.statusMessage());
                 LOGGER.error(String.format("[SupportPivot@%s::sendJiraPJ] Error when add Jira attachment %s %s",
                         this.getClass().getSimpleName(), jiraTicketId, pj.getNom()));
@@ -446,7 +446,7 @@ public class JiraServiceImpl implements JiraService {
                     //Update Jira
                     final URI urlUpdateJiraTicket = JIRA_REST_API_URI.resolve(pivotTicket.getIdJira());
                     final HttpClientRequest modifyTicketRequest = httpClient.put(urlUpdateJiraTicket.toString(), modifyResp -> {
-                        if (modifyResp.statusCode() == HTTP_STATUS_204_NO_CONTENT) {
+                        if (modifyResp.statusCode() == HttpResponseStatus.NO_CONTENT.code()) {
 
                             // Compare comments and add only new ones
                             List<String> newComments = getNewComments(pivotTicket, jiraTicket);
@@ -520,7 +520,7 @@ public class JiraServiceImpl implements JiraService {
         if (pivotTicket.getDescription() != null)
             customFields.put((EntConstants.DESCRIPTION_FIELD), pivotTicket.getDescription());
         if (!JIRA_FIELD.getOrDefault(EntConstants.IDENT_FIELD, "").isEmpty()) {
-            title = String.format("[%s %s] %s", ASSISTANCE_ENT, pivotTicket.getIdEnt(), pivotTicket.getTitre());
+            title = String.format("[%s %s] %s", Field.ASSISTANCE_ENT, pivotTicket.getIdEnt(), pivotTicket.getTitre());
         } else {
             title =  pivotTicket.getTitre();
         }
@@ -670,7 +670,7 @@ public class JiraServiceImpl implements JiraService {
         //Todo use webclient service
         HttpClientRequest httpClientRequestGetInfo = httpClient.get(urlGetTicketGeneralInfo.toString(), response -> {
             response.exceptionHandler(exception -> LOGGER.error("Jira request error : ", exception));
-            if (response.statusCode() == HTTP_STATUS_200_OK) {
+            if (response.statusCode() == HttpResponseStatus.OK.code()) {
                 response.bodyHandler(bufferGetInfosTicket -> {
                     promise.complete(new JiraTicket(new JsonObject(bufferGetInfosTicket.toString())));
                 });

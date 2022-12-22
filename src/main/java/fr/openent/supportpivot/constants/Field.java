@@ -113,4 +113,12 @@ public class Field {
     public static final String STATUT_ENT = "statut_ent";
     public static final String LDE = "LDE";
     public static final String IDJIRA = "idjira";
+    public static final String CEST = "CEST";
+    public static final String ASSISTANCE_ENT = "Assistance ENT";
+    public static final String RECTORAT = "RECTORAT";
+    public static final String ENT = "ENT";
+    public static final String MINEUR = "Mineur";
+    public static final String MAJEUR = "Majeur";
+    public static final String BLOQUANT = "Bloquant";
+    public static final String OUVERT = "Ouvert";
 }

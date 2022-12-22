@@ -1,6 +1,6 @@
 package fr.openent.supportpivot.helpers;
 
-import fr.openent.supportpivot.constants.PivotConstants;
+import fr.openent.supportpivot.constants.Field;
 import io.vertx.core.Vertx;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -62,7 +62,7 @@ public class DateHelperTest {
 
         String wrongDateStr = "2022-05-03 08:05:16.";
         Date wrongDate = DateHelper.convertStringToDate(wrongDateStr);
-        String dateTime = DateTime.now().toDateTime(DateTimeZone.forTimeZone(DateHelper.setTimeZone(PivotConstants.TIME_ZONE))).toString(DATE_FORMAT);
+        String dateTime = DateTime.now().toDateTime(DateTimeZone.forTimeZone(DateHelper.setTimeZone(Field.CEST))).toString(DATE_FORMAT);
         ctx.assertEquals(DateHelper.convertDateFormat(wrongDate), dateTime);
     }
 }
