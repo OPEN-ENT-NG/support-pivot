@@ -13,7 +13,7 @@ import java.net.URISyntaxException;
 
 public class HttpClientService {
 
-    private Vertx vertx;
+    private final Vertx vertx;
 
     public HttpClientService(Vertx vertx) {
         this.vertx = vertx;
@@ -45,6 +45,4 @@ public class HttpClientService {
                 .setSsl(HttpConstants.HTTPS.equals(uri.getScheme()))
                 .setKeepAlive(true);
     }
-
-
 }

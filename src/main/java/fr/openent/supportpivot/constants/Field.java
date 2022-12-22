@@ -112,4 +112,5 @@ public class Field {
     public static final String ATTACHMENTS = "attachments";
     public static final String STATUT_ENT = "statut_ent";
     public static final String LDE = "LDE";
+    public static final String IDJIRA = "idjira";
 }

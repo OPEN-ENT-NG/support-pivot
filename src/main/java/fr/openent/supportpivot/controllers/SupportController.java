@@ -126,16 +126,12 @@ public class SupportController extends ControllerHelper {
     @SecuredAction("supportpivot.demande")
     public void busEndpoint(final Message<JsonObject> message) {
         JsonObject jsonMessage = message.body();
-        this.routerService.toPivotTicket(Endpoint.ENDPOINT_ENT, jsonMessage, event -> {
-            if (event.succeeded()) {
-                message.reply(new JsonObject().put(Field.STATUS, Field.OK.toLowerCase())
+        this.routerService.toPivotTicket(Endpoint.ENDPOINT_ENT, jsonMessage)
+                .onSuccess(pivotTicket -> message.reply(new JsonObject().put(Field.STATUS, Field.OK.toLowerCase())
                         .put(Field.MESSAGE, "invalid.action")
-                        .put(Field.ISSUE, event.result()));
-            } else {
-                message.reply(new JsonObject().put(Field.STATUS, Field.KO.toLowerCase())
-                        .put(Field.MESSAGE, event.cause().getMessage()));
-            }
-        });
+                        .put(Field.ISSUE, pivotTicket.toJson())))
+                .onFailure(error -> message.reply(new JsonObject().put(Field.STATUS, Field.KO.toLowerCase())
+                        .put(Field.MESSAGE, error.getMessage())));
     }
 
     /**
@@ -145,7 +141,8 @@ public class SupportController extends ControllerHelper {
     @SecuredAction("supportpivot.ws.dbrequest")
     public void getMongoInfos(final HttpServerRequest request) {
         final String mailTo = request.params().get(Field.REQUEST);
-        mongoService.getMongoInfos(mailTo, getDefaultResponseHandlerAsync(request));
+        mongoService.getMongoInfos(mailTo)
+                .onComplete(getDefaultResponseHandlerAsync(request));
     }
 
     @Get("config")

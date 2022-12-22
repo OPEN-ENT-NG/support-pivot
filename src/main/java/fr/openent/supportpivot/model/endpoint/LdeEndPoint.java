@@ -7,7 +7,7 @@ import fr.wseduc.webutils.Either;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.json.JsonArray;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -17,25 +17,27 @@ import java.util.stream.Collectors;
 
 public class LdeEndPoint extends AbstractEndpoint {
 
-
     protected static final Logger log = LoggerFactory.getLogger(LdeEndPoint.class);
 
     @Override
-    public void process(JsonObject ticketData, Handler<AsyncResult<PivotTicket>> handler) {
+    public Future<PivotTicket> process(JsonObject ticketData) {
+        Promise<PivotTicket> promise = Promise.promise();
         checkTicketData(ticketData, result -> {
             if (result.isRight()) {
                 PivotTicket ticket = new PivotTicket(ticketData);
-                handler.handle(Future.succeededFuture(ticket));
+                promise.complete(ticket);
             } else {
                 log.error(String.format("[SupportPivot@%s::process] Fail to process %s", this.getClass().getSimpleName(), EitherHelper.getOrNullLeftMessage(result)));
-                handler.handle(Future.failedFuture(result.left().toString()));
+                promise.fail(EitherHelper.getOrNullLeftMessage(result));
             }
         });
+
+        return promise.future();
     }
 
     @Override
-    public void send(PivotTicket ticket, Handler<AsyncResult<PivotTicket>> handler) {
-        handler.handle(Future.succeededFuture(ticket));
+    public Future<PivotTicket> send(PivotTicket ticket) {
+        return Future.succeededFuture(ticket);
     }
 
     public void sendBack(PivotTicket ticket, Handler<AsyncResult<LdeTicket>> handler)  {
@@ -47,8 +49,8 @@ public class LdeEndPoint extends AbstractEndpoint {
         return new LdeTicket(pivotTicket);
     }
 
-    public List<LdeTicket> prepareJsonList(List<PivotTicket> pivotTickets) {
-        return pivotTickets.stream().map(LdeTicket::new).collect(Collectors.toList());
+    public List<JsonObject> prepareJsonList(List<PivotTicket> pivotTickets) {
+        return pivotTickets.stream().map(LdeTicket::new).map(LdeTicket::toJson).collect(Collectors.toList());
     }
 
     private void checkTicketData(JsonObject ticketData, Handler<Either> handler) {
