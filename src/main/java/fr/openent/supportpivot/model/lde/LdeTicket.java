@@ -13,6 +13,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
+//Todo voir si l'on avait pas besoin de created et modified pour la list des tickets
 public class LdeTicket implements IModel<LdeTicket> {
     private String idJira;
     private String statutJira;
@@ -61,7 +62,7 @@ public class LdeTicket implements IModel<LdeTicket> {
                 .collect(Collectors.toList());
     }
 
-    public void listFormat() {
+    public LdeTicket listFormat() {
         this.statutJira = null;
         this.idExterne = null;
         this.statutExterne = null;
@@ -72,6 +73,7 @@ public class LdeTicket implements IModel<LdeTicket> {
         this.uai = null;
         this.description = null;
         this.pj = null;
+        return this;
     }
 
     @Override

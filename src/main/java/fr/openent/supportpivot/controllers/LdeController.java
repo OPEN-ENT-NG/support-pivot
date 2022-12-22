@@ -23,6 +23,7 @@ import org.vertx.java.core.http.RouteMatcher;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Created by bertinettia on 12/08/2019.
@@ -51,16 +52,19 @@ public class LdeController extends ControllerHelper {
         JsonObjectSafe data = new JsonObjectSafe();
         data.put(Field.TYPE, Field.LIST);
         data.putSafe(Field.DATE, date);
-        routerService.readTickets(SOURCE_LDE, data, listTicketResult -> {
-            if (listTicketResult.succeeded()) {
-                List<LdeTicket> ldeTicketList = listTicketResult.result();
-                ldeTicketList.forEach(LdeTicket::listFormat);
-                Renders.renderJson(request, IModelHelper.toJsonArray(listTicketResult.result()));
-            } else {
-                log.error(String.format("[SupportPivot@%s::getListeTicketsLDE] GET /lde/tickets failed : %s", this.getClass().getSimpleName(), listTicketResult.cause()));
-                Renders.badRequest(request, listTicketResult.cause().toString());
-            }
-        });
+        routerService.readTickets(SOURCE_LDE, data)
+                .onSuccess(listTicketResult -> {
+                    List<LdeTicket> ldeTicketList = listTicketResult.stream()
+                            .map(LdeTicket::new)
+                            .map(LdeTicket::listFormat)
+                            .collect(Collectors.toList());
+                    Renders.renderJson(request, IModelHelper.toJsonArray(ldeTicketList));
+                })
+                .onFailure(error -> {
+                    log.error(String.format("[SupportPivot@%s::getListeTicketsLDE] GET /lde/tickets failed : %s",
+                            this.getClass().getSimpleName(), error.getMessage()));
+                    Renders.badRequest(request);
+                });
     }
 
     @Get("/lde/ticket/:id")
@@ -71,28 +75,30 @@ public class LdeController extends ControllerHelper {
         JsonObject data = new JsonObject()
                 .put(Field.ID_JIRA, id_param_value)
                 .put(Field.TYPE, Field.TICKET);
-        routerService.readTickets(SOURCE_LDE, data, event -> {
-            if (event.succeeded() && !event.result().isEmpty()) {
-                Renders.renderJson(request, event.result().get(0).toJson());
-            } else if (event.succeeded()) {
-                Renders.notFound(request, String.format("Jira ticket with id %s not found.", id_param_value));
-            } else {
-                log.error(String.format("[SupportPivot@%s::getTicketLDE] GET /lde/ticket/%s failed : %s", this.getClass().getSimpleName(), id_param_value, event.cause()));
-                Renders.badRequest(request, event.cause().toString());
-            }
-        });
+        routerService.readTickets(SOURCE_LDE, data)
+                .onSuccess(ticketList -> {
+                    if (!ticketList.isEmpty()) {
+                        Renders.renderJson(request, ticketList.get(0));
+                    } else {
+                        Renders.notFound(request, String.format("Jira ticket with id %s not found.", id_param_value));
+                    }
+                })
+                .onFailure(error -> {
+                    log.error(String.format("[SupportPivot@%s::getTicketLDE] GET /lde/ticket/%s failed : %s",
+                            this.getClass().getSimpleName(), id_param_value, error.getMessage()));
+                    Renders.badRequest(request);
+                });
     }
 
     @Put("/lde/ticket")
     @fr.wseduc.security.SecuredAction(value = "", type = ActionType.AUTHENTICATED)
     public void putTicketLDE(final HttpServerRequest request) {
-        RequestUtils.bodyToJson(request, body -> routerService.toPivotTicket(SOURCE_LDE, body, event -> {
-            if (event.succeeded()) {
-                Renders.renderJson(request, event.result());
-            } else {
-                log.error(String.format("[SupportPivot@%s::getTicketLDE] PUT /lde/ticket/ failed : %s", this.getClass().getSimpleName(), event.cause()));
-                Renders.badRequest(request, event.cause().toString());
-            }
-        }));
+        RequestUtils.bodyToJson(request, body -> routerService.toPivotTicket(SOURCE_LDE, body)
+                .onSuccess(pivotTicket -> Renders.renderJson(request, pivotTicket.toJson()))
+                .onFailure(error -> {
+                    log.error(String.format("[SupportPivot@%s::getTicketLDE] PUT /lde/ticket/ failed : %s",
+                            this.getClass().getSimpleName(), error.getMessage()));
+                    Renders.badRequest(request);
+                }));
     }
 }

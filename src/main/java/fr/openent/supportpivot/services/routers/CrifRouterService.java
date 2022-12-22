@@ -8,21 +8,16 @@ import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.model.endpoint.EndpointFactory;
 import fr.openent.supportpivot.model.endpoint.LdeEndPoint;
 import fr.openent.supportpivot.model.endpoint.jira.JiraEndpoint;
-import fr.openent.supportpivot.model.lde.LdeTicket;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
 import fr.openent.supportpivot.services.HttpClientService;
 import fr.openent.supportpivot.services.JiraService;
 import fr.openent.supportpivot.services.MongoService;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.json.JsonArray;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
-import java.lang.reflect.Array;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -42,127 +37,101 @@ public class CrifRouterService implements RouterService {
     }
 
     @Override
-    public void dispatchTicket(String source, PivotTicket ticket, Handler<AsyncResult<PivotTicket>> handler) {
-        if (SOURCES.LDE.toString().equals(source)) {
-            if (ticket.getIdJira() != null && !ticket.getIdJira().isEmpty()) {
-                jiraEndpoint.send(ticket, jiraEndpointSendResult -> {
-                    if (jiraEndpointSendResult.succeeded()) {
-                        handler.handle(Future.succeededFuture(jiraEndpointSendResult.result()));
-                    } else {
-                        log.error(String.format("[SupportPivot@%s::dispatchTicket] Fail to dispatch ticket %s",
-                                this.getClass().getSimpleName(), AsyncResultHelper.getOrNullFailMessage(jiraEndpointSendResult)));
-                        handler.handle(Future.failedFuture(jiraEndpointSendResult.cause()));
-                    }
-                });
-            } else {
-                log.error(String.format("[SupportPivot@%s::dispatchTicket] %s is mandatory for IDF router.", this.getClass().getSimpleName(), Field.ID_JIRA));
-                handler.handle(Future.failedFuture(Field.ID_JIRA + " is mandatory for IDF router."));
-            }
-        } else {
-            if (ticket.getIdJira() == null) {
-                jiraEndpoint.send(ticket, jiraEndpointSendResult -> {
-                    if (jiraEndpointSendResult.succeeded()) {
-                        handler.handle(Future.succeededFuture(jiraEndpointSendResult.result()));
-                    } else {
-                        log.error(String.format("[SupportPivot@%s::dispatchTicket] Fail to dispatch ticket %s",
-                                this.getClass().getSimpleName(), AsyncResultHelper.getOrNullFailMessage(jiraEndpointSendResult)));
-                        handler.handle(Future.failedFuture(jiraEndpointSendResult.cause()));
-                    }
-                });
-            } else {
-                log.error(String.format("[SupportPivot@%s::dispatchTicket] %s is mandatory for IDF router.", this.getClass().getSimpleName(), Field.ID_JIRA));
-                handler.handle(Future.failedFuture(Field.ID_JIRA + " is mandatory for IDF router."));
-            }
-        }
-    }
+    public Future<PivotTicket> dispatchTicket(String source, PivotTicket ticket) {
+        Promise<PivotTicket> promise = Promise.promise();
 
-
-    //Todo use future and return Pivot ticket
-    @Override
-    public void toPivotTicket(String source, JsonObject ticketdata, Handler<AsyncResult<JsonObject>> handler) {
-        if (SOURCES.LDE.toString().equals(source)) {
-            mongoService.saveTicket(ATTRIBUTION_LDE, ticketdata);
-            ldeEndpoint.process(ticketdata, ldeEndpointProcessResult -> {
-                if (ldeEndpointProcessResult.succeeded()) {
-                    dispatchTicket(source, ldeEndpointProcessResult.result(), pivotTicket -> {
-                        if (pivotTicket.succeeded()) {
-                            handler.handle(Future.succeededFuture(pivotTicket.result().toJson()));
-                        } else {
-                            handler.handle(Future.failedFuture(pivotTicket.cause()));
-                        }
+        if (ticket.getIdJira() != null && !ticket.getIdJira().isEmpty()) {
+            jiraEndpoint.send(ticket)
+                    .onSuccess(promise::complete)
+                    .onFailure(error -> {
+                        log.error(String.format("[SupportPivot@%s::dispatchTicket] Fail to dispatch ticket %s",
+                                this.getClass().getSimpleName(), error.getMessage()));
+                        promise.fail(error);
                     });
-                } else {
-                    handler.handle(Future.failedFuture(ldeEndpointProcessResult.cause()));
-                }
-
-            });
         } else {
-            mongoService.saveTicket(ATTRIBUTION_ENT, ticketdata.getJsonObject(ISSUE, new JsonObject()));
-            PivotTicket ticket = new PivotTicket(ticketdata.getJsonObject(PivotConstants.ISSUE));
-            dispatchTicket(source, ticket, dispatchJiraResult -> {
-                if (dispatchJiraResult.succeeded()) {
-                    handler.handle(Future.succeededFuture(dispatchJiraResult.result().toJson()));
-                } else {
-                    handler.handle(Future.failedFuture(dispatchJiraResult.cause()));
-                }
-            });
+            log.error(String.format("[SupportPivot@%s::dispatchTicket] %s is mandatory for IDF router.", this.getClass().getSimpleName(), Field.ID_JIRA));
+            return Future.failedFuture(Field.ID_JIRA + " is mandatory for IDF router.");
         }
+
+        return promise.future();
     }
 
     @Override
-    public void readTickets(String source, JsonObject data, Handler<AsyncResult<List<LdeTicket>>> handler) {
+    public Future<PivotTicket> toPivotTicket(String source, JsonObject ticketdata) {
+        Promise<PivotTicket> promise = Promise.promise();
+
+        //Todo better log on failure
         if (SOURCES.LDE.toString().equals(source)) {
-            String type = data == null ? "list" : data.getString("type", "");
-            String minDate = data == null ? null : data.getString("date");
-            if (type.equals("list")) {
-                getTicketListFromJira(minDate, jiraResult -> {
-                    if (jiraResult.failed()) {
-                        log.error(String.format("[SupportPivot@%s::readTickets] Fail to read ticket %s",
-                                this.getClass().getSimpleName(), AsyncResultHelper.getOrNullFailMessage(jiraResult)));
-                        handler.handle(Future.failedFuture(jiraResult.cause()));
-                    } else {
-                        handler.handle(Future.succeededFuture(ldeEndpoint.prepareJsonList(jiraResult.result())));
-                    }
-                });
-            } else {
-                ldeEndpoint.process(data, ldeEndpointProcessResult -> {
-                    if (ldeEndpointProcessResult.succeeded()) {
-                        JsonObject pivotTicket = ldeEndpointProcessResult.result().toJson();
-                        jiraEndpoint.process(pivotTicket, jiraEndpointProcessResult -> {
-                            if (jiraEndpointProcessResult.succeeded()) {
-                                PivotTicket pivotFormatTicket = jiraEndpointProcessResult.result();
-                                ldeEndpoint.sendBack(pivotFormatTicket, ldeFormatTicketResult -> {
-                                    if (ldeFormatTicketResult.succeeded()) {
-                                        handler.handle(Future.succeededFuture(Collections.singletonList(ldeFormatTicketResult.result())));
-                                    } else {
-                                        log.error(String.format("[SupportPivot@%s::readTickets] Fail to sendBack %s",
-                                                this.getClass().getSimpleName(), AsyncResultHelper.getOrNullFailMessage(ldeFormatTicketResult)));
-                                        handler.handle(Future.failedFuture(ldeFormatTicketResult.cause()));
-                                    }
-                                });
-                            } else {
-                                log.error(String.format("[SupportPivot@%s::readTickets] Fail to jiraEndpoint.process %s",
-                                        this.getClass().getSimpleName(), AsyncResultHelper.getOrNullFailMessage(jiraEndpointProcessResult)));
-                                handler.handle(Future.failedFuture(jiraEndpointProcessResult.cause()));
-                            }
-                        });
-                    } else {
-                        log.error(String.format("[SupportPivot@%s::readTickets] Fail to ldeEndpoint.process %s",
-                                this.getClass().getSimpleName(), AsyncResultHelper.getOrNullFailMessage(ldeEndpointProcessResult)));
-                        handler.handle(Future.failedFuture(ldeEndpointProcessResult.cause()));
-                    }
-                });
-            }
+            mongoService.saveTicket(ATTRIBUTION_LDE, ticketdata)
+                    .compose(unused -> ldeEndpoint.process(ticketdata))
+                    .compose(pivotTicket -> dispatchTicket(source, pivotTicket))
+                    .onSuccess(promise::complete)
+                    .onFailure(error -> {
+                        log.error(String.format("[SupportPivot@%s::toPivotTicket] Fail to get ticket from LDE %s",
+                                this.getClass().getSimpleName(), error.getMessage()));
+                        promise.fail(error);
+                    });
         } else {
-            handler.handle(Future.failedFuture(source + " is an unsupported value for IDF router."));
+            mongoService.saveTicket(ATTRIBUTION_ENT, ticketdata.getJsonObject(ISSUE, new JsonObject()))
+                    .compose(event -> {
+                        PivotTicket ticket = new PivotTicket(ticketdata.getJsonObject(PivotConstants.ISSUE));
+                        return dispatchTicket(source, ticket);
+                    })
+                    .onSuccess(promise::complete)
+                    .onFailure(promise::fail);
         }
+
+        return promise.future();
     }
 
-    private void getTicketListFromJira(String minDate, Handler<AsyncResult<List<PivotTicket>>> handler) {
+    @Override
+    public Future<List<JsonObject>> readTickets(String source, JsonObject data) {
+        Promise<List<JsonObject>> promise = Promise.promise();
+
+        if (SOURCES.LDE.toString().equals(source)) {
+            String type = data == null ? Field.LIST : data.getString(Field.TYPE, "");
+            String minDate = data == null ? null : data.getString(Field.DATE);
+            if (type.equals(Field.LIST)) {
+                getTicketListFromJira(minDate)
+                        .onSuccess(ldeTicketList -> promise.complete(ldeEndpoint.prepareJsonList(ldeTicketList)))
+                        .onFailure(error -> {
+                            log.error(String.format("[SupportPivot@%s::readTickets] Fail to read ticket %s",
+                                    this.getClass().getSimpleName(), error.getMessage()));
+                            promise.fail(error);
+                        });
+            } else {
+                //Todo Why ldeEndpoint.process and jiraEndpoint.process?
+                ldeEndpoint.process(data)
+                        .compose(pivotTicket -> jiraEndpoint.process(pivotTicket.toJson()))
+                        .onSuccess(pivotTicket -> {
+                            ldeEndpoint.sendBack(pivotTicket, ldeFormatTicketResult -> {
+                                if (ldeFormatTicketResult.succeeded()) {
+                                    promise.complete(Collections.singletonList(ldeFormatTicketResult.result().toJson()));
+                                } else {
+                                    log.error(String.format("[SupportPivot@%s::readTickets] Fail to sendBack %s",
+                                            this.getClass().getSimpleName(), AsyncResultHelper.getOrNullFailMessage(ldeFormatTicketResult)));
+                                    promise.fail(ldeFormatTicketResult.cause());
+                                }
+                            });
+                        })
+                        .onFailure(error -> {
+                            log.error(String.format("[SupportPivot@%s::readTickets] Fail to process %s",
+                                    this.getClass().getSimpleName(), error.getMessage()));
+                            promise.fail(error);
+                        });
+            }
+        } else {
+            return Future.failedFuture(source + " is an unsupported value for IDF router.");
+        }
+
+        return promise.future();
+    }
+
+    private Future<List<PivotTicket>> getTicketListFromJira(String minDate) {
         JsonObjectSafe data = new JsonObjectSafe();
         data.put(JiraConstants.ATTRIBUTION_FILTERNAME, JiraConstants.ATTRIBUTION_FILTER_LDE);
         data.put(JiraConstants.ATTRIBUTION_FILTER_CUSTOMFIELD, JiraConstants.IDEXTERNAL_FIELD);
         data.putSafe(JiraConstants.ATTRIBUTION_FILTER_DATE, minDate);
-        jiraEndpoint.getPivotTicket(data, handler);
+        return jiraEndpoint.getPivotTicket(data);
     }
 }

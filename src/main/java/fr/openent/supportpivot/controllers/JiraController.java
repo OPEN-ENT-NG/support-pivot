@@ -42,13 +42,9 @@ public class JiraController extends ControllerHelper {
     @Get("/updateTicket/:idjira")
 //    @fr.wseduc.security.SecuredAction("glpi.test.trigger") //TODO (voir comment faire)
     public void updateTicket(final HttpServerRequest request) {
-        final String idJira = request.params().get("idjira");
-        routerService.toPivotTicket(Endpoint.ENDPOINT_JIRA, new JsonObject().put(JiraConstants.ID_JIRA, idJira), event -> {
-            if (event.succeeded()) {
-                Renders.renderJson(request, new JsonObject().put(Field.STATUS, Field.OK), 200);
-            } else {
-                Renders.renderJson(request, new JsonObject().put(Field.STATUS, Field.KO), 500);
-            }
-        });
+        final String idJira = request.params().get(Field.IDJIRA);
+        routerService.toPivotTicket(Endpoint.ENDPOINT_JIRA, new JsonObject().put(JiraConstants.ID_JIRA, idJira))
+                .onFailure(error -> Renders.renderJson(request, new JsonObject().put(Field.STATUS, Field.KO), 500))
+                .onSuccess(event -> Renders.renderJson(request, new JsonObject().put(Field.STATUS, Field.OK), 200));
     }
 }
