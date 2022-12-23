@@ -1,11 +1,11 @@
 package fr.openent.supportpivot.helpers;
 
 import fr.wseduc.webutils.Either;
-import io.vertx.core.*;
-import io.vertx.core.eventbus.Message;
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.impl.CompositeFutureImpl;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 

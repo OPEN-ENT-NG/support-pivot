@@ -6,6 +6,7 @@ import fr.openent.supportpivot.model.ConfigModelTest;
 import fr.openent.supportpivot.model.jira.*;
 import fr.openent.supportpivot.model.pivot.PivotPJ;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
+import fr.openent.supportpivot.services.routers.RouterService;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -39,6 +40,7 @@ public class JiraServiceImplTest {
     private JiraServiceImpl jiraService;
     private Vertx vertx;
     private HttpClient httpClient;
+    private RouterService routerService;
 
     @Before
     public void before(TestContext ctx) throws Exception {
@@ -47,13 +49,15 @@ public class JiraServiceImplTest {
         PowerMockito.spy(JiraServiceImpl.class);
         this.httpClient = Mockito.mock(HttpClient.class);
         Mockito.doReturn(this.httpClient).when(this.vertx).createHttpClient(Mockito.any());
-        this.jiraService = PowerMockito.spy(new JiraServiceImpl(vertx));
+        routerService = Mockito.mock(RouterService.class);
+        this.jiraService = PowerMockito.spy(new JiraServiceImpl(vertx, routerService));
     }
 
     @Test
     public void sendToJIRATest(TestContext ctx) throws Exception {
         Async async = ctx.async(3);
         PivotTicket pivotTicket = PowerMockito.spy(new PivotTicket());
+        Mockito.doReturn(Future.succeededFuture(pivotTicket)).when(this.routerService).getPivotTicket(Mockito.any(), Mockito.any());
         PowerMockito.doReturn(Future.succeededFuture(pivotTicket)).when(this.jiraService, "updateJiraTicket", pivotTicket);
         PowerMockito.doReturn(Future.succeededFuture(pivotTicket)).when(this.jiraService, "createJiraTicket", pivotTicket);
         //ID_EXTERNAL is mandatory
@@ -68,6 +72,7 @@ public class JiraServiceImplTest {
         PowerMockito.verifyPrivate(this.jiraService, Mockito.times(0)).invoke("updateJiraTicket", pivotTicket);
 
         pivotTicket.setIdJira("idJira");
+        pivotTicket.setIdExterne("idExternal");
         this.jiraService.sendToJIRA(pivotTicket).onSuccess(result -> {
             ctx.assertEquals(result, pivotTicket);
             async.countDown();

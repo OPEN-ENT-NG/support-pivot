@@ -1,5 +1,6 @@
 package fr.openent.supportpivot.managers;
 
+import fr.openent.supportpivot.model.endpoint.EndpointFactory;
 import fr.openent.supportpivot.services.HttpClientService;
 import fr.openent.supportpivot.services.JiraService;
 import fr.openent.supportpivot.services.JiraServiceImpl;
@@ -37,8 +38,9 @@ public class ServiceManager {
         switch (ConfigManager.getInstance().getConfig().getCollectivity()) {
             case "CRIF":
                 log.info("Start Pivot with CRIF Routeur.");
-                JiraService jiraService = new JiraServiceImpl(vertx);
-                routeurService = new CrifRouterService(httpClientService, jiraService);
+                routeurService = new CrifRouterService();
+                JiraService jiraService = new JiraServiceImpl(vertx, routeurService);
+                EndpointFactory.init(vertx, httpClientService, jiraService);
                 break;
             default:
                 log.error(String.format("[SupportPivot@%s::ServiceManager] Unknown value when starting Pivot Service. collectivity: %s",

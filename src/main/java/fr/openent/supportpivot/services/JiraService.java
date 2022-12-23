@@ -20,11 +20,7 @@ package fr.openent.supportpivot.services;
 
 import fr.openent.supportpivot.model.jira.JiraTicket;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
-import fr.wseduc.webutils.Either;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.json.JsonObject;
 
 /**
  * Created by mercierq on 09/02/2018.

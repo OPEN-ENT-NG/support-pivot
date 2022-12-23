@@ -1,32 +1,54 @@
 package fr.openent.supportpivot.model.endpoint;
 
+import fr.openent.supportpivot.model.IPivotTicket;
+import fr.openent.supportpivot.model.ISearchTicket;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
 import io.vertx.core.Future;
-import io.vertx.core.json.JsonObject;
 
 import java.util.List;
 
-public interface Endpoint {
-
-    String ENDPOINT_JIRA = "jira";
-    String ENDPOINT_ENT = "ent";
-
-    /**
-     * Triggers ticket recuperation for this endpoint.
-     * Might not do anything if the endpoint does not use trigger mecanism.
-     * @param data Useful data for trigger. Might be an empty json object, but not null
-     */
-    Future<List<PivotTicket>> getPivotTicket(JsonObject data);
+/**
+ * @param <P> Object class representing the ticket model
+ * @param <S> Object class representing the model to do a search
+ */
+public interface Endpoint<P extends IPivotTicket, S extends ISearchTicket> {
 
     /**
-     * Process an incoming ticket from that endpoint.
-     * @param ticketData Ticket data
+     * Allows you to retrieve a ticket thanks to an ISearch Ticket.
+     *
+     * @param searchTicket a ISearchTicket
+     * @return a ticket in IPivotTicket format
      */
-    Future<PivotTicket> process(JsonObject ticketData);
+    Future<P> getPivotTicket(S searchTicket);
 
     /**
-     * Process an existing ticket to send to that endpoint.
-     * @param ticket Ticket data
+     * Allows you to retrieve a list of ticket thanks to an ISearch Ticket.
+     *
+     * @param searchTicket a ISearchTicket
+     * @return a list of ticket in IPivotTicket format
      */
-    Future<PivotTicket> send(PivotTicket ticket);
+    Future<List<P>> getPivotTicketList(S searchTicket);
+
+    /**
+     * Permet d'envoyer un PivotTicket.
+     *
+     * @param ticket a PivotTicket
+     * @return the ticket formated in IPivotTicket
+     */
+    Future<P> setTicket(PivotTicket ticket);
+
+    /**
+     * @return a name to identify the endpoint.
+     */
+    default String getName() {
+        return this.getClass().getSimpleName();
+    }
+
+    /**
+     * Convert a IPivotTicket to PivotTicket. Can be use if we need async function.
+     *
+     * @param ticket the ticket we want to convert
+     * @return the ticket converted
+     */
+    Future<PivotTicket> toPivotTicket(P ticket);
 }

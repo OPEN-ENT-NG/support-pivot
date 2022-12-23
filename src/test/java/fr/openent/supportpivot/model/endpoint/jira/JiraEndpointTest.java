@@ -99,7 +99,7 @@ public class JiraEndpointTest {
         PowerMockito.spy(JiraEndpoint.class);
         this.jiraEndpoint = PowerMockito.mock(JiraEndpoint.class);
         PowerMockito.doReturn(Future.succeededFuture("B64URL")).when(this.jiraEndpoint, "getJiraPJ", Mockito.any());
-        PowerMockito.doCallRealMethod().when(this.jiraEndpoint).convertJiraReponseToJsonPivot(Mockito.any(JiraTicket.class));
+        PowerMockito.doCallRealMethod().when(this.jiraEndpoint).toPivotTicket(Mockito.any(JiraTicket.class));
         PowerMockito.doCallRealMethod().when(this.jiraEndpoint, "stringEncode", Mockito.anyString());
         PowerMockito.doReturn("").when(this.jiraEndpoint, "serializeComment", Mockito.any());
 
@@ -111,7 +111,7 @@ public class JiraEndpointTest {
                 "\"description\":\"test\",\"priorite\":\"Mineur\",\"modules\":[\"HDF\"],\"commentaires\":" +
                 "[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"],\"date_creation\":\"07/09/2022 17:38\"," +
                 "\"attribution\":\"RECTORAT\",\"pj\":[{\"nom\":\"images_LDE.png\",\"contenu\":\"B64URL\"}]}";
-        this.jiraEndpoint.convertJiraReponseToJsonPivot(new JiraTicket(getJiraTicket1()))
+        this.jiraEndpoint.toPivotTicket(new JiraTicket(getJiraTicket1()))
                 .onSuccess(pivotTicket -> {
                     ctx.assertEquals(pivotTicket.toJson().toString(), expected);
                     async.complete();
