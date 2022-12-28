@@ -4,7 +4,7 @@ import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.managers.ServiceManager;
 import fr.openent.supportpivot.model.endpoint.EndpointFactory;
 import fr.openent.supportpivot.model.jira.JiraSearch;
-import fr.openent.supportpivot.services.routers.RouterService;
+import fr.openent.supportpivot.services.RouterService;
 import fr.wseduc.rs.Get;
 import fr.wseduc.webutils.http.Renders;
 import fr.wseduc.webutils.security.SecuredAction;
@@ -25,19 +25,14 @@ import java.util.Map;
  */
 
 public class JiraController extends ControllerHelper {
-    private RouterService routerService;
+    private final RouterService routerService;
 
     protected static final Logger log = LoggerFactory.getLogger(JiraController.class);
 
-    @Override
-    public void init(Vertx vertx, final JsonObject config, RouteMatcher rm,
-                     Map<String, SecuredAction> securedActions) {
-
-        super.init(vertx, config, rm, securedActions);
-        ServiceManager serviceManager = ServiceManager.getInstance();
-        this.routerService = serviceManager.getRouteurService();
-
+    public JiraController() {
+        this.routerService = ServiceManager.getInstance().getRouterService();
     }
+
 
     @Get("/updateJira/:idjira")
 //    @fr.wseduc.security.SecuredAction("glpi.test.trigger") //TODO (voir comment faire)

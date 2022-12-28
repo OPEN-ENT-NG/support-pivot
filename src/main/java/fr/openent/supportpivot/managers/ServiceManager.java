@@ -1,25 +1,24 @@
 package fr.openent.supportpivot.managers;
 
-import fr.openent.supportpivot.model.endpoint.EndpointFactory;
+import fr.openent.supportpivot.services.*;
 import fr.openent.supportpivot.services.HttpClientService;
-import fr.openent.supportpivot.services.JiraService;
-import fr.openent.supportpivot.services.JiraServiceImpl;
-import fr.openent.supportpivot.services.MongoService;
-import fr.openent.supportpivot.services.routers.CrifRouterService;
-import fr.openent.supportpivot.services.routers.RouterService;
-import fr.wseduc.webutils.email.EmailSender;
+import fr.openent.supportpivot.services.impl.CrifRouterService;
+import fr.openent.supportpivot.services.impl.HttpClientServiceImpl;
+import fr.openent.supportpivot.services.impl.JiraServiceImpl;
+import fr.openent.supportpivot.services.impl.MongoServiceImpl;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.entcore.common.email.EmailFactory;
 
 public class ServiceManager {
     protected static final Logger log = LoggerFactory.getLogger(ServiceManager.class);
     private static ServiceManager serviceManager = null;
 
-    private MongoService mongoService;
-    private RouterService routeurService;
+    private final MongoService mongoService;
+    private final RouterService routerService;
+    private final JiraService jiraService;
+    private final HttpClientService httpClientService;
 
     public static void init(Vertx vertx, JsonObject config) {
         if(serviceManager == null) {
@@ -28,21 +27,18 @@ public class ServiceManager {
     }
 
     private ServiceManager(Vertx vertx, JsonObject config) {
-
-        EmailFactory emailFactory = new EmailFactory(vertx, config);
-        EmailSender emailSender = emailFactory.getSender();
-
-        mongoService = new MongoService(ConfigManager.getInstance().getConfig().getMongoCollection());
-        HttpClientService httpClientService = new HttpClientService(vertx);
+        this.mongoService = new MongoServiceImpl(ConfigManager.getInstance().getConfig().getMongoCollection());
+        this.httpClientService = new HttpClientServiceImpl(vertx);
+        this.jiraService = new JiraServiceImpl(vertx);
 
         switch (ConfigManager.getInstance().getConfig().getCollectivity()) {
             case "CRIF":
-                log.info("Start Pivot with CRIF Routeur.");
-                routeurService = new CrifRouterService();
-                JiraService jiraService = new JiraServiceImpl(vertx, routeurService);
-                EndpointFactory.init(vertx, httpClientService, jiraService);
+                log.info(String.format("[SupportPivot@%s::ServiceManager] Start Pivot with CRIF Routeur.",
+                        this.getClass().getSimpleName()));
+                routerService = new CrifRouterService();
                 break;
             default:
+                routerService = null;
                 log.error(String.format("[SupportPivot@%s::ServiceManager] Unknown value when starting Pivot Service. collectivity: %s",
                         this.getClass().getSimpleName(), ConfigManager.getInstance().getConfig().getCollectivity()));
         }
@@ -50,7 +46,11 @@ public class ServiceManager {
 
     public MongoService getMongoService() { return mongoService; }
 
-    public RouterService getRouteurService() { return routeurService; }
+    public RouterService getRouterService() { return routerService; }
+
+    public JiraService getJiraService() { return jiraService; }
+
+    public HttpClientService getHttpClientService() { return httpClientService; }
 
     public static ServiceManager getInstance(){ return serviceManager;}
 }

@@ -5,6 +5,7 @@ import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.enums.PriorityEnum;
 import fr.openent.supportpivot.helpers.*;
 import fr.openent.supportpivot.managers.ConfigManager;
+import fr.openent.supportpivot.managers.ServiceManager;
 import fr.openent.supportpivot.model.ConfigModel;
 import fr.openent.supportpivot.model.endpoint.Endpoint;
 import fr.openent.supportpivot.model.jira.*;
@@ -12,12 +13,10 @@ import fr.openent.supportpivot.model.pivot.PivotPJ;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
 import fr.openent.supportpivot.model.status.config.JiraStatusConfig;
 import fr.openent.supportpivot.services.HttpClientService;
-import fr.openent.supportpivot.services.JiraService;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -38,21 +37,18 @@ import static fr.openent.supportpivot.constants.JiraConstants.*;
 
 public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
     private PivotHttpClient httpClient;
-    private final JiraService jiraService;
     private static final Base64.Encoder encoder = Base64.getMimeEncoder().withoutPadding();
 
     private static final Logger log = LoggerFactory.getLogger(JiraEndpoint.class);
 
-    public JiraEndpoint(HttpClientService httpClientService, JiraService jiraService) {
+    public JiraEndpoint() {
         try {
-            this.httpClient = httpClientService.getHttpClient(ConfigManager.getInstance().getConfig().getJiraHost());
+            this.httpClient = ServiceManager.getInstance().getHttpClientService().getHttpClient(ConfigManager.getInstance().getConfig().getJiraHost());
             httpClient.setBasicAuth(ConfigManager.getInstance().getConfig().getJiraLogin(), ConfigManager.getInstance().getConfig().getJiraPasswd());
 
         } catch (URISyntaxException e) {
             log.error(String.format("[SupportPivot@%s::JiraEndpoint] Invalid uri %s", this.getClass().getSimpleName(), e.getMessage()));
         }
-
-        this.jiraService = jiraService;
     }
 
     @Override
@@ -101,7 +97,7 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
     public Future<JiraTicket> setTicket(PivotTicket ticket) {
         Promise<JiraTicket> promise = Promise.promise();
 
-        jiraService.sendToJIRA(ticket)
+        ServiceManager.getInstance().getJiraService().sendToJIRA(ticket)
                 .onSuccess(pivotTicket -> promise.complete(new JiraTicket(pivotTicket)))
                 .onFailure(promise::fail);
 

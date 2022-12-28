@@ -1,14 +1,11 @@
-package fr.openent.supportpivot.services.routers;
+package fr.openent.supportpivot.services.impl;
 
 import fr.openent.supportpivot.helpers.FutureHelper;
 import fr.openent.supportpivot.model.IPivotTicket;
 import fr.openent.supportpivot.model.ISearchTicket;
 import fr.openent.supportpivot.model.endpoint.Endpoint;
-import fr.openent.supportpivot.model.endpoint.EndpointFactory;
-import fr.openent.supportpivot.model.endpoint.LdeEndPoint;
-import fr.openent.supportpivot.model.endpoint.jira.JiraEndpoint;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
-import fr.openent.supportpivot.services.MongoService;
+import fr.openent.supportpivot.services.RouterService;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.logging.Logger;
@@ -18,17 +15,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class CrifRouterService implements RouterService {
-    private final static String COLLECTION_MONGO = "pivot";
     private static final Logger log = LoggerFactory.getLogger(CrifRouterService.class);
-    private final JiraEndpoint jiraEndpoint;
-    private LdeEndPoint ldeEndpoint;
-    public MongoService mongoService;
-
-    public CrifRouterService() {
-        jiraEndpoint = EndpointFactory.getJiraEndpoint();
-        ldeEndpoint = EndpointFactory.getLdeEndpoint();
-        mongoService = new MongoService(COLLECTION_MONGO);
-    }
 
     @Override
     public <P extends IPivotTicket, S extends ISearchTicket> Future<PivotTicket> getPivotTicket(Endpoint<P, S> endpoint, S searchTicket) {
