@@ -1,5 +1,6 @@
 package fr.openent.supportpivot.services;
 
+import fr.openent.supportpivot.services.impl.MongoServiceImpl;
 import fr.wseduc.mongodb.MongoDb;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
@@ -23,7 +24,7 @@ public class MongoServiceTest {
         vertx = Vertx.vertx();
         MongoDb.getInstance().init(vertx.eventBus(), "fr.openent.supportpivot");
 
-        this.mongoService = new MongoService(mongoCollection);
+        this.mongoService = new MongoServiceImpl(mongoCollection);
     }
 
     @Test

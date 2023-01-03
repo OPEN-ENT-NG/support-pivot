@@ -23,6 +23,7 @@ import fr.openent.supportpivot.controllers.LdeController;
 import fr.openent.supportpivot.controllers.SupportController;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.managers.ServiceManager;
+import fr.openent.supportpivot.model.endpoint.EndpointFactory;
 import org.entcore.common.http.BaseServer;
 
 import java.util.HashMap;
@@ -95,6 +96,7 @@ public class Supportpivot extends BaseServer {
 		ConfigManager.init(config);
 
 		ServiceManager.init(vertx, config);
+		EndpointFactory.init(vertx);
 		addController(new SupportController());
 		addController(new JiraController());
 		addController(new LdeController());

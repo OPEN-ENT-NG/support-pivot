@@ -26,7 +26,7 @@ import fr.openent.supportpivot.managers.ServiceManager;
 import fr.openent.supportpivot.model.endpoint.EndpointFactory;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
 import fr.openent.supportpivot.services.MongoService;
-import fr.openent.supportpivot.services.routers.RouterService;
+import fr.openent.supportpivot.services.RouterService;
 import fr.wseduc.bus.BusAddress;
 import fr.wseduc.rs.Get;
 import fr.wseduc.security.SecuredAction;
@@ -34,14 +34,10 @@ import fr.wseduc.webutils.Either;
 import fr.wseduc.webutils.http.Renders;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonObject;
 import org.entcore.common.controller.ControllerHelper;
-import org.vertx.java.core.http.RouteMatcher;
-
-import java.util.Map;
 
 /**
  * Created by colenot on 07/12/2017.
@@ -52,20 +48,14 @@ import java.util.Map;
  * /demandeENT : Register a demande from Support module
  */
 public class SupportController extends ControllerHelper {
+    private final MongoService mongoService;
+    private final RouterService routerService;
 
-    private MongoService mongoService;
-    private RouterService routerService;
-
-    @Override
-    public void init(Vertx vertx, final JsonObject config, RouteMatcher rm,
-                     Map<String, fr.wseduc.webutils.security.SecuredAction> securedActions) {
-        super.init(vertx, config, rm, securedActions);
-
-        ServiceManager serviceManager = ServiceManager.getInstance();
-
-        this.mongoService = serviceManager.getMongoService();
-        this.routerService = serviceManager.getRouteurService();
+    public SupportController() {
+        this.mongoService = ServiceManager.getInstance().getMongoService();
+        this.routerService = ServiceManager.getInstance().getRouterService();
     }
+
     /**
      * Get a default handler for HttpServerRequest with added info
      * @return handler with error code, error message and status
@@ -142,7 +132,7 @@ public class SupportController extends ControllerHelper {
     @SecuredAction("supportpivot.ws.dbrequest")
     public void getMongoInfos(final HttpServerRequest request) {
         final String mailTo = request.params().get(Field.REQUEST);
-        mongoService.getMongoInfos(mailTo)
+        this.mongoService.getMongoInfos(mailTo)
                 .onComplete(getDefaultResponseHandlerAsync(request));
     }
 

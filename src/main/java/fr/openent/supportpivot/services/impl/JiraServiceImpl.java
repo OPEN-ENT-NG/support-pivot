@@ -16,7 +16,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-package fr.openent.supportpivot.services;
+package fr.openent.supportpivot.services.impl;
 
 import fr.openent.supportpivot.Supportpivot;
 import fr.openent.supportpivot.constants.ConfigField;
@@ -26,6 +26,7 @@ import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.helpers.DateHelper;
 import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.managers.ConfigManager;
+import fr.openent.supportpivot.managers.ServiceManager;
 import fr.openent.supportpivot.model.ConfigModel;
 import fr.openent.supportpivot.model.endpoint.EndpointFactory;
 import fr.openent.supportpivot.model.jira.JiraComment;
@@ -36,7 +37,8 @@ import fr.openent.supportpivot.model.pivot.PivotPJ;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
 import fr.openent.supportpivot.model.status.config.EntStatusConfig;
 import fr.openent.supportpivot.model.status.config.StatusConfigModel;
-import fr.openent.supportpivot.services.routers.RouterService;
+import fr.openent.supportpivot.services.JiraService;
+import fr.openent.supportpivot.services.RouterService;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -82,9 +84,9 @@ public class JiraServiceImpl implements JiraService {
     private final Map<String, String> JIRA_FIELD;
     private final List<EntStatusConfig> ENT_STATUS_MAPPING;
 
-    private HttpClient httpClient;
-    private static Base64.Encoder encoder = Base64.getMimeEncoder().withoutPadding();
-    private static Base64.Decoder decoder = Base64.getMimeDecoder();
+    private final HttpClient httpClient;
+    private static final Base64.Encoder encoder = Base64.getMimeEncoder().withoutPadding();
+    private static final Base64.Decoder decoder = Base64.getMimeDecoder();
 
     public static final List<String> PIVOT_PRIORITY_LEVEL = Arrays.asList(
             Field.MINEUR,
@@ -92,13 +94,10 @@ public class JiraServiceImpl implements JiraService {
             Field.BLOQUANT);
     public static final int COMMENT_LENGTH = 4;
 
-    public final RouterService routerService;
-
-    public JiraServiceImpl(Vertx vertx, RouterService routerService) {
+    public JiraServiceImpl(Vertx vertx) {
         ConfigModel config = ConfigManager.getInstance().getConfig();
 
         this.vertx = vertx;
-        this.routerService = routerService;
         this.JIRA_AUTH_INFO = ConfigManager.getInstance().getJiraAuthInfo();
 
         this.JIRA_HOST = ConfigManager.getInstance().getJiraHostUrl();
@@ -198,7 +197,7 @@ public class JiraServiceImpl implements JiraService {
 
         jiraSearch.setIdExterne(pivotTicket.getIdExterne());
 
-        routerService.getPivotTicket(EndpointFactory.getJiraEndpoint(), jiraSearch)
+        ServiceManager.getInstance().getRouterService().getPivotTicket(EndpointFactory.getJiraEndpoint(), jiraSearch)
                 .compose(pivotTicketResult -> {
                     if (pivotTicketResult.getIdJira() != null && !pivotTicketResult.getIdJira().isEmpty()) {
                         return this.updateJiraTicket(pivotTicket);
@@ -207,9 +206,7 @@ public class JiraServiceImpl implements JiraService {
                     }
                 })
                 .onSuccess(promise::complete)
-                .onFailure(error -> {
-                    promise.fail(error);
-                });
+                .onFailure(promise::fail);
 
         return promise.future();
     }
