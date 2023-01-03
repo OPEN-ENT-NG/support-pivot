@@ -10,7 +10,7 @@ public class JiraAuthor implements IModel<JiraAuthor> {
     private String name;
     private String key;
     private String emailAddress;
-    //Todo if we need avatar url use this
+    //if we need avatar url use this
     //private AvatarUrls avatarUrls;
     private String displayName;
     private boolean active;

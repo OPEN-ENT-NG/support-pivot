@@ -54,8 +54,7 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
     @Override
     public Future<JiraTicket> getPivotTicket(JiraSearch jiraSearch) {
         Promise<JiraTicket> promise = Promise.promise();
-        //todo change message
-        Future<JiraTicket> future = Future.failedFuture("Searcher malformed");
+        Future<JiraSearchResult> future = Future.failedFuture("Searcher malformed");
 
         if (jiraSearch.getIdJira() != null) {
             future = this.getJiraTicketByJiraId(jiraSearch.getIdJira());
@@ -65,7 +64,14 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
             future = this.getJiraTicketByEntId(jiraSearch.getIdEnt());
         }
 
-        future.onSuccess(promise::complete)
+        future
+                .onSuccess(jiraSearchResult -> {
+                    if (jiraSearchResult.getIssues().isEmpty()) {
+                        promise.complete(new JiraTicket());
+                    } else {
+                        promise.complete(jiraSearchResult.getIssues().get(0));
+                    }
+                })
                 .onFailure(promise::fail);
 
         return promise.future();
@@ -262,12 +268,12 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
         return ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
     }
 
-    private Future<JiraTicket> getJiraTicketByJiraId(String idJira) {
-        Promise<JiraTicket> promise = Promise.promise();
+    private Future<JiraSearchResult> getJiraTicketByJiraId(String idJira) {
+        Promise<JiraSearchResult> promise = Promise.promise();
 
         URI uri = ConfigManager.getInstance().getJiraBaseUrl().resolve("issue/" + idJira);
         executeJiraRequest(uri, 200)
-                .onSuccess(body -> promise.complete(new JiraTicket(new JsonObject(body))))
+                .onSuccess(body -> promise.complete(new JiraSearchResult(new JsonObject(body))))
                 .onFailure(error -> {
                     log.error(String.format("[SupportPivot@%s::getJiraTicketByJiraId] Fail to get ticket %s",
                             this.getClass().getSimpleName(), error));
@@ -277,16 +283,15 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
         return promise.future();
     }
 
-    private Future<JiraTicket> getJiraTicketByExternalId(String idExternal) {
-        Promise<JiraTicket> promise = Promise.promise();
+    private Future<JiraSearchResult> getJiraTicketByExternalId(String idExternal) {
+        Promise<JiraSearchResult> promise = Promise.promise();
 
         String idCustomField = ConfigManager.getInstance().getJiraCustomFieldIdForExternalId().replaceAll("customfield_", "");
         JiraFilterBuilder filter = new JiraFilterBuilder();
         filter.addCustomfieldFilter(idCustomField, idExternal);
         URI uri = ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
         executeJiraRequest(uri, 200)
-                //Todo test que l'on a bien un JiraTicket
-                .onSuccess(body -> promise.complete(new JiraTicket(new JsonObject(body))))
+                .onSuccess(body -> promise.complete(new JiraSearchResult(new JsonObject(body))))
                 .onFailure(error -> {
                     log.error(String.format("[SupportPivot@%s::getJiraTicketByJiraId] Fail to get ticket %s",
                             this.getClass().getSimpleName(), error));
@@ -296,16 +301,15 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
         return promise.future();
     }
 
-    private Future<JiraTicket> getJiraTicketByEntId(String idEnt) {
-        Promise<JiraTicket> promise = Promise.promise();
+    private Future<JiraSearchResult> getJiraTicketByEntId(String idEnt) {
+        Promise<JiraSearchResult> promise = Promise.promise();
 
         String idCustomField = ConfigManager.getInstance().getjiraCustomFieldIdForIdent().replaceAll("customfield_", "");
         JiraFilterBuilder filter = new JiraFilterBuilder();
         filter.addCustomfieldFilter(idCustomField, idEnt);
         URI uri = ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
         executeJiraRequest(uri, 200)
-                //Todo test que l'on a bien un JiraTicket
-                .onSuccess(body -> promise.complete(new JiraTicket(new JsonObject(body))))
+                .onSuccess(body -> promise.complete(new JiraSearchResult(new JsonObject(body))))
                 .onFailure(error -> {
                     log.error(String.format("[SupportPivot@%s::getJiraTicketByJiraId] Fail to get ticket %s",
                             this.getClass().getSimpleName(), error));
