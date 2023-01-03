@@ -3,9 +3,11 @@ package fr.openent.supportpivot.model.jira;
 import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.helpers.IModelHelper;
 import fr.openent.supportpivot.model.IModel;
+import fr.openent.supportpivot.model.IPivotTicket;
+import fr.openent.supportpivot.model.pivot.PivotTicket;
 import io.vertx.core.json.JsonObject;
 
-public class JiraTicket implements IModel<JiraTicket> {
+public class JiraTicket implements IModel<JiraTicket>, IPivotTicket {
     private String expand;
     private String id;
     private String self;
@@ -21,6 +23,9 @@ public class JiraTicket implements IModel<JiraTicket> {
     }
 
     public JiraTicket() {
+    }
+
+    public JiraTicket(PivotTicket pivotTicket) {
     }
 
     @Override

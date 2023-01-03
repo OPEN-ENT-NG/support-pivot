@@ -19,12 +19,12 @@
 package fr.openent.supportpivot.controllers;
 
 import fr.openent.supportpivot.constants.Field;
-import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.helpers.AsyncResultHelper;
 import fr.openent.supportpivot.helpers.EitherHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.managers.ServiceManager;
-import fr.openent.supportpivot.model.endpoint.Endpoint;
+import fr.openent.supportpivot.model.endpoint.EndpointFactory;
+import fr.openent.supportpivot.model.pivot.PivotTicket;
 import fr.openent.supportpivot.services.MongoService;
 import fr.openent.supportpivot.services.routers.RouterService;
 import fr.wseduc.bus.BusAddress;
@@ -123,10 +123,12 @@ public class SupportController extends ControllerHelper {
      */
     @BusAddress("supportpivot.demande")
     @SecuredAction("supportpivot.demande")
+    //todo rajouter la save du du ticket en mongo
     public void busEndpoint(final Message<JsonObject> message) {
-        JsonObject jsonMessage = message.body();
-        this.routerService.toPivotTicket(Endpoint.ENDPOINT_ENT, jsonMessage)
-                .onSuccess(pivotTicket -> message.reply(new JsonObject().put(Field.STATUS, Field.OK.toLowerCase())
+        JsonObject jsonMessage = message.body().getJsonObject(Field.ISSUE, new JsonObject());
+        PivotTicket pivotTicket = new PivotTicket(jsonMessage);
+        this.routerService.setPivotTicket(EndpointFactory.getJiraEndpoint(), pivotTicket)
+                .onSuccess(jiraTicket -> message.reply(new JsonObject().put(Field.STATUS, Field.OK.toLowerCase())
                         .put(Field.MESSAGE, "invalid.action")
                         .put(Field.ISSUE, pivotTicket.toJson())))
                 .onFailure(error -> message.reply(new JsonObject().put(Field.STATUS, Field.KO.toLowerCase())
@@ -148,13 +150,5 @@ public class SupportController extends ControllerHelper {
     @SecuredAction("supportpivot.ws.config")
     public void getConfig(final HttpServerRequest request) {
         renderJson(request, ConfigManager.getInstance().getPublicConfig());
-    }
-
-    @Get("updateJira/:idjira")
-    public void jiraUpdateEndpoint(final HttpServerRequest request) {
-        final String idJira = request.params().get(JiraConstants.ID_JIRA);
-        //TODO see if we realy need this
-        //demandeService.sendJiraTicketToSupport(request, idJira, getDefaultResponseHandler(request));
-        Renders.renderError(request);
     }
 }

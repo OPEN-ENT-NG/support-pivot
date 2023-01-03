@@ -1,75 +1,46 @@
 package fr.openent.supportpivot.model.jira;
 
-import fr.openent.supportpivot.constants.Field;
-import fr.openent.supportpivot.helpers.IModelHelper;
-import fr.openent.supportpivot.model.IModel;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
+import fr.openent.supportpivot.model.ISearchTicket;
 
-import java.util.List;
+public class JiraSearch implements ISearchTicket {
+    private String idJira;
+    private String idExterne;
+    private String idEnt;
+    private String date;
 
-public class JiraSearch implements IModel<JiraSearch> {
-    private String expand;
-    private int startAt;
-    private int maxResults;
-    private int total;
-    private List<JiraTicket> issues;
-
-    public JiraSearch(JsonObject jsonObject) {
-        this.expand = jsonObject.getString(Field.EXPAND, "");
-        this.startAt = jsonObject.getInteger(Field.STARTAT, 0);
-        this.maxResults = jsonObject.getInteger(Field.MAXRESULTS, 0);
-        this.total = jsonObject.getInteger(Field.TOTAL, 0);
-        this.issues = IModelHelper.toList(jsonObject.getJsonArray(Field.ISSUES, new JsonArray()), JiraTicket.class);
+    public String getIdJira() {
+        return idJira;
     }
 
-    @Override
-    public JsonObject toJson() {
-        return IModelHelper.toJson(this, true, false);
-    }
-
-    public String getExpand() {
-        return expand;
-    }
-
-    public JiraSearch setExpand(String expand) {
-        this.expand = expand;
+    public JiraSearch setIdJira(String idJira) {
+        this.idJira = idJira;
         return this;
     }
 
-    public int getStartAt() {
-        return startAt;
+    public String getIdExterne() {
+        return idExterne;
     }
 
-    public JiraSearch setStartAt(int startAt) {
-        this.startAt = startAt;
+    public JiraSearch setIdExterne(String idExterne) {
+        this.idExterne = idExterne;
         return this;
     }
 
-    public int getMaxResults() {
-        return maxResults;
+    public String getIdEnt() {
+        return idEnt;
     }
 
-    public JiraSearch setMaxResults(int maxResults) {
-        this.maxResults = maxResults;
+    public JiraSearch setIdEnt(String idEnt) {
+        this.idEnt = idEnt;
         return this;
     }
 
-    public int getTotal() {
-        return total;
+    public String getDate() {
+        return date;
     }
 
-    public JiraSearch setTotal(int total) {
-        this.total = total;
-        return this;
-    }
-
-    public List<JiraTicket> getIssues() {
-        return issues;
-    }
-
-    public JiraSearch setIssues(List<JiraTicket> issues) {
-        this.issues = issues;
+    public JiraSearch setDate(String date) {
+        this.date = date;
         return this;
     }
 }
