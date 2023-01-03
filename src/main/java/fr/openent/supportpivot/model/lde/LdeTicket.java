@@ -1,20 +1,18 @@
 package fr.openent.supportpivot.model.lde;
 
 import fr.openent.supportpivot.constants.Field;
-import fr.openent.supportpivot.helpers.DateHelper;
 import fr.openent.supportpivot.helpers.IModelHelper;
 import fr.openent.supportpivot.model.IModel;
+import fr.openent.supportpivot.model.IPivotTicket;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
 //Todo voir si l'on avait pas besoin de created et modified pour la list des tickets
-public class LdeTicket implements IModel<LdeTicket> {
+public class LdeTicket implements IModel<LdeTicket>, IPivotTicket {
     private String idJira;
     private String statutJira;
     private String idExterne;
@@ -56,10 +54,12 @@ public class LdeTicket implements IModel<LdeTicket> {
         this.uai = pivotTicket.getUai();
         this.description = pivotTicket.getDescription();
 
-        this.pj = pivotTicket.getPj()
-                .stream()
-                .map(LdePj::new)
-                .collect(Collectors.toList());
+        if (pivotTicket.getPj() != null) {
+            this.pj = pivotTicket.getPj()
+                    .stream()
+                    .map(LdePj::new)
+                    .collect(Collectors.toList());
+        }
     }
 
     public LdeTicket listFormat() {

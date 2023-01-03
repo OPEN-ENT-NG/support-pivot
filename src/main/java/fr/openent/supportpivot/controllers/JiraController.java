@@ -1,9 +1,9 @@
 package fr.openent.supportpivot.controllers;
 
 import fr.openent.supportpivot.constants.Field;
-import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.managers.ServiceManager;
-import fr.openent.supportpivot.model.endpoint.Endpoint;
+import fr.openent.supportpivot.model.endpoint.EndpointFactory;
+import fr.openent.supportpivot.model.jira.JiraSearch;
 import fr.openent.supportpivot.services.routers.RouterService;
 import fr.wseduc.rs.Get;
 import fr.wseduc.webutils.http.Renders;
@@ -39,12 +39,24 @@ public class JiraController extends ControllerHelper {
 
     }
 
-    @Get("/updateTicket/:idjira")
+    @Get("/updateJira/:idjira")
 //    @fr.wseduc.security.SecuredAction("glpi.test.trigger") //TODO (voir comment faire)
+    //todo rajouter la save du du ticket en mongo
     public void updateTicket(final HttpServerRequest request) {
         final String idJira = request.params().get(Field.IDJIRA);
-        routerService.toPivotTicket(Endpoint.ENDPOINT_JIRA, new JsonObject().put(JiraConstants.ID_JIRA, idJira))
-                .onFailure(error -> Renders.renderJson(request, new JsonObject().put(Field.STATUS, Field.KO), 500))
-                .onSuccess(event -> Renders.renderJson(request, new JsonObject().put(Field.STATUS, Field.OK), 200));
+        JiraSearch jiraSearch = new JiraSearch().setIdJira(idJira);
+        //This API is unused for now
+        if (true) {
+            Renders.ok(request);
+            return;
+        }
+        routerService.getPivotTicket(EndpointFactory.getJiraEndpoint(), jiraSearch)
+                .compose(pivotTicket -> routerService.setPivotTicket(EndpointFactory.getPivotEndpoint(), pivotTicket))
+                .onSuccess(supportTicket -> Renders.renderJson(request, supportTicket.toJson()))
+                .onFailure(error -> {
+                    log.error(String.format("[SupportPivot@%s::process] Fail update ticket by Jira %s",
+                            this.getClass().getSimpleName(), error.getMessage()));
+                    Renders.renderError(request);
+                });
     }
 }

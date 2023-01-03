@@ -5,18 +5,26 @@ import fr.openent.supportpivot.services.HttpClientService;
 import fr.openent.supportpivot.services.JiraService;
 import io.vertx.core.Vertx;
 
-public  class EndpointFactory {
+public class EndpointFactory {
+    private static JiraEndpoint jiraEndpoint;
+    private static SupportEndpoint supportEndpoint;
+    private static LdeEndPoint ldeEndPoint;
 
-
-    public static JiraEndpoint getJiraEndpoint(HttpClientService httpClientService, JiraService jiraService) {
-        return new JiraEndpoint(httpClientService, jiraService);
+    public static JiraEndpoint getJiraEndpoint() {
+        return jiraEndpoint;
     }
 
-    public static Endpoint getPivotEndpoint(Vertx vertx) {
-        return new SupportEndpoint(vertx);
+    public static SupportEndpoint getPivotEndpoint() {
+        return supportEndpoint;
     }
 
     public static LdeEndPoint getLdeEndpoint() {
-        return new LdeEndPoint();
+        return ldeEndPoint;
+    }
+
+    public static void init(Vertx vertx, HttpClientService httpClientService, JiraService jiraService) {
+        jiraEndpoint = new JiraEndpoint(httpClientService, jiraService);
+        supportEndpoint = new SupportEndpoint(vertx);
+        ldeEndPoint = new LdeEndPoint();
     }
 }

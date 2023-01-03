@@ -6,7 +6,7 @@ import fr.openent.supportpivot.enums.PriorityEnum;
 import fr.openent.supportpivot.helpers.*;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.model.ConfigModel;
-import fr.openent.supportpivot.model.endpoint.AbstractEndpoint;
+import fr.openent.supportpivot.model.endpoint.Endpoint;
 import fr.openent.supportpivot.model.jira.*;
 import fr.openent.supportpivot.model.pivot.PivotPJ;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
@@ -15,9 +15,9 @@ import fr.openent.supportpivot.services.HttpClientService;
 import fr.openent.supportpivot.services.JiraService;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 import static fr.openent.supportpivot.constants.JiraConstants.*;
 
 
-public class JiraEndpoint extends AbstractEndpoint {
+public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
     private PivotHttpClient httpClient;
     private final JiraService jiraService;
     private static final Base64.Encoder encoder = Base64.getMimeEncoder().withoutPadding();
@@ -56,19 +56,39 @@ public class JiraEndpoint extends AbstractEndpoint {
     }
 
     @Override
-    public Future<List<PivotTicket>> getPivotTicket(JsonObject data) {
-        Promise<List<PivotTicket>> promise = Promise.promise();
+    public Future<JiraTicket> getPivotTicket(JiraSearch jiraSearch) {
+        Promise<JiraTicket> promise = Promise.promise();
+        //todo change message
+        Future<JiraTicket> future = Future.failedFuture("Searcher malformed");
+
+        if (jiraSearch.getIdJira() != null) {
+            future = this.getJiraTicketByJiraId(jiraSearch.getIdJira());
+        } else if (jiraSearch.getIdExterne() != null) {
+            future = this.getJiraTicketByExternalId(jiraSearch.getIdExterne());
+        } else if (jiraSearch.getIdEnt() != null) {
+            future = this.getJiraTicketByEntId(jiraSearch.getIdEnt());
+        }
+
+        future.onSuccess(promise::complete)
+                .onFailure(promise::fail);
+
+        return promise.future();
+    }
+
+    @Override
+    public Future<List<JiraTicket>> getPivotTicketList(JiraSearch searchTicket) {
+        Promise<List<JiraTicket>> promise = Promise.promise();
+        JsonObjectSafe data = new JsonObjectSafe();
+        data.put(JiraConstants.ATTRIBUTION_FILTERNAME, JiraConstants.ATTRIBUTION_FILTER_LDE);
+        data.put(JiraConstants.ATTRIBUTION_FILTER_CUSTOMFIELD, JiraConstants.IDEXTERNAL_FIELD);
+        data.putSafe(JiraConstants.ATTRIBUTION_FILTER_DATE, searchTicket.getDate());
         URI uri = prepareSearchRequest(data);
 
-        executeJiraRequest(uri)
-                .compose(response -> {
-                    if (response.statusCode() == 200) {
-                        return processSearchResponse(response);
-                    } else {
-                        return Future.failedFuture(String.format("Request status %s code %s", response.statusMessage(), response.statusCode()));
-                    }
+        executeJiraRequest(uri, 200)
+                .onSuccess(body -> {
+                    JiraSearchResult jiraSearchResult = new JiraSearchResult(new JsonObject(body));
+                    promise.complete(jiraSearchResult.getIssues());
                 })
-                .onSuccess(promise::complete)
                 .onFailure(error -> {
                     log.error(String.format("[SupportPivot@%s::getPivotTicket] Fail to get jira ticket %s", this.getClass().getSimpleName(), error.getMessage()));
                     promise.fail(error);
@@ -77,217 +97,24 @@ public class JiraEndpoint extends AbstractEndpoint {
         return promise.future();
     }
 
-    private URI prepareSearchRequest(JsonObject data) {
-        JiraFilterBuilder filter = new JiraFilterBuilder();
-        Map<String, String> jiraField = ConfigManager.getInstance().getConfig().getJiraCustomFields();
-        if (data.containsKey(ATTRIBUTION_FILTERNAME)) {
-            String customFieldFilter = data.getString(ATTRIBUTION_FILTER_CUSTOMFIELD, "");
-            if (customFieldFilter.isEmpty()) {
-                filter.addAssigneeFilter(data.getString(ATTRIBUTION_FILTERNAME));
-            } else {
-                String customFieldName = jiraField.getOrDefault(customFieldFilter, "");
-                if (customFieldName == null || customFieldName.isEmpty()) {
-                    log.error(String.format("[SupportPivot@%s::prepareSearchRequest]: Can not find customFieldFilter %s",
-                            this.getClass().getSimpleName(), customFieldFilter));
-                }
-                filter.addAssigneeOrCustomFieldFilter(data.getString(ATTRIBUTION_FILTERNAME),
-                        customFieldName, null);
-            }
-        }
-        if (data.containsKey(ATTRIBUTION_FILTER_DATE)) {
-            filter.addMinUpdateDate(data.getString(ATTRIBUTION_FILTER_DATE));
-        }
-        filter.onlyIds();
-        filter.addFieldDates();
-        String creationFieldJira = jiraField.getOrDefault(Field.CREATION, "");
-        if (creationFieldJira == null || creationFieldJira.isEmpty()) {
-            log.error(String.format("[SupportPivot@%s::prepareSearchRequest]: Can not find creationFieldJira",
-                    this.getClass().getSimpleName()));
-        }
-        filter.addFields(creationFieldJira);
+    @Override
+    public Future<JiraTicket> setTicket(PivotTicket ticket) {
+        Promise<JiraTicket> promise = Promise.promise();
 
-        return ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
-    }
-
-    private Future<List<PivotTicket>> processSearchResponse(HttpClientResponse response) {
-        Promise<List<PivotTicket>> promise = Promise.promise();
-        List<PivotTicket> pivotTickets = new ArrayList<>();
-
-        HttpClientResponseHelper.bodyHandler(response)
-                .compose(body -> {
-                    JiraSearch jiraSearch = new JiraSearch(new JsonObject(body));
-                    List<Future<PivotTicket>> futures = new ArrayList<>();
-                    jiraSearch.getIssues().forEach(issue -> {
-                        Promise<PivotTicket> promisePivotTicket = Promise.promise();
-                        futures.add(promisePivotTicket.future());
-                        convertJiraReponseToJsonPivot(issue)
-                                .onSuccess(promisePivotTicket::complete)
-                                .onFailure(error -> {
-                                    log.error(String.format("[SupportPivot@%s::processSearchResponse] Fail to convert ticket %s",
-                                            this.getClass().getSimpleName(), error));
-                                    promisePivotTicket.fail(error);
-                                });
-                    });
-
-                    return FutureHelper.join(futures);
-                })
-                .onSuccess(result -> {
-                    result.list().stream()
-                            .filter(PivotTicket.class::isInstance)
-                            .map(PivotTicket.class::cast)
-                            .forEach(pivotTickets::add);
-                    promise.complete(pivotTickets);
-                })
+        jiraService.sendToJIRA(ticket)
+                .onSuccess(pivotTicket -> promise.complete(new JiraTicket(pivotTicket)))
                 .onFailure(promise::fail);
 
         return promise.future();
     }
 
     @Override
-    public Future<PivotTicket> process(JsonObject ticketData) {
-        Promise<PivotTicket> promise = Promise.promise();
-
-        final String id_jira = ticketData.getString(Field.ID_JIRA);
-
-        this.getJiraTicketByJiraId(id_jira)
-                .compose(response -> {
-                    if (response.statusCode() == 200) {
-                        return HttpClientResponseHelper.bodyHandler(response);
-                    } else {
-                        return Future.failedFuture(String.format("Request status %s code %s", response.statusMessage(), response.statusCode()));
-                    }
-                })
-                .compose(body -> {
-                    JiraTicket jiraTicket = new JiraTicket(new JsonObject(body));
-                    return convertJiraReponseToJsonPivot(jiraTicket);
-                })
-                .onSuccess(promise::complete)
-                .onFailure(error -> {
-                    log.error(String.format("[SupportPivot@%s::process] Fail to convert ticket %s",
-                            this.getClass().getSimpleName(), error));
-                    promise.fail(error);
-                });
-
-        return promise.future();
+    public String getName() {
+        return this.getClass().getSimpleName();
     }
 
     @Override
-    public Future<PivotTicket> send(PivotTicket ticket) {
-        Promise<PivotTicket> promise = Promise.promise();
-
-        if (ticket.getIdExterne() != null && ticket.getAttribution() != null /*&& ticket.getAttributed().equals(PivotConstants.ATTRIBUTION_NAME)*/) {
-            this.getJiraTicketByExternalId(ticket.getIdExterne())
-                    .compose(response -> {
-                        if (response.statusCode() == 200) {
-                            return HttpClientResponseHelper.bodyHandler(response);
-                        } else {
-                            return Future.failedFuture(String.format("Request status %s code %s", response.statusMessage(), response.statusCode()));
-                        }
-                    })
-                    .compose(body -> {
-                        JsonObject jsonTicket = new JsonObject(body.toString());
-                        if (jsonTicket.getInteger(Field.TOTAL) >= 1) {
-                            ticket.setIdJira(jsonTicket.getJsonArray(Field.ISSUES).getJsonObject(0).getString(Field.ID));
-                        }
-                        return jiraService.sendToJIRA(ticket);
-                    })
-                    .onSuccess(promise::complete)
-                    .onFailure(error -> {
-                        log.error(String.format("[SupportPivot@%s::send] Error when getJiraTicket %s",
-                                this.getClass().getSimpleName(), error.getMessage()));
-                        promise.fail(error);
-                    });
-        } else {
-            ticket.setIdExterne(ticket.getIdEnt());
-            this.getJiraTicketByEntId(ticket.getIdExterne())
-                    .compose(response -> {
-                        if (response.statusCode() == 200) {
-                            return HttpClientResponseHelper.bodyHandler(response);
-                        } else {
-                            return Future.failedFuture(String.format("Request status %s code %s", response.statusMessage(), response.statusCode()));
-                        }
-                    })
-                    .compose(body -> {
-                        if (body != null) {
-                            JsonObject jsonTicket = new JsonObject(body.toString());
-                            if (jsonTicket.getInteger(JiraConstants.TOTAL) >= 1) {
-                                JsonArray issue = jsonTicket.getJsonArray(Field.ISSUES, new JsonArray());
-                                if (issue.isEmpty()) {
-                                    String message = String.format("[SupportPivot@%s::send] Supportpivot Issues is Empty",
-                                            this.getClass().getSimpleName());
-                                    log.error(message);
-                                } else {
-                                    ticket.setIdJira(issue.getJsonObject(0).getString(Field.ID));
-                                }
-                            }
-                        }
-                        return jiraService.sendToJIRA(ticket);
-                    })
-                    .onSuccess(promise::complete)
-                    .onFailure(error -> {
-                        String message = String.format("[SupportPivot@%s::send] Supportpivot A problem occurred when trying to get ticket from jira (externalID: " +
-                                ticket.getIdExterne() + " ) : %s", this.getClass().getSimpleName(), error.getMessage());
-                        log.error(message);
-                        promise.fail(error);
-                    });
-        }
-
-        return promise.future();
-    }
-
-    private Future<HttpClientResponse> getJiraTicketByJiraId(String idJira) {
-        URI uri = ConfigManager.getInstance().getJiraBaseUrl().resolve("issue/" + idJira);
-        return executeJiraRequest(uri);
-    }
-
-    private Future<HttpClientResponse> getJiraTicketByExternalId(String idExternal) {
-        String idCustomField = ConfigManager.getInstance().getJiraCustomFieldIdForExternalId().replaceAll("customfield_", "");
-        JiraFilterBuilder filter = new JiraFilterBuilder();
-        filter.addCustomfieldFilter(idCustomField, idExternal);
-        URI uri = ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
-        return executeJiraRequest(uri);
-    }
-
-    private Future<HttpClientResponse> getJiraTicketByEntId(String idEnt) {
-        String idCustomField = ConfigManager.getInstance().getjiraCustomFieldIdForIdent().replaceAll("customfield_", "");
-        JiraFilterBuilder filter = new JiraFilterBuilder();
-        filter.addCustomfieldFilter(idCustomField, idEnt);
-        URI uri = ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
-        return executeJiraRequest(uri);
-    }
-
-
-    private Future<HttpClientResponse> executeJiraRequest(URI uri) {
-        Promise<HttpClientResponse> promise = Promise.promise();
-        try {
-            PivotHttpClientRequest sendingRequest = this.httpClient.createRequest("GET", uri.toString(), "");
-            setHeaderRequest(sendingRequest);
-            sendingRequest.startRequest(result -> {
-                if (result.succeeded()) {
-                    promise.complete(result.result());
-                } else {
-                    log.error(String.format("[SupportPivot@%s::executeJiraRequest] Fail to execute jira request %s",
-                            this.getClass().getSimpleName(), AsyncResultHelper.getOrNullFailMessage(result)));
-                    promise.fail(AsyncResultHelper.getOrNullFailMessage(result));
-                }
-            });
-        } catch (Exception e) {
-            return Future.failedFuture(e);
-        }
-
-        return promise.future();
-    }
-
-    private void setHeaderRequest(PivotHttpClientRequest request) {
-        HttpClientRequest clientRequest = request.getHttpClientRequest();
-        clientRequest.putHeader("Authorization", "Basic " + encoder.encodeToString(ConfigManager.getInstance().getJiraAuthInfo().getBytes()))
-                .setFollowRedirects(true);
-        if (!clientRequest.headers().contains("Content-Type")) {
-            clientRequest.putHeader("Content-Type", "application/json");
-        }
-    }
-
-    public Future<PivotTicket> convertJiraReponseToJsonPivot(final JiraTicket jiraTicket) {
+    public Future<PivotTicket> toPivotTicket(JiraTicket jiraTicket) {
         Promise<PivotTicket> promise = Promise.promise();
 
         ConfigModel config = ConfigManager.getInstance().getConfig();
@@ -405,6 +232,130 @@ public class JiraEndpoint extends AbstractEndpoint {
         }
 
         return promise.future();
+    }
+
+    private URI prepareSearchRequest(JsonObject data) {
+        JiraFilterBuilder filter = new JiraFilterBuilder();
+        Map<String, String> jiraField = ConfigManager.getInstance().getConfig().getJiraCustomFields();
+        if (data.containsKey(ATTRIBUTION_FILTERNAME)) {
+            String customFieldFilter = data.getString(ATTRIBUTION_FILTER_CUSTOMFIELD, "");
+            if (customFieldFilter.isEmpty()) {
+                filter.addAssigneeFilter(data.getString(ATTRIBUTION_FILTERNAME));
+            } else {
+                String customFieldName = jiraField.getOrDefault(customFieldFilter, "");
+                if (customFieldName == null || customFieldName.isEmpty()) {
+                    log.error(String.format("[SupportPivot@%s::prepareSearchRequest]: Can not find customFieldFilter %s",
+                            this.getClass().getSimpleName(), customFieldFilter));
+                }
+                filter.addAssigneeOrCustomFieldFilter(data.getString(ATTRIBUTION_FILTERNAME),
+                        customFieldName, null);
+            }
+        }
+        if (data.containsKey(ATTRIBUTION_FILTER_DATE)) {
+            filter.addMinUpdateDate(data.getString(ATTRIBUTION_FILTER_DATE));
+        }
+        filter.onlyIds();
+        filter.addFieldDates();
+        String creationFieldJira = jiraField.getOrDefault(Field.CREATION, "");
+        if (creationFieldJira == null || creationFieldJira.isEmpty()) {
+            log.error(String.format("[SupportPivot@%s::prepareSearchRequest]: Can not find creationFieldJira",
+                    this.getClass().getSimpleName()));
+        }
+        filter.addFields(creationFieldJira);
+
+        return ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
+    }
+
+    private Future<JiraTicket> getJiraTicketByJiraId(String idJira) {
+        Promise<JiraTicket> promise = Promise.promise();
+
+        URI uri = ConfigManager.getInstance().getJiraBaseUrl().resolve("issue/" + idJira);
+        executeJiraRequest(uri, 200)
+                .onSuccess(body -> promise.complete(new JiraTicket(new JsonObject(body))))
+                .onFailure(error -> {
+                    log.error(String.format("[SupportPivot@%s::getJiraTicketByJiraId] Fail to get ticket %s",
+                            this.getClass().getSimpleName(), error));
+                    promise.fail(error);
+                });
+
+        return promise.future();
+    }
+
+    private Future<JiraTicket> getJiraTicketByExternalId(String idExternal) {
+        Promise<JiraTicket> promise = Promise.promise();
+
+        String idCustomField = ConfigManager.getInstance().getJiraCustomFieldIdForExternalId().replaceAll("customfield_", "");
+        JiraFilterBuilder filter = new JiraFilterBuilder();
+        filter.addCustomfieldFilter(idCustomField, idExternal);
+        URI uri = ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
+        executeJiraRequest(uri, 200)
+                //Todo test que l'on a bien un JiraTicket
+                .onSuccess(body -> promise.complete(new JiraTicket(new JsonObject(body))))
+                .onFailure(error -> {
+                    log.error(String.format("[SupportPivot@%s::getJiraTicketByJiraId] Fail to get ticket %s",
+                            this.getClass().getSimpleName(), error));
+                    promise.fail(error);
+                });
+
+        return promise.future();
+    }
+
+    private Future<JiraTicket> getJiraTicketByEntId(String idEnt) {
+        Promise<JiraTicket> promise = Promise.promise();
+
+        String idCustomField = ConfigManager.getInstance().getjiraCustomFieldIdForIdent().replaceAll("customfield_", "");
+        JiraFilterBuilder filter = new JiraFilterBuilder();
+        filter.addCustomfieldFilter(idCustomField, idEnt);
+        URI uri = ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
+        executeJiraRequest(uri, 200)
+                //Todo test que l'on a bien un JiraTicket
+                .onSuccess(body -> promise.complete(new JiraTicket(new JsonObject(body))))
+                .onFailure(error -> {
+                    log.error(String.format("[SupportPivot@%s::getJiraTicketByJiraId] Fail to get ticket %s",
+                            this.getClass().getSimpleName(), error));
+                    promise.fail(error);
+                });
+
+        return promise.future();
+    }
+
+
+    private Future<Buffer> executeJiraRequest(URI uri, int codeExpected) {
+        Promise<Buffer> promise = Promise.promise();
+        try {
+            PivotHttpClientRequest sendingRequest = this.httpClient.createRequest("GET", uri.toString(), "");
+            setHeaderRequest(sendingRequest);
+            sendingRequest.startRequest(result -> {
+                if (result.succeeded()) {
+                    if (result.result().statusCode() == codeExpected) {
+                        HttpClientResponseHelper.bodyHandler(result.result())
+                                .onSuccess(promise::complete)
+                                .onFailure(promise::fail);
+                    } else {
+                        log.error(String.format("[SupportPivot@%s::executeJiraRequest] Fail to execute jira request Request status %s code %s %s",
+                                this.getClass().getSimpleName(), AsyncResultHelper.getOrNullFailMessage(result)));
+                        promise.fail(String.format("Request status %s code %s", result.result().statusMessage(), result.result().statusCode()));
+                    }
+                } else {
+                    log.error(String.format("[SupportPivot@%s::executeJiraRequest] Fail to execute jira request %s",
+                            this.getClass().getSimpleName(), AsyncResultHelper.getOrNullFailMessage(result)));
+                    promise.fail(AsyncResultHelper.getOrNullFailMessage(result));
+                }
+            });
+        } catch (Exception e) {
+            return Future.failedFuture(e);
+        }
+
+        return promise.future();
+    }
+
+    private void setHeaderRequest(PivotHttpClientRequest request) {
+        HttpClientRequest clientRequest = request.getHttpClientRequest();
+        clientRequest.putHeader("Authorization", "Basic " + encoder.encodeToString(ConfigManager.getInstance().getJiraAuthInfo().getBytes()))
+                .setFollowRedirects(true);
+        if (!clientRequest.headers().contains("Content-Type")) {
+            clientRequest.putHeader("Content-Type", "application/json");
+        }
     }
 
     private Future<String> getJiraPJ(JiraAttachment jiraAttachment) {

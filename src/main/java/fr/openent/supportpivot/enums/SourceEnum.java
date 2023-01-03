@@ -3,7 +3,6 @@ package fr.openent.supportpivot.enums;
 public enum SourceEnum {
     ENT("ENT"),
     JIRA("JIRA"),
-    IWS("IWS"),
     LDE("LDE");
 
     private final String name;
