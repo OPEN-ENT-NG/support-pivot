@@ -1,4 +1,4 @@
-package fr.openent.supportpivot.services.routers;
+package fr.openent.supportpivot.services;
 
 import fr.openent.supportpivot.model.IPivotTicket;
 import fr.openent.supportpivot.model.ISearchTicket;

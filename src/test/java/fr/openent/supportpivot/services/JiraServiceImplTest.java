@@ -2,11 +2,14 @@ package fr.openent.supportpivot.services;
 
 import fr.openent.supportpivot.helpers.DateHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
+import fr.openent.supportpivot.managers.ServiceManager;
 import fr.openent.supportpivot.model.ConfigModelTest;
+import fr.openent.supportpivot.model.endpoint.EndpointFactory;
+import fr.openent.supportpivot.model.endpoint.jira.JiraEndpoint;
 import fr.openent.supportpivot.model.jira.*;
 import fr.openent.supportpivot.model.pivot.PivotPJ;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
-import fr.openent.supportpivot.services.routers.RouterService;
+import fr.openent.supportpivot.services.impl.JiraServiceImpl;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -35,7 +38,8 @@ import java.util.List;
 
 @RunWith(PowerMockRunner.class) //Using the PowerMock runner
 @PowerMockRunnerDelegate(VertxUnitRunner.class) //And the Vertx runner
-@PrepareForTest({PivotTicket.class, JiraServiceImpl.class, DateHelper.class}) //Prepare the static class you want to test
+@PrepareForTest({PivotTicket.class, JiraServiceImpl.class, DateHelper.class, ServiceManager.class,
+        EndpointFactory.class, JiraEndpoint.class}) //Prepare the static class you want to test
 public class JiraServiceImplTest {
     private JiraServiceImpl jiraService;
     private Vertx vertx;
@@ -48,9 +52,18 @@ public class JiraServiceImplTest {
         ConfigManager.init(ConfigModelTest.getConfig1());
         PowerMockito.spy(JiraServiceImpl.class);
         this.httpClient = Mockito.mock(HttpClient.class);
+
+        PowerMockito.spy(ServiceManager.class);
+        PowerMockito.spy(JiraEndpoint.class);
+        ServiceManager serviceManager = PowerMockito.mock(ServiceManager.class);
         Mockito.doReturn(this.httpClient).when(this.vertx).createHttpClient(Mockito.any());
-        routerService = Mockito.mock(RouterService.class);
-        this.jiraService = PowerMockito.spy(new JiraServiceImpl(vertx, routerService));
+        this.routerService = Mockito.mock(RouterService.class);
+        this.jiraService = PowerMockito.spy(new JiraServiceImpl(vertx));
+        PowerMockito.doReturn(this.routerService).when(serviceManager).getRouterService();
+        PowerMockito.when(ServiceManager.getInstance()).thenReturn(serviceManager);
+        JiraEndpoint jiraEndpoint = Mockito.mock(JiraEndpoint.class);
+        PowerMockito.whenNew(JiraEndpoint.class).withAnyArguments().thenReturn(jiraEndpoint);
+        EndpointFactory.init(vertx);
     }
 
     @Test

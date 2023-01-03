@@ -7,7 +7,8 @@ import fr.openent.supportpivot.model.ConfigModelTest;
 import fr.openent.supportpivot.model.jira.JiraAttachment;
 import fr.openent.supportpivot.model.jira.JiraTicket;
 import fr.openent.supportpivot.services.HttpClientService;
-import fr.openent.supportpivot.services.JiraServiceImpl;
+import fr.openent.supportpivot.services.impl.HttpClientServiceImpl;
+import fr.openent.supportpivot.services.impl.JiraServiceImpl;
 import fr.wseduc.mongodb.MongoDb;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -47,7 +48,7 @@ public class JiraEndpointTest {
         ConfigManager.init(conf);
         vertx = Vertx.vertx();
         MongoDb.getInstance().init(vertx.eventBus(), "fr.openent.supportpivot");
-        this.httpClientService = Mockito.spy(new HttpClientService(vertx));
+        this.httpClientService = Mockito.spy(new HttpClientServiceImpl(vertx));
         this.jiraEndpoint = Mockito.mock(JiraEndpoint.class);
     }
 
