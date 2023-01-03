@@ -1,7 +1,7 @@
 package fr.openent.supportpivot.controllers;
 
 import fr.openent.supportpivot.constants.Field;
-import fr.openent.supportpivot.constants.PivotConstants;
+import fr.openent.supportpivot.enums.SourceEnum;
 import fr.openent.supportpivot.helpers.IModelHelper;
 import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.managers.ServiceManager;
@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
  */
 
 public class LdeController extends ControllerHelper {
-    private final static String SOURCE_LDE = PivotConstants.SOURCES.LDE.toString();
     private RouterService routerService;
 
     protected static final Logger log = LoggerFactory.getLogger(LdeController.class);
@@ -52,7 +51,7 @@ public class LdeController extends ControllerHelper {
         JsonObjectSafe data = new JsonObjectSafe();
         data.put(Field.TYPE, Field.LIST);
         data.putSafe(Field.DATE, date);
-        routerService.readTickets(SOURCE_LDE, data)
+        routerService.readTickets(SourceEnum.LDE.toString(), data)
                 .onSuccess(listTicketResult -> {
                     List<LdeTicket> ldeTicketList = listTicketResult.stream()
                             .map(LdeTicket::new)
@@ -75,7 +74,7 @@ public class LdeController extends ControllerHelper {
         JsonObject data = new JsonObject()
                 .put(Field.ID_JIRA, id_param_value)
                 .put(Field.TYPE, Field.TICKET);
-        routerService.readTickets(SOURCE_LDE, data)
+        routerService.readTickets(SourceEnum.LDE.toString(), data)
                 .onSuccess(ticketList -> {
                     if (!ticketList.isEmpty()) {
                         Renders.renderJson(request, ticketList.get(0));
@@ -93,7 +92,7 @@ public class LdeController extends ControllerHelper {
     @Put("/lde/ticket")
     @fr.wseduc.security.SecuredAction(value = "", type = ActionType.AUTHENTICATED)
     public void putTicketLDE(final HttpServerRequest request) {
-        RequestUtils.bodyToJson(request, body -> routerService.toPivotTicket(SOURCE_LDE, body)
+        RequestUtils.bodyToJson(request, body -> routerService.toPivotTicket(SourceEnum.LDE.toString(), body)
                 .onSuccess(pivotTicket -> Renders.renderJson(request, pivotTicket.toJson()))
                 .onFailure(error -> {
                     log.error(String.format("[SupportPivot@%s::getTicketLDE] PUT /lde/ticket/ failed : %s",
