@@ -1,6 +1,6 @@
 package fr.openent.supportpivot.helpers;
 
-import fr.openent.supportpivot.constants.PivotConstants;
+import fr.openent.supportpivot.constants.Field;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.joda.time.DateTime;
@@ -49,7 +49,7 @@ public class DateHelper {
      */
     public static String convertDateFormat(Date date) {
         DateTime dateTime = new DateTime(date);
-        return dateTime.toDateTime(DateTimeZone.forTimeZone(setTimeZone(PivotConstants.TIME_ZONE))).toString(DATE_FORMAT);
+        return dateTime.toDateTime(DateTimeZone.forTimeZone(setTimeZone(Field.CEST))).toString(DATE_FORMAT);
     }
 
     /***

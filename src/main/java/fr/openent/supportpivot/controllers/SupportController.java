@@ -20,7 +20,6 @@ package fr.openent.supportpivot.controllers;
 
 import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.JiraConstants;
-import fr.openent.supportpivot.constants.PivotConstants;
 import fr.openent.supportpivot.helpers.AsyncResultHelper;
 import fr.openent.supportpivot.helpers.EitherHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
@@ -85,9 +84,9 @@ public class SupportController extends ControllerHelper {
                     errorCode = errorCode.split(";")[0];
                 }
                 JsonObject error = new JsonObject()
-                        .put(PivotConstants.ERRORCODE, errorCode)
-                        .put(PivotConstants.ERRORMESSAGE, errorCodeMsg)
-                        .put(PivotConstants.STATUS, PivotConstants.KO);
+                        .put(Field.ERRORCODE, errorCode)
+                        .put(Field.ERRORMESSAGE, errorCodeMsg)
+                        .put(Field.STATUS, Field.KO);
                 Renders.renderJson(request, error, 400);
             }
         };

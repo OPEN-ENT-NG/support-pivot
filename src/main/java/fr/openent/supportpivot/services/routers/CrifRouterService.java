@@ -2,7 +2,7 @@ package fr.openent.supportpivot.services.routers;
 
 import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.JiraConstants;
-import fr.openent.supportpivot.constants.PivotConstants;
+import fr.openent.supportpivot.enums.SourceEnum;
 import fr.openent.supportpivot.helpers.AsyncResultHelper;
 import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.model.endpoint.EndpointFactory;
@@ -21,10 +21,8 @@ import io.vertx.core.logging.LoggerFactory;
 import java.util.Collections;
 import java.util.List;
 
-import static fr.openent.supportpivot.constants.PivotConstants.*;
-
 public class CrifRouterService implements RouterService {
-
+    private final static String COLLECTION_MONGO = "pivot";
     private static final Logger log = LoggerFactory.getLogger(CrifRouterService.class);
     private final JiraEndpoint jiraEndpoint;
     private LdeEndPoint ldeEndpoint;
@@ -33,7 +31,7 @@ public class CrifRouterService implements RouterService {
     public CrifRouterService(HttpClientService httpClientService, JiraService jiraService) {
         jiraEndpoint = EndpointFactory.getJiraEndpoint(httpClientService, jiraService);
         ldeEndpoint = EndpointFactory.getLdeEndpoint();
-        mongoService = new MongoService(PIVOT);
+        mongoService = new MongoService(COLLECTION_MONGO);
     }
 
     @Override
@@ -60,8 +58,8 @@ public class CrifRouterService implements RouterService {
     public Future<PivotTicket> toPivotTicket(String source, JsonObject ticketdata) {
         Promise<PivotTicket> promise = Promise.promise();
 
-        if (SOURCES.LDE.toString().equals(source)) {
-            mongoService.saveTicket(ATTRIBUTION_LDE, ticketdata)
+        if (SourceEnum.LDE.toString().equals(source)) {
+            mongoService.saveTicket(Field.LDE, ticketdata)
                     .compose(unused -> ldeEndpoint.process(ticketdata))
                     .compose(pivotTicket -> dispatchTicket(source, pivotTicket))
                     .onSuccess(promise::complete)
@@ -71,9 +69,9 @@ public class CrifRouterService implements RouterService {
                         promise.fail(error);
                     });
         } else {
-            mongoService.saveTicket(ATTRIBUTION_ENT, ticketdata.getJsonObject(ISSUE, new JsonObject()))
+            mongoService.saveTicket(Field.ENT, ticketdata.getJsonObject(Field.ISSUE, new JsonObject()))
                     .compose(event -> {
-                        PivotTicket ticket = new PivotTicket(ticketdata.getJsonObject(PivotConstants.ISSUE));
+                        PivotTicket ticket = new PivotTicket(ticketdata.getJsonObject(Field.ISSUE));
                         return dispatchTicket(source, ticket);
                     })
                     .onSuccess(promise::complete)
@@ -91,7 +89,7 @@ public class CrifRouterService implements RouterService {
     public Future<List<JsonObject>> readTickets(String source, JsonObject data) {
         Promise<List<JsonObject>> promise = Promise.promise();
 
-        if (SOURCES.LDE.toString().equals(source)) {
+        if (SourceEnum.LDE.toString().equals(source)) {
             String type = data == null ? Field.LIST : data.getString(Field.TYPE, "");
             String minDate = data == null ? null : data.getString(Field.DATE);
             if (type.equals(Field.LIST)) {

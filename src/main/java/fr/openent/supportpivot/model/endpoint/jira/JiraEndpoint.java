@@ -34,7 +34,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static fr.openent.supportpivot.constants.JiraConstants.*;
-import static fr.openent.supportpivot.constants.PivotConstants.*;
 
 
 public class JiraEndpoint extends AbstractEndpoint {
@@ -212,13 +211,13 @@ public class JiraEndpoint extends AbstractEndpoint {
                         if (body != null) {
                             JsonObject jsonTicket = new JsonObject(body.toString());
                             if (jsonTicket.getInteger(JiraConstants.TOTAL) >= 1) {
-                                JsonArray issue = jsonTicket.getJsonArray(ISSUES, new JsonArray());
+                                JsonArray issue = jsonTicket.getJsonArray(Field.ISSUES, new JsonArray());
                                 if (issue.isEmpty()) {
                                     String message = String.format("[SupportPivot@%s::send] Supportpivot Issues is Empty",
                                             this.getClass().getSimpleName());
                                     log.error(message);
                                 } else {
-                                    ticket.setIdJira(issue.getJsonObject(0).getString(ID));
+                                    ticket.setIdJira(issue.getJsonObject(0).getString(Field.ID));
                                 }
                             }
                         }
@@ -365,8 +364,8 @@ public class JiraEndpoint extends AbstractEndpoint {
                 String dateFormated = getDateFormatted(fields.getResolutiondate(), false);
                 pivotTicket.setDateResolutionJira(dateFormated);
             }
-
-            pivotTicket.setAttribution(ATTRIBUTION_IWS);
+            //Todo est ce utile ?
+            pivotTicket.setAttribution(Field.RECTORAT);
 
             //if no attachment handle the response
             if (fields.getAttachment().isEmpty()) {

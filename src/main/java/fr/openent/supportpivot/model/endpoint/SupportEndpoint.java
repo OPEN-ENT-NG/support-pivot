@@ -1,7 +1,6 @@
 package fr.openent.supportpivot.model.endpoint;
 
 import fr.openent.supportpivot.constants.Field;
-import fr.openent.supportpivot.constants.PivotConstants;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
 import io.vertx.core.*;
 import io.vertx.core.eventbus.EventBus;
@@ -14,9 +13,9 @@ import static fr.wseduc.webutils.Utils.handlerToAsyncHandler;
 
 
 class SupportEndpoint extends  AbstractEndpoint {
-
     private EventBus eventBus;
 
+    public final static String BUS_SEND = "support.update.bugtracker";
     private static final Logger log = LoggerFactory.getLogger(SupportEndpoint.class);
 
     SupportEndpoint(Vertx vertx) {
@@ -37,9 +36,9 @@ class SupportEndpoint extends  AbstractEndpoint {
         JsonObject messageEventBus = new JsonObject()
                 .put(Field.ACTION, Field.CREATE)
                 .put(Field.ISSUE, ticket.toJson());
-        eventBus.request(PivotConstants.BUS_SEND, messageEventBus,
+        eventBus.request(BUS_SEND, messageEventBus,
                 handlerToAsyncHandler(message -> {
-                    if (PivotConstants.ENT_BUS_OK_STATUS.equals(message.body().getString(Field.STATUS))) {
+                    if (Field.OK.equals(message.body().getString(Field.STATUS))) {
                         log.info(String.format("[SupportPivot@%s::send] %s", this.getClass().getSimpleName(), message.body()));
                         //Todo voir si c'est normal que l'on renvoit un nouveau ticket
                         promise.complete(new PivotTicket());
