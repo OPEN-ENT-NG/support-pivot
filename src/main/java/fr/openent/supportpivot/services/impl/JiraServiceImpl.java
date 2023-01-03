@@ -25,6 +25,7 @@ import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.helpers.DateHelper;
 import fr.openent.supportpivot.helpers.JsonObjectSafe;
+import fr.openent.supportpivot.helpers.StringHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.managers.ServiceManager;
 import fr.openent.supportpivot.model.ConfigModel;
@@ -182,24 +183,24 @@ public class JiraServiceImpl implements JiraService {
     @Override
     public Future<PivotTicket> sendToJIRA(final PivotTicket pivotTicket) {
         Promise<PivotTicket> promise = Promise.promise();
-        //ID_EXTERNAL is mandatory
-        if (pivotTicket.getIdExterne() == null || pivotTicket.getIdExterne().isEmpty()) {
-            LOGGER.error(String.format("[SupportPivot@%s::sendToJIRA] Error to send ticket to jira. ID_EXTERNAL is mandatory %s",
+        JiraSearch jiraSearch = new JiraSearch();
+
+        if (StringHelper.isNullOrEmpty(pivotTicket.getIdExterne()) && StringHelper.isNullOrEmpty(pivotTicket.getIdEnt()) ) {
+            LOGGER.error(String.format("[SupportPivot@%s::sendToJIRA] Error to send ticket to jira. ID_EXTERNAL or ID_ENT is mandatory %s",
                     this.getClass().getSimpleName(), pivotTicket.toJson()));
             return Future.failedFuture("2;Mandatory Field " + Field.ID_EXTERNE);
         }
 
-        JiraSearch jiraSearch = new JiraSearch();
-
-        if (pivotTicket.getIdExterne() == null || pivotTicket.getAttribution() == null) {
-            pivotTicket.setIdExterne(pivotTicket.getIdEnt());
+        if (pivotTicket.getIdEnt() != null) {
+            jiraSearch.setIdEnt(pivotTicket.getIdEnt());
+        } else {
+            jiraSearch.setIdExterne(pivotTicket.getIdExterne());
         }
-
-        jiraSearch.setIdExterne(pivotTicket.getIdExterne());
 
         ServiceManager.getInstance().getRouterService().getPivotTicket(EndpointFactory.getJiraEndpoint(), jiraSearch)
                 .compose(pivotTicketResult -> {
                     if (pivotTicketResult.getIdJira() != null && !pivotTicketResult.getIdJira().isEmpty()) {
+                        pivotTicket.setIdJira(pivotTicketResult.getIdJira());
                         return this.updateJiraTicket(pivotTicket);
                     } else {
                         return this.createJiraTicket(pivotTicket);

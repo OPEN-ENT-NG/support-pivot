@@ -11,7 +11,6 @@ import io.vertx.core.json.JsonObject;
 import java.util.List;
 import java.util.stream.Collectors;
 
-//Todo voir si l'on avait pas besoin de created et modified pour la list des tickets
 public class LdeTicket implements IModel<LdeTicket>, IPivotTicket {
     private String idJira;
     private String statutJira;
