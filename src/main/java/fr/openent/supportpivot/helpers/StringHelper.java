@@ -8,7 +8,7 @@ public class StringHelper {
 
     public static String camelToSnake(String str)
     {
-        if (str == null || str.isEmpty()) {
+        if (isNullOrEmpty(str)) {
             return str;
         }
         // Empty String
@@ -42,5 +42,9 @@ public class StringHelper {
 
         // return the result
         return result.toString();
+    }
+
+    public static boolean isNullOrEmpty(String string) {
+        return string == null || string.isEmpty();
     }
 }
