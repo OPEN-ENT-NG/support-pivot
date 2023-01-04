@@ -281,7 +281,7 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
     private Future<JiraSearchResult> getJiraTicketByExternalId(String idExternal) {
         Promise<JiraSearchResult> promise = Promise.promise();
 
-        String idCustomField = ConfigManager.getInstance().getJiraCustomFieldIdForExternalId().replaceAll("customfield_", "");
+        String idCustomField = ConfigManager.getInstance().getJiraCustomFieldIdForExternalId().replaceAll(Field.CUSTOMFIELD_, "");
         JiraFilterBuilder filter = new JiraFilterBuilder();
         filter.addCustomfieldFilter(idCustomField, idExternal);
         URI uri = ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
@@ -299,7 +299,7 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
     private Future<JiraSearchResult> getJiraTicketByEntId(String idEnt) {
         Promise<JiraSearchResult> promise = Promise.promise();
 
-        String idCustomField = ConfigManager.getInstance().getjiraCustomFieldIdForIdent().replaceAll("customfield_", "");
+        String idCustomField = ConfigManager.getInstance().getJiraCustomFieldIdForIdent().replaceAll("customfield_", "");
         JiraFilterBuilder filter = new JiraFilterBuilder();
         filter.addCustomfieldFilter(idCustomField, idEnt);
         URI uri = ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
