@@ -1,13 +1,10 @@
 package fr.openent.supportpivot.model.endpoint.jira;
 
-import fr.openent.supportpivot.helpers.PivotHttpClient;
-import fr.openent.supportpivot.helpers.PivotHttpClientRequest;
+import fr.openent.supportpivot.helpers.HttpRequestHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.model.ConfigModelTest;
 import fr.openent.supportpivot.model.jira.JiraAttachment;
 import fr.openent.supportpivot.model.jira.JiraTicket;
-import fr.openent.supportpivot.services.HttpClientService;
-import fr.openent.supportpivot.services.impl.HttpClientServiceImpl;
 import fr.openent.supportpivot.services.impl.JiraServiceImpl;
 import fr.wseduc.mongodb.MongoDb;
 import io.vertx.core.AsyncResult;
@@ -16,12 +13,13 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.buffer.impl.BufferImpl;
-import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.impl.HttpClientResponseImpl;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.impl.HttpRequestImpl;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,11 +34,10 @@ import java.net.URI;
 
 @RunWith(PowerMockRunner.class) //Using the PowerMock runner
 @PowerMockRunnerDelegate(VertxUnitRunner.class) //And the Vertx runner
-@PrepareForTest({JiraEndpoint.class, JiraServiceImpl.class}) //Prepare the static class you want to test
+@PrepareForTest({JiraEndpoint.class, JiraServiceImpl.class, HttpRequestHelper.class}) //Prepare the static class you want to test
 public class JiraEndpointTest {
     JiraEndpoint jiraEndpoint;
     Vertx vertx;
-    HttpClientService httpClientService;
 
     @Before
     public void setUp() {
@@ -48,13 +45,12 @@ public class JiraEndpointTest {
         ConfigManager.init(conf);
         vertx = Vertx.vertx();
         MongoDb.getInstance().init(vertx.eventBus(), "fr.openent.supportpivot");
-        this.httpClientService = Mockito.spy(new HttpClientServiceImpl(vertx));
         this.jiraEndpoint = Mockito.mock(JiraEndpoint.class);
     }
 
     @Test
     public void prepareSearchRequestTest(TestContext ctx) throws Exception {
-        JsonObject data  =new JsonObject("{\"Attribution\":\"LDE\",\"custom_field\":\"id_externe\"}");
+        JsonObject data = new JsonObject("{\"Attribution\":\"LDE\",\"custom_field\":\"id_externe\"}");
         URI result = Whitebox.invokeMethod(this.jiraEndpoint, "prepareSearchRequest", data);
         String expected = "https://jira-test.support-ent.fr/rest/api/2/search?jql=%28assignee+%3D+LDE+or+cf%5B13401%5D+is+not+EMPTY%29&fields=id,key,,updated,created,customfield_12705";
         ctx.assertEquals(result.toString(), expected);
@@ -63,26 +59,21 @@ public class JiraEndpointTest {
     @Test
     public void getJiraPJTest(TestContext ctx) throws Exception {
         Async async = ctx.async();
+        HttpRequest<Buffer> request = Mockito.mock(HttpRequestImpl.class);
+        PowerMockito.spy(HttpRequestHelper.class);
+        PowerMockito.doReturn(request).when(HttpRequestHelper.class, "getJiraAuthRequest", Mockito.any(), Mockito.any());
+
         JiraAttachment jiraAttachment = new JiraAttachment();
         jiraAttachment.setContent("content");
 
-        PivotHttpClient pivotHttpClient = Mockito.mock(PivotHttpClient.class);
-        Whitebox.setInternalState(this.jiraEndpoint, "httpClient", pivotHttpClient);
-        PivotHttpClientRequest pivotHttpClientRequest = Mockito.mock(PivotHttpClientRequest.class);
-        HttpClientResponseImpl httpClientResponse = Mockito.mock(HttpClientResponseImpl.class);
-        Mockito.doReturn(200).when(httpClientResponse).statusCode();
+        HttpResponse<Buffer> response = Mockito.mock(HttpResponse.class);
+        Mockito.doReturn(200).when(response).statusCode();
+        Mockito.doReturn(new BufferImpl().appendString("StringBuffer")).when(response).body();
         Mockito.doAnswer(invocation -> {
-            Handler<Buffer> bodyHandler = invocation.getArgument(0);
-            bodyHandler.handle(new BufferImpl().appendString("StringBuffer"));
+            Handler<AsyncResult<HttpResponse<Buffer>>> handler = invocation.getArgument(0);
+            handler.handle(Future.succeededFuture(response));
             return null;
-        }).when(httpClientResponse).bodyHandler(Mockito.any());
-
-        Mockito.doReturn(pivotHttpClientRequest).when(pivotHttpClient).createGetRequest(Mockito.eq("content"));
-        Mockito.doAnswer(invocation -> {
-            Handler<AsyncResult<HttpClientResponse>> handler = invocation.getArgument(0);
-            handler.handle(Future.succeededFuture(httpClientResponse));
-            return null;
-        }).when(pivotHttpClientRequest).startRequest(Mockito.any());
+        }).when(request).send(Mockito.any());
 
         Future<String> future = Whitebox.invokeMethod(this.jiraEndpoint, "getJiraPJ", jiraAttachment);
         String expected = "U3RyaW5nQnVmZmVy";

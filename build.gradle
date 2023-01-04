@@ -60,6 +60,7 @@ dependencies {
   compile "org.entcore:common:$entCoreVersion"
   compile "fr.wseduc:vertx-cron-timer:$vertxCronTimer"
   compile "org.apache.commons:commons-text:1.6"
+  compile "io.vertx:vertx-web-client:$vertxVersion"
   testCompile "io.vertx:vertx-codegen:$vertxVersion"
   testCompile "org.entcore:tests:$entCoreVersion"
   testCompile 'io.gatling.highcharts:gatling-charts-highcharts:2.2.2'

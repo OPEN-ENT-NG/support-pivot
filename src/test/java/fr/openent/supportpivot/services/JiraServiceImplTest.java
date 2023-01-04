@@ -1,6 +1,8 @@
 package fr.openent.supportpivot.services;
 
+import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.helpers.DateHelper;
+import fr.openent.supportpivot.helpers.HttpRequestHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.managers.ServiceManager;
 import fr.openent.supportpivot.model.ConfigModelTest;
@@ -10,19 +12,20 @@ import fr.openent.supportpivot.model.jira.*;
 import fr.openent.supportpivot.model.pivot.PivotPJ;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
 import fr.openent.supportpivot.services.impl.JiraServiceImpl;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.buffer.impl.BufferImpl;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.impl.HttpClientRequestImpl;
-import io.vertx.core.http.impl.HttpClientResponseImpl;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.impl.HttpRequestImpl;
+import io.vertx.ext.web.client.impl.HttpResponseImpl;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,11 +42,10 @@ import java.util.List;
 @RunWith(PowerMockRunner.class) //Using the PowerMock runner
 @PowerMockRunnerDelegate(VertxUnitRunner.class) //And the Vertx runner
 @PrepareForTest({PivotTicket.class, JiraServiceImpl.class, DateHelper.class, ServiceManager.class,
-        EndpointFactory.class, JiraEndpoint.class}) //Prepare the static class you want to test
+        EndpointFactory.class, JiraEndpoint.class, HttpRequestHelper.class}) //Prepare the static class you want to test
 public class JiraServiceImplTest {
     private JiraServiceImpl jiraService;
     private Vertx vertx;
-    private HttpClient httpClient;
     private RouterService routerService;
 
     @Before
@@ -51,14 +53,12 @@ public class JiraServiceImplTest {
         this.vertx = Mockito.spy(Vertx.vertx());
         ConfigManager.init(ConfigModelTest.getConfig1());
         PowerMockito.spy(JiraServiceImpl.class);
-        this.httpClient = Mockito.mock(HttpClient.class);
 
         PowerMockito.spy(ServiceManager.class);
         PowerMockito.spy(JiraEndpoint.class);
         ServiceManager serviceManager = PowerMockito.mock(ServiceManager.class);
-        Mockito.doReturn(this.httpClient).when(this.vertx).createHttpClient(Mockito.any());
         this.routerService = Mockito.mock(RouterService.class);
-        this.jiraService = PowerMockito.spy(new JiraServiceImpl(vertx));
+        this.jiraService = PowerMockito.spy(new JiraServiceImpl());
         PowerMockito.doReturn(this.routerService).when(serviceManager).getRouterService();
         PowerMockito.when(ServiceManager.getInstance()).thenReturn(serviceManager);
         JiraEndpoint jiraEndpoint = Mockito.mock(JiraEndpoint.class);
@@ -97,27 +97,24 @@ public class JiraServiceImplTest {
     @Test
     public void createJiraTicketTest(TestContext ctx) throws Exception {
         Async async = ctx.async();
-        HttpClientResponseImpl httpClientResponse = Mockito.mock(HttpClientResponseImpl.class);
-        Mockito.doReturn(201).when(httpClientResponse).statusCode();
+        HttpRequest<Buffer> request = Mockito.mock(HttpRequestImpl.class);
+        PowerMockito.spy(HttpRequestHelper.class);
+        PowerMockito.doReturn(request).when(HttpRequestHelper.class, "getJiraAuthRequest", Mockito.any(), Mockito.any());
+
+        HttpResponse<Buffer> httpResponse = Mockito.mock(HttpResponseImpl.class);
+        Mockito.doReturn(201).when(httpResponse).statusCode();
+        Mockito.doReturn(new JsonObject(getJiraTicket())).when(httpResponse).bodyAsJsonObject();
+
+
         Mockito.doAnswer(invocation -> {
-            Handler<Buffer> handler = invocation.getArgument(0);
-            handler.handle(new BufferImpl().appendString(getJiraTicket()));
+            Handler<AsyncResult<HttpResponse<Buffer>>> handler = invocation.getArgument(1);
+            handler.handle(Future.succeededFuture(httpResponse));
             return null;
-        }).when(httpClientResponse).bodyHandler(Mockito.any());
-
-        HttpClientRequestImpl httpClientRequest = Mockito.mock(HttpClientRequestImpl.class);
-        Mockito.doReturn(httpClientRequest).when(httpClientRequest).setChunked(Mockito.anyBoolean());
-
-        Mockito.doAnswer(invocation -> {
-            Handler<HttpClientResponse> handler = invocation.getArgument(1);
-            handler.handle(httpClientResponse);
-            return httpClientRequest;
-        }).when(this.httpClient).post(Mockito.anyString(), Mockito.any(Handler.class));
+        }).when(request).sendJsonObject(Mockito.any(), Mockito.any());
 
         PowerMockito.doReturn(Future.succeededFuture()).when(this.jiraService, "updateComments", Mockito.any(), Mockito.any());
         PowerMockito.doReturn(Future.succeededFuture()).when(this.jiraService, "sendMultipleJiraPJ", Mockito.any(), Mockito.any());
         PowerMockito.doReturn(new JsonObject()).when(this.jiraService, "prepareTicketForCreation", Mockito.any());
-        PowerMockito.doNothing().when(this.jiraService, "terminateRequest", Mockito.any());
 
         PivotTicket pivotTicket = PowerMockito.spy(new PivotTicket());
 
@@ -183,21 +180,18 @@ public class JiraServiceImplTest {
     @Test
     public void sendJiraCommentTest(TestContext ctx) throws Exception {
         Async async = ctx.async();
-        HttpClientResponseImpl httpClientResponse = Mockito.mock(HttpClientResponseImpl.class);
-        Mockito.doReturn(201).when(httpClientResponse).statusCode();
+        HttpRequest<Buffer> request = Mockito.mock(HttpRequestImpl.class);
+        PowerMockito.spy(HttpRequestHelper.class);
+        PowerMockito.doReturn(request).when(HttpRequestHelper.class, "getJiraAuthRequest", Mockito.any(), Mockito.any());
 
-        HttpClientRequestImpl httpClientRequest = Mockito.mock(HttpClientRequestImpl.class);
-        Mockito.doReturn(httpClientRequest).when(httpClientRequest).setChunked(Mockito.anyBoolean());
+        HttpResponse<Buffer> response = Mockito.mock(HttpResponse.class);
+        Mockito.doReturn(201).when(response).statusCode();
 
         Mockito.doAnswer(invocation -> {
-            String url = invocation.getArgument(0);
-            ctx.assertTrue(url.contains("5023/comment"));
-            Handler<HttpClientResponse> handler = invocation.getArgument(1);
-            handler.handle(httpClientResponse);
-            return httpClientRequest;
-        }).when(this.httpClient).post(Mockito.anyString(), Mockito.any(Handler.class));
-
-        PowerMockito.doNothing().when(this.jiraService, "terminateRequest", Mockito.any());
+            Handler<AsyncResult<HttpResponse<Buffer>>> handler = invocation.getArgument(1);
+            handler.handle(Future.succeededFuture(response));
+            return null;
+        }).when(request).sendJsonObject(Mockito.eq(new JsonObject().put(Field.BODY, "comment")), Mockito.any(Handler.class));
 
         Future<Void> future = Whitebox.invokeMethod(this.jiraService, "sendJiraComment", "5023", "comment");
 
@@ -237,23 +231,19 @@ public class JiraServiceImplTest {
     @Test
     public void sendJiraPJTest(TestContext ctx) throws Exception {
         Async async = ctx.async();
+        HttpRequest<Buffer> request = Mockito.mock(HttpRequestImpl.class);
+        PowerMockito.spy(HttpRequestHelper.class);
+        PowerMockito.doReturn(request).when(HttpRequestHelper.class, "getJiraAuthRequest", Mockito.any(), Mockito.any());
 
-        HttpClientResponseImpl httpClientResponse = Mockito.mock(HttpClientResponseImpl.class);
-        Mockito.doReturn(200).when(httpClientResponse).statusCode();
-
-        HttpClientRequestImpl httpClientRequest = Mockito.mock(HttpClientRequestImpl.class);
-        Mockito.doReturn(httpClientRequest).when(httpClientRequest).setChunked(Mockito.anyBoolean());
-        Mockito.doReturn(httpClientRequest).when(httpClientRequest).putHeader(Mockito.anyString(), Mockito.anyString());
+        HttpResponse<Buffer> response = Mockito.mock(HttpResponse.class);
+        Mockito.doReturn(200).when(response).statusCode();
+        Mockito.doReturn(request).when(request).putHeader(Mockito.anyString(), Mockito.anyString());
 
         Mockito.doAnswer(invocation -> {
-            String url = invocation.getArgument(0);
-            ctx.assertTrue(url.contains("5024/attachments"));
-            Handler<HttpClientResponse> handler = invocation.getArgument(1);
-            handler.handle(httpClientResponse);
-            return httpClientRequest;
-        }).when(this.httpClient).post(Mockito.anyString(), Mockito.any(Handler.class));
-
-        PowerMockito.doNothing().when(this.jiraService, "terminateRequest", Mockito.any());
+            Handler<AsyncResult<HttpResponse<Buffer>>> handler = invocation.getArgument(1);
+            handler.handle(Future.succeededFuture(response));
+            return null;
+        }).when(request).sendBuffer(Mockito.any(), Mockito.any());
 
         PivotPJ pivotPJ = new PivotPJ(new JsonObject());
         pivotPJ.setNom("nom").setContenu("contenu");
@@ -269,34 +259,26 @@ public class JiraServiceImplTest {
     @Test
     public void updateJiraTicketTest(TestContext ctx) throws Exception {
         Async async = ctx.async();
+        HttpRequest<Buffer> request = Mockito.mock(HttpRequestImpl.class);
+        PowerMockito.spy(HttpRequestHelper.class);
+        PowerMockito.doReturn(request).when(HttpRequestHelper.class, "getJiraAuthRequest", Mockito.any(), Mockito.any());
 
-        HttpClientResponseImpl httpClientResponse = Mockito.mock(HttpClientResponseImpl.class);
-        Mockito.doReturn(200, 204).when(httpClientResponse).statusCode();
+        HttpResponse<Buffer> response = Mockito.mock(HttpResponse.class);
+        Mockito.doReturn(200, 204).when(response).statusCode();
+
         Mockito.doAnswer(invocation -> {
-            Handler<Buffer> handler = invocation.getArgument(0);
-            handler.handle(new BufferImpl().appendString(getJiraTicket()));
+            Handler<AsyncResult<HttpResponse<Buffer>>> handler = invocation.getArgument(1);
+            handler.handle(Future.succeededFuture(response));
             return null;
-        }).when(httpClientResponse).bodyHandler(Mockito.any());
-
-        HttpClientRequestImpl httpClientRequest = Mockito.mock(HttpClientRequestImpl.class);
-        Mockito.doReturn(httpClientRequest).when(httpClientRequest).setChunked(Mockito.anyBoolean());
+        }).when(request).sendJsonObject(Mockito.any(), Mockito.any());
 
         Mockito.doAnswer(invocation -> {
-            String url = invocation.getArgument(0);
-            ctx.assertTrue(url.contains("5025"));
-            Handler<HttpClientResponse> handler = invocation.getArgument(1);
-            handler.handle(httpClientResponse);
-            return httpClientRequest;
-        }).when(this.httpClient).get(Mockito.anyString(), Mockito.any(Handler.class));
+            Handler<AsyncResult<HttpResponse<Buffer>>> handler = invocation.getArgument(0);
+            handler.handle(Future.succeededFuture(response));
+            return null;
+        }).when(request).send(Mockito.any());
 
-        Mockito.doAnswer(invocation -> {
-            String url = invocation.getArgument(0);
-            ctx.assertTrue(url.contains("5025"));
-            Handler<HttpClientResponse> handler = invocation.getArgument(1);
-            handler.handle(httpClientResponse);
-            return httpClientRequest;
-        }).when(this.httpClient).put(Mockito.anyString(), Mockito.any(Handler.class));
-
+        Mockito.doReturn(new JsonObject(getJiraTicket())).when(response).bodyAsJsonObject();
 
         PivotTicket pivotTicket = new PivotTicket();
         pivotTicket.setIdJira("5025");
@@ -305,7 +287,6 @@ public class JiraServiceImplTest {
         PowerMockito.doReturn(Arrays.asList()).when(this.jiraService, "getNewPJs", Mockito.eq(pivotTicket), Mockito.any(JiraTicket.class));
         PowerMockito.doReturn(Future.succeededFuture()).when(this.jiraService, "sendJiraComment", Mockito.any(), Mockito.any());
         PowerMockito.doReturn(Future.succeededFuture()).when(this.jiraService, "sendMultipleJiraPJ", Mockito.any(), Mockito.any());
-        PowerMockito.doNothing().when(this.jiraService, "terminateRequest", Mockito.any());
 
         Future<PivotTicket> future = Whitebox.invokeMethod(this.jiraService, "updateJiraTicket", pivotTicket);
 

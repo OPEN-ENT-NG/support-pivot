@@ -23,6 +23,9 @@ public class JiraSearchResult implements IModel<JiraSearchResult> {
         this.issues = IModelHelper.toList(jsonObject.getJsonArray(Field.ISSUES, new JsonArray()), JiraTicket.class);
     }
 
+    public JiraSearchResult() {
+    }
+
     @Override
     public JsonObject toJson() {
         return IModelHelper.toJson(this, true, false);

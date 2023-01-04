@@ -30,8 +30,6 @@ public class ConfigModelTest {
         return new JsonObject("{\n" +
                 "  \"collectivity\": \"CRIF\",\n" +
                 "  \"mongo-collection\": \"pivot\",\n" +
-                "  \"academy\": \"PARIS\",\n" +
-                "  \"default-attribution\": \"\",\n" +
                 "  \"default-tickettype\": \"Assistance\",\n" +
                 "  \"default-priority\": \"Mineur\",\n" +
                 "  \"jira-login\": \"assistanceMLN\",\n" +
