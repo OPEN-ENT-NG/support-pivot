@@ -1,12 +1,11 @@
 package fr.openent.supportpivot.model.endpoint.jira;
 
 import fr.openent.supportpivot.constants.Field;
-import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.enums.PriorityEnum;
 import fr.openent.supportpivot.helpers.AsyncResultHelper;
 import fr.openent.supportpivot.helpers.DateHelper;
-import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.helpers.HttpRequestHelper;
+import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.managers.ServiceManager;
 import fr.openent.supportpivot.model.ConfigModel;
@@ -34,8 +33,6 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import static fr.openent.supportpivot.constants.JiraConstants.*;
 
 
 public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
@@ -76,9 +73,9 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
     public Future<List<JiraTicket>> getPivotTicketList(JiraSearch searchTicket) {
         Promise<List<JiraTicket>> promise = Promise.promise();
         JsonObjectSafe data = new JsonObjectSafe();
-        data.put(JiraConstants.ATTRIBUTION_FILTERNAME, JiraConstants.ATTRIBUTION_FILTER_LDE);
-        data.put(JiraConstants.ATTRIBUTION_FILTER_CUSTOMFIELD, JiraConstants.IDEXTERNAL_FIELD);
-        data.putSafe(JiraConstants.ATTRIBUTION_FILTER_DATE, searchTicket.getDate());
+        data.put(Field.ATTRIBUTION, Field.LDE);
+        data.put(Field.CUSTOM_FIELD, Field.ID_EXTERNE);
+        data.putSafe(Field.UPDATED, searchTicket.getDate());
         URI uri = prepareSearchRequest(data);
 
         executeJiraRequest(uri, 200)
@@ -234,22 +231,22 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
     private URI prepareSearchRequest(JsonObject data) {
         JiraFilterBuilder filter = new JiraFilterBuilder();
         Map<String, String> jiraField = ConfigManager.getInstance().getConfig().getJiraCustomFields();
-        if (data.containsKey(ATTRIBUTION_FILTERNAME)) {
-            String customFieldFilter = data.getString(ATTRIBUTION_FILTER_CUSTOMFIELD, "");
+        if (data.containsKey(Field.ATTRIBUTION)) {
+            String customFieldFilter = data.getString(Field.CUSTOM_FIELD, "");
             if (customFieldFilter.isEmpty()) {
-                filter.addAssigneeFilter(data.getString(ATTRIBUTION_FILTERNAME));
+                filter.addAssigneeFilter(data.getString(Field.ATTRIBUTION));
             } else {
                 String customFieldName = jiraField.getOrDefault(customFieldFilter, "");
                 if (customFieldName == null || customFieldName.isEmpty()) {
                     log.error(String.format("[SupportPivot@%s::prepareSearchRequest]: Can not find customFieldFilter %s",
                             this.getClass().getSimpleName(), customFieldFilter));
                 }
-                filter.addAssigneeOrCustomFieldFilter(data.getString(ATTRIBUTION_FILTERNAME),
+                filter.addAssigneeOrCustomFieldFilter(data.getString(Field.ATTRIBUTION),
                         customFieldName, null);
             }
         }
-        if (data.containsKey(ATTRIBUTION_FILTER_DATE)) {
-            filter.addMinUpdateDate(data.getString(ATTRIBUTION_FILTER_DATE));
+        if (data.containsKey(Field.UPDATED)) {
+            filter.addMinUpdateDate(data.getString(Field.UPDATED));
         }
         filter.onlyIds();
         filter.addFieldDates();

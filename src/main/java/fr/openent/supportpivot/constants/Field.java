@@ -122,4 +122,11 @@ public class Field {
     public static final String BLOQUANT = "Bloquant";
     public static final String OUVERT = "Ouvert";
     public static final String RESULT = "result";
+    public static final String STATUTS_ENT = "statutsEnt";
+    public static final String NOTEXIST = "notExist";
+    public static final String LDE_LOWER_CASE = "lde";
+    public static final String ASSISTANCEMLN = "assistanceMLN";
+    public static final String REPORTER = "reporter";
+    public static final String COMPONENTS = "components";
+    public static final String CUSTOM_FIELD = "custom_field";
 }
