@@ -19,12 +19,10 @@ public class ConfigModel implements IModel<ConfigModel> {
 
     private final String collectivity;
     private final String mongoCollection;
-    private final String academy;
-    private final String defaultAttribution;
     private final String defaultTicketType;
     private final String defaultPriority;
     private final String jiraLogin;
-    private String jiraPasswd;
+    private final String jiraPasswd;
     private final String jiraHost;
     private final String jiraURL;
     private final String jiraBaseUri;
@@ -38,6 +36,8 @@ public class ConfigModel implements IModel<ConfigModel> {
     private final EntStatusConfig defaultEntStatusConfig;
     private final String proxyHost;
     private final Integer proxyPort;
+    private final String proxyLogin;
+    private final String proxyPasswd;
 
     public ConfigModel(JsonObject config) {
         this.collectivity = config.getString(ConfigField.COLLECTIVITY, "");
@@ -46,8 +46,6 @@ public class ConfigModel implements IModel<ConfigModel> {
         }
         //We remove "support.demandes" from config
         this.mongoCollection = config.getString(ConfigField.MONGO_DASH_COLLECTION);
-        this.academy = config.getString(ConfigField.ACADEMY);
-        this.defaultAttribution = config.getString(ConfigField.DEFAULT_DASH_ATTRIBUTION);
         this.defaultTicketType = config.getString(ConfigField.DEFAULT_DASH_TICKETTYPE);
         this.defaultPriority = config.getString(ConfigField.DEFAULT_DASH_PRIORITY);
         this.jiraLogin = config.getString(ConfigField.JIRA_DASH_LOGIN);
@@ -88,6 +86,8 @@ public class ConfigModel implements IModel<ConfigModel> {
                 .orElse(null);
         this.proxyHost = config.getString(ConfigField.PROXY_DASH_HOST);
         this.proxyPort = config.getInteger(ConfigField.PROXY_DASH_PORT);
+        this.proxyLogin = config.getString(ConfigField.PROXY_DASH_LOGIN);
+        this.proxyPasswd = config.getString(ConfigField.PROXY_DASH_PASSWD);
     }
 
     @Override
@@ -95,8 +95,6 @@ public class ConfigModel implements IModel<ConfigModel> {
         JsonObject result = new JsonObject()
                 .put(ConfigField.COLLECTIVITY, this.collectivity)
                 .put(ConfigField.MONGO_DASH_COLLECTION, this.mongoCollection)
-                .put(ConfigField.ACADEMY, this.academy)
-                .put(ConfigField.DEFAULT_DASH_ATTRIBUTION, this.defaultAttribution)
                 .put(ConfigField.DEFAULT_DASH_TICKETTYPE, this.defaultTicketType)
                 .put(ConfigField.DEFAULT_DASH_PRIORITY, this.defaultPriority)
                 .put(ConfigField.JIRA_DASH_LOGIN, this.jiraLogin)
@@ -138,14 +136,6 @@ public class ConfigModel implements IModel<ConfigModel> {
         return mongoCollection;
     }
 
-    public String getAcademy() {
-        return academy;
-    }
-
-    public String getDefaultAttribution() {
-        return defaultAttribution;
-    }
-
     public String getDefaultTicketType() {
         return defaultTicketType;
     }
@@ -160,11 +150,6 @@ public class ConfigModel implements IModel<ConfigModel> {
 
     public String getJiraPasswd() {
         return jiraPasswd;
-    }
-
-    public ConfigModel setJiraPasswd(String jiraPasswd) {
-        this.jiraPasswd = jiraPasswd;
-        return this;
     }
 
     public String getJiraHost() {
@@ -215,7 +200,9 @@ public class ConfigModel implements IModel<ConfigModel> {
         return proxyHost;
     }
 
-    public Integer getProxyPort() {
-        return proxyPort;
-    }
+    public Integer getProxyPort() { return proxyPort; }
+
+    public String getProxyLogin() { return proxyLogin; }
+
+    public String getProxyPasswd() { return proxyPasswd; }
 }

@@ -67,6 +67,10 @@ public class ConfigManager {
 
     public String getJiraAuthInfo() { return config.getJiraLogin() + ":" + config.getJiraPasswd(); }
 
+    public String getJiraLogin() { return config.getJiraLogin();}
+
+    public String getJiraPassword() { return config.getJiraPasswd();}
+
     public String getJiraCustomFieldIdForExternalId() { return config.getJiraCustomFields().getOrDefault(Field.ID_EXTERNE, ""); }
 
     public String getjiraCustomFieldIdForIdent() { return config.getJiraCustomFields().getOrDefault(Field.ID_ENT, ""); }
