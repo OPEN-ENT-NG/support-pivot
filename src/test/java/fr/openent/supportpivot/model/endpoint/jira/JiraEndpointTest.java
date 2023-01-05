@@ -50,7 +50,7 @@ public class JiraEndpointTest {
 
     @Test
     public void prepareSearchRequestTest(TestContext ctx) throws Exception {
-        JsonObject data = new JsonObject("{\"Attribution\":\"LDE\",\"custom_field\":\"id_externe\"}");
+        JsonObject data = new JsonObject("{\"attribution\":\"LDE\",\"custom_field\":\"id_externe\"}");
         URI result = Whitebox.invokeMethod(this.jiraEndpoint, "prepareSearchRequest", data);
         String expected = "https://jira-test.support-ent.fr/rest/api/2/search?jql=%28assignee+%3D+LDE+or+cf%5B13401%5D+is+not+EMPTY%29&fields=id,key,,updated,created,customfield_12705";
         ctx.assertEquals(result.toString(), expected);
