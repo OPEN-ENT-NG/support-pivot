@@ -20,9 +20,7 @@ package fr.openent.supportpivot.services.impl;
 
 import fr.openent.supportpivot.Supportpivot;
 import fr.openent.supportpivot.constants.ConfigField;
-import fr.openent.supportpivot.constants.EntConstants;
 import fr.openent.supportpivot.constants.Field;
-import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.helpers.DateHelper;
 import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.helpers.HttpRequestHelper;
@@ -102,7 +100,7 @@ public class JiraServiceImpl implements JiraService {
         this.jiraProjectName = config.getJiraProjectKey();
         jiraField = config.getJiraCustomFields();
 
-        if (jiraField.containsKey(JiraConstants.ID_EXTERNAL)) {
+        if (jiraField.containsKey(Field.ID_EXTERNAL)) {
             //Retro-compatibility external fields are historical labeled iws
             jiraField.put(Field.ID_IWS, jiraField.getOrDefault(ConfigField.ID_EXTERNAL, ""));
             jiraField.put(Field.STATUS_IWS, jiraField.getOrDefault(ConfigField.STATUS_EXTERNAL, ""));
@@ -122,7 +120,7 @@ public class JiraServiceImpl implements JiraService {
      * @return PIVOT-like module name encoded in UTF-8
      */
     private String moduleEntToPivot(String moduleName) {
-        return Supportpivot.applicationsMap.getOrDefault(moduleName, JiraConstants.NOTEXIST);
+        return Supportpivot.applicationsMap.getOrDefault(moduleName, Field.NOTEXIST);
     }
 
     @Override
@@ -135,8 +133,10 @@ public class JiraServiceImpl implements JiraService {
                     this.getClass().getSimpleName(), pivotTicket.toJson()));
             return Future.failedFuture("2;Mandatory Field " + Field.ID_EXTERNE);
         }
-
-        if (pivotTicket.getIdExterne() != null) {
+        if (pivotTicket.getIdJira() != null) {
+            jiraSearch.setIdJira(pivotTicket.getIdJira());
+        }
+        else if (pivotTicket.getIdExterne() != null) {
             jiraSearch.setIdExterne(pivotTicket.getIdExterne());
         } else {
             jiraSearch.setIdEnt(pivotTicket.getIdEnt());
@@ -230,10 +230,10 @@ public class JiraServiceImpl implements JiraService {
                 .orElse(Field.OUVERT);
 
         // reporter assistanceMLN
-        String currentReporter = JiraConstants.REPORTER_LDE;
+        String currentReporter = Field.LDE_LOWER_CASE;
         String title;
-        if (!jiraField.getOrDefault(EntConstants.IDENT_FIELD, "").isEmpty()) {
-            currentReporter = JiraConstants.REPORTER_ENT;
+        if (!jiraField.getOrDefault(Field.ID_ENT, "").isEmpty()) {
+            currentReporter = Field.ASSISTANCEMLN;
             title = String.format("[%s %s] %s", Field.ASSISTANCE_ENT, pivotTicket.getIdEnt(), pivotTicket.getTitre());
         } else {
             title = pivotTicket.getTitre();
@@ -244,26 +244,26 @@ public class JiraServiceImpl implements JiraService {
                 .collect(Collectors.toList());
 
         JsonObject field = new JsonObjectSafe()
-                .putSafe(JiraConstants.PROJECT, new JsonObject()
-                        .put(JiraConstants.PROJECT_KEY, jiraProjectName))
-                .putSafe(JiraConstants.TITLE_FIELD, title)
-                .putSafe(JiraConstants.DESCRIPTION_FIELD, pivotTicket.getDescription())
-                .putSafe(JiraConstants.ISSUETYPE, new JsonObject()
+                .putSafe(Field.PROJECT, new JsonObject()
+                        .put(Field.KEY, jiraProjectName))
+                .putSafe(Field.SUMMARY, title)
+                .putSafe(Field.DESCRIPTION, pivotTicket.getDescription())
+                .putSafe(Field.ISSUETYPE, new JsonObject()
                         .put(Field.NAME, ticketType))
-                .putSafe(jiraField.getOrDefault(EntConstants.IDENT_FIELD, ""), pivotTicket.getIdEnt())
-                .putSafe(jiraField.getOrDefault(EntConstants.STATUSENT_FIELD, ""), statusNameEnt)
-                .putSafe(jiraField.getOrDefault(EntConstants.CREATION_FIELD, ""), dateCreaField)
-                .putSafe(jiraField.getOrDefault(EntConstants.RESOLUTION_ENT, ""), pivotTicket.getDateResolutionEnt())
-                .putSafe(JiraConstants.REPORTER, new JsonObject().put(Field.NAME, currentReporter))
-                .putSafe(jiraField.getOrDefault(EntConstants.CREATOR, ""), pivotTicket.getDemandeur())
-                .putSafe(JiraConstants.PRIORITY, new JsonObject()
+                .putSafe(jiraField.getOrDefault(Field.ID_ENT, ""), pivotTicket.getIdEnt())
+                .putSafe(jiraField.getOrDefault(Field.STATUS_ENT, ""), statusNameEnt)
+                .putSafe(jiraField.getOrDefault(Field.CREATION, ""), dateCreaField)
+                .putSafe(jiraField.getOrDefault(Field.RESOLUTION_ENT, ""), pivotTicket.getDateResolutionEnt())
+                .putSafe(Field.REPORTER, new JsonObject().put(Field.NAME, currentReporter))
+                .putSafe(jiraField.getOrDefault(Field.CREATOR, ""), pivotTicket.getDemandeur())
+                .putSafe(Field.PRIORITY, new JsonObject()
                         .put(Field.NAME, currentPriority));
 
-        if (!newModules.isEmpty() && !JiraConstants.NOTEXIST.equals(newModules.get(0))) {
-            field.put(JiraConstants.COMPONENTS, new JsonArray().add(new JsonObject().put(JiraConstants.NAME, newModules.get(0))));
+        if (!newModules.isEmpty() && !Field.NOTEXIST.equals(newModules.get(0))) {
+            field.put(Field.COMPONENTS, new JsonArray().add(new JsonObject().put(Field.NAME, newModules.get(0))));
         }
 
-        jsonJiraTicket.put(JiraConstants.FIELDS, field);
+        jsonJiraTicket.put(Field.FIELDS, field);
 
         return jsonJiraTicket;
     }
@@ -471,7 +471,7 @@ public class JiraServiceImpl implements JiraService {
         JiraFields jiraFields = new JiraFields();
         Map<String, String> customFields = new HashMap<>();
         if (pivotTicket.getIdEnt() != null)
-            customFields.put(jiraField.getOrDefault(EntConstants.IDENT_FIELD, ""), pivotTicket.getIdEnt());
+            customFields.put(jiraField.getOrDefault(Field.ID_ENT, ""), pivotTicket.getIdEnt());
         if (pivotTicket.getIdExterne() != null)
             customFields.put(jiraField.getOrDefault(Field.ID_EXTERNE, ""), pivotTicket.getIdExterne());
         if (pivotTicket.getStatutEnt() != null) {
@@ -481,8 +481,8 @@ public class JiraServiceImpl implements JiraService {
                     .filter(entStatusConfig -> entStatusConfig.getName().equals(currentStatus))
                     .map(StatusConfigModel::getKey)
                     .findFirst()
-                    .orElse(EntConstants.STATUS_NAME_ENT);
-            customFields.put(jiraField.getOrDefault(EntConstants.STATUSENT_FIELD, ""), statusNameEnt);
+                    .orElse(Field.OUVERT);
+            customFields.put(jiraField.getOrDefault(Field.STATUS_ENT, ""), statusNameEnt);
         }
 
         if (pivotTicket.getUai() != null) {
@@ -490,20 +490,20 @@ public class JiraServiceImpl implements JiraService {
         }
 
         if (pivotTicket.getStatutExterne() != null)
-            customFields.put(jiraField.getOrDefault(EntConstants.STATUSEXTERNAL_FIELD, ""), pivotTicket.getStatutExterne());
+            customFields.put(jiraField.getOrDefault(Field.STATUS_EXTERNE, ""), pivotTicket.getStatutExterne());
         if (pivotTicket.getDateResolutionEnt() != null)
-            customFields.put(jiraField.getOrDefault(EntConstants.RESOLUTION_ENT, ""), pivotTicket.getDateResolutionEnt());
+            customFields.put(jiraField.getOrDefault(Field.RESOLUTION_ENT, ""), pivotTicket.getDateResolutionEnt());
         if (pivotTicket.getDescription() != null)
-            customFields.put((EntConstants.DESCRIPTION_FIELD), pivotTicket.getDescription());
-        if (!jiraField.getOrDefault(EntConstants.IDENT_FIELD, "").isEmpty()) {
+            customFields.put((Field.DESCRIPTION), pivotTicket.getDescription());
+        if (!jiraField.getOrDefault(Field.ID_ENT, "").isEmpty()) {
             title = String.format("[%s %s] %s", Field.ASSISTANCE_ENT, pivotTicket.getIdEnt(), pivotTicket.getTitre());
         } else {
             title =  pivotTicket.getTitre();
         }
         if (pivotTicket.getTitre() != null)
-            customFields.put(JiraConstants.TITLE_FIELD, title);
+            customFields.put(Field.SUMMARY, title);
         if (pivotTicket.getDemandeur() != null)
-            customFields.put(jiraField.getOrDefault(EntConstants.CREATOR, ""), pivotTicket.getDemandeur());
+            customFields.put(jiraField.getOrDefault(Field.CREATOR, ""), pivotTicket.getDemandeur());
 
         jiraFields.setCustomFields(customFields);
         jiraTicket.setFields(jiraFields);

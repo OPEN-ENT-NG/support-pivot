@@ -1,7 +1,6 @@
 package fr.openent.supportpivot.model;
 
 import fr.openent.supportpivot.constants.ConfigField;
-import fr.openent.supportpivot.constants.EntConstants;
 import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.model.status.config.EntStatusConfig;
 import fr.openent.supportpivot.model.status.config.JiraStatusConfig;
@@ -75,11 +74,11 @@ public class ConfigModel implements IModel<ConfigModel> {
                 .findFirst()
                 .orElse(null);
         this.entStatusConfigMapping = config.getJsonObject(ConfigField.ENT_DASH_STATUS_DASH_MAPPING, new JsonObject())
-                .getJsonObject(EntConstants.STATUTS_ENT, new JsonObject()).stream()
+                .getJsonObject(Field.STATUTS_ENT, new JsonObject()).stream()
                 .filter(entStatusEntry -> entStatusEntry.getValue() instanceof String)
                 .map(entStatusEntry -> new EntStatusConfig(entStatusEntry.getKey(), (String) entStatusEntry.getValue()))
                 .collect(Collectors.toList());
-        String defaultEntStatusString = config.getJsonObject(ConfigField.ENT_DASH_STATUS_DASH_MAPPING, new JsonObject()).getString(EntConstants.STATUTSDEFAULTENT);
+        String defaultEntStatusString = config.getJsonObject(ConfigField.ENT_DASH_STATUS_DASH_MAPPING, new JsonObject()).getString(Field.STATUTSDEFAULTENT);
         this.defaultEntStatusConfig = this.entStatusConfigMapping.stream()
                 .filter(entStatusConfig -> entStatusConfig.getName().equals(defaultEntStatusString))
                 .findFirst()
