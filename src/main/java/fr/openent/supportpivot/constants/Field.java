@@ -121,4 +121,5 @@ public class Field {
     public static final String MAJEUR = "Majeur";
     public static final String BLOQUANT = "Bloquant";
     public static final String OUVERT = "Ouvert";
+    public static final String RESULT = "result";
 }

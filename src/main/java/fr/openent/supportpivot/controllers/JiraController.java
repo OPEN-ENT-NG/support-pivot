@@ -7,16 +7,11 @@ import fr.openent.supportpivot.model.jira.JiraSearch;
 import fr.openent.supportpivot.services.RouterService;
 import fr.wseduc.rs.Get;
 import fr.wseduc.webutils.http.Renders;
-import fr.wseduc.webutils.security.SecuredAction;
-import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.entcore.common.controller.ControllerHelper;
-import org.vertx.java.core.http.RouteMatcher;
-
-import java.util.Map;
 
 /**
  * Created by bertinettia on 12/08/2019.
@@ -37,7 +32,7 @@ public class JiraController extends ControllerHelper {
     @Get("/updateJira/:idjira")
 //    @fr.wseduc.security.SecuredAction("glpi.test.trigger") //TODO (voir comment faire)
     //todo rajouter la save du du ticket en mongo
-    public void updateTicket(final HttpServerRequest request) {
+    public void updateTicketJira(final HttpServerRequest request) {
         final String idJira = request.params().get(Field.IDJIRA);
         JiraSearch jiraSearch = new JiraSearch().setIdJira(idJira);
         //This API is unused for now
@@ -45,9 +40,14 @@ public class JiraController extends ControllerHelper {
             Renders.ok(request);
             return;
         }
+        JsonObject jsonObject = new JsonObject();
         routerService.getPivotTicket(EndpointFactory.getJiraEndpoint(), jiraSearch)
                 .compose(pivotTicket -> routerService.setPivotTicket(EndpointFactory.getPivotEndpoint(), pivotTicket))
-                .onSuccess(supportTicket -> Renders.renderJson(request, supportTicket.toJson()))
+                .compose(supportTicket -> {
+                    jsonObject.put(Field.RESULT, supportTicket.toJson());
+                    return ServiceManager.getInstance().getMongoService().saveTicket("updateTicketJira", supportTicket.toJson());
+                })
+                .onSuccess(event -> Renders.renderJson(request, jsonObject.getJsonObject(Field.RESULT)))
                 .onFailure(error -> {
                     log.error(String.format("[SupportPivot@%s::process] Fail update ticket by Jira %s",
                             this.getClass().getSimpleName(), error.getMessage()));

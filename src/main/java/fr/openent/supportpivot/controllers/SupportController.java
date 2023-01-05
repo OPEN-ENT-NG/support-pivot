@@ -114,11 +114,12 @@ public class SupportController extends ControllerHelper {
     @BusAddress("supportpivot.demande")
     @SecuredAction("supportpivot.demande")
     //todo rajouter la save du du ticket en mongo
-    public void busEndpoint(final Message<JsonObject> message) {
+    public void busEndpointScalingTicket(final Message<JsonObject> message) {
         JsonObject jsonMessage = message.body().getJsonObject(Field.ISSUE, new JsonObject());
         PivotTicket pivotTicket = new PivotTicket(jsonMessage);
-        this.routerService.setPivotTicket(EndpointFactory.getJiraEndpoint(), pivotTicket)
-                .onSuccess(jiraTicket -> message.reply(new JsonObject().put(Field.STATUS, Field.OK.toLowerCase())
+        ServiceManager.getInstance().getMongoService().saveTicket("busEndpointScalingTicketIn", message.body())
+                .compose(event -> this.routerService.setPivotTicket(EndpointFactory.getJiraEndpoint(), pivotTicket))
+                .onSuccess(event -> message.reply(new JsonObject().put(Field.STATUS, Field.OK.toLowerCase())
                         .put(Field.MESSAGE, "invalid.action")
                         .put(Field.ISSUE, pivotTicket.toJson())))
                 .onFailure(error -> message.reply(new JsonObject().put(Field.STATUS, Field.KO.toLowerCase())
