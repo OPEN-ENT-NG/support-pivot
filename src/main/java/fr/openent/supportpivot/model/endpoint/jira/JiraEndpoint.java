@@ -3,7 +3,10 @@ package fr.openent.supportpivot.model.endpoint.jira;
 import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.constants.JiraConstants;
 import fr.openent.supportpivot.enums.PriorityEnum;
-import fr.openent.supportpivot.helpers.*;
+import fr.openent.supportpivot.helpers.AsyncResultHelper;
+import fr.openent.supportpivot.helpers.DateHelper;
+import fr.openent.supportpivot.helpers.JsonObjectSafe;
+import fr.openent.supportpivot.helpers.HttpRequestHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.managers.ServiceManager;
 import fr.openent.supportpivot.model.ConfigModel;
@@ -12,17 +15,17 @@ import fr.openent.supportpivot.model.jira.*;
 import fr.openent.supportpivot.model.pivot.PivotPJ;
 import fr.openent.supportpivot.model.pivot.PivotTicket;
 import fr.openent.supportpivot.model.status.config.JiraStatusConfig;
-import fr.openent.supportpivot.services.HttpClientService;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.Format;
@@ -36,19 +39,11 @@ import static fr.openent.supportpivot.constants.JiraConstants.*;
 
 
 public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
-    private PivotHttpClient httpClient;
     private static final Base64.Encoder encoder = Base64.getMimeEncoder().withoutPadding();
 
     private static final Logger log = LoggerFactory.getLogger(JiraEndpoint.class);
 
     public JiraEndpoint() {
-        try {
-            this.httpClient = ServiceManager.getInstance().getHttpClientService().getHttpClient(ConfigManager.getInstance().getConfig().getJiraHost());
-            httpClient.setBasicAuth(ConfigManager.getInstance().getConfig().getJiraLogin(), ConfigManager.getInstance().getConfig().getJiraPasswd());
-
-        } catch (URISyntaxException e) {
-            log.error(String.format("[SupportPivot@%s::JiraEndpoint] Invalid uri %s", this.getClass().getSimpleName(), e.getMessage()));
-        }
     }
 
     @Override
@@ -273,7 +268,7 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
 
         URI uri = ConfigManager.getInstance().getJiraBaseUrl().resolve("issue/" + idJira);
         executeJiraRequest(uri, 200)
-                .onSuccess(body -> promise.complete(new JiraSearchResult(new JsonObject(body))))
+                .onSuccess(body -> promise.complete(new JiraSearchResult().setIssues(Collections.singletonList(new JiraTicket(new JsonObject(body))))))
                 .onFailure(error -> {
                     log.error(String.format("[SupportPivot@%s::getJiraTicketByJiraId] Fail to get ticket %s",
                             this.getClass().getSimpleName(), error));
@@ -322,40 +317,27 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
 
     private Future<Buffer> executeJiraRequest(URI uri, int codeExpected) {
         Promise<Buffer> promise = Promise.promise();
-        try {
-            PivotHttpClientRequest sendingRequest = this.httpClient.createRequest("GET", uri.toString(), "");
-            setHeaderRequest(sendingRequest);
-            sendingRequest.startRequest(result -> {
-                if (result.succeeded()) {
-                    if (result.result().statusCode() == codeExpected) {
-                        HttpClientResponseHelper.bodyHandler(result.result())
-                                .onSuccess(promise::complete)
-                                .onFailure(promise::fail);
-                    } else {
-                        log.error(String.format("[SupportPivot@%s::executeJiraRequest] Fail to execute jira request Request status %s code %s %s",
-                                this.getClass().getSimpleName(), AsyncResultHelper.getOrNullFailMessage(result)));
-                        promise.fail(String.format("Request status %s code %s", result.result().statusMessage(), result.result().statusCode()));
-                    }
+
+        HttpRequest<Buffer> request = HttpRequestHelper.getJiraAuthRequest(HttpMethod.GET, uri.toString());
+
+        request.send(resultAsyncResult -> {
+            if (resultAsyncResult.succeeded()) {
+                HttpResponse<Buffer> response = resultAsyncResult.result();
+                if (response.statusCode() == codeExpected) {
+                    promise.complete(response.body());
                 } else {
-                    log.error(String.format("[SupportPivot@%s::executeJiraRequest] Fail to execute jira request %s",
-                            this.getClass().getSimpleName(), AsyncResultHelper.getOrNullFailMessage(result)));
-                    promise.fail(AsyncResultHelper.getOrNullFailMessage(result));
+                    log.error(String.format("[SupportPivot@%s::executeJiraRequest] Fail to execute jira request Request status %s code %s %s",
+                            this.getClass().getSimpleName(), response.statusMessage(), response.statusCode(), AsyncResultHelper.getOrNullFailMessage(resultAsyncResult)));
+                    promise.fail(String.format("Request status %s code %s", response.statusMessage(), response.statusCode()));
                 }
-            });
-        } catch (Exception e) {
-            return Future.failedFuture(e);
-        }
+            } else {
+                log.error(String.format("[SupportPivot@%s::executeJiraRequest] Fail to execute jira request %s",
+                        this.getClass().getSimpleName(), AsyncResultHelper.getOrNullFailMessage(resultAsyncResult)));
+                promise.fail(AsyncResultHelper.getOrNullFailMessage(resultAsyncResult));
+            }
+        });
 
         return promise.future();
-    }
-
-    private void setHeaderRequest(PivotHttpClientRequest request) {
-        HttpClientRequest clientRequest = request.getHttpClientRequest();
-        clientRequest.putHeader("Authorization", "Basic " + encoder.encodeToString(ConfigManager.getInstance().getJiraAuthInfo().getBytes()))
-                .setFollowRedirects(true);
-        if (!clientRequest.headers().contains("Content-Type")) {
-            clientRequest.putHeader("Content-Type", "application/json");
-        }
     }
 
     private Future<String> getJiraPJ(JiraAttachment jiraAttachment) {
@@ -363,17 +345,18 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
 
         String attachmentLink = jiraAttachment.getContent();
 
-        httpClient.createGetRequest(attachmentLink).startRequest(result -> {
+        HttpRequest<Buffer> httpRequest = HttpRequestHelper.getJiraAuthRequest(HttpMethod.GET, attachmentLink);
+
+        httpRequest.send(result -> {
             if (result.succeeded()) {
-                if (result.result().statusCode() == 200) {
-                    result.result().bodyHandler(bufferGetInfosTicket -> {
-                        String b64Attachment = encoder.encodeToString(bufferGetInfosTicket.getBytes());
-                        promise.complete(b64Attachment);
-                    });
+                HttpResponse<Buffer> response = result.result();
+                if (response.statusCode() == 200) {
+                    String b64Attachment = encoder.encodeToString(response.body().getBytes());
+                    promise.complete(b64Attachment);
                 } else {
                     log.error(String.format("[SupportPivot@%s::getJiraPJ] Error when calling URL: %s %s %s",
                             this.getClass().getSimpleName(), attachmentLink, result.result().statusCode(), AsyncResultHelper.getOrNullFailMessage(result)));
-                    result.result().bodyHandler(body -> log.error(body.toString()));
+                    log.error(response.bodyAsString());
                     promise.fail("Error when getting Jira attachment (" + attachmentLink + ") information");
                 }
             } else {
