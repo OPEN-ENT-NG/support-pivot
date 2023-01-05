@@ -35,11 +35,6 @@ public class JiraController extends ControllerHelper {
     public void updateTicketJira(final HttpServerRequest request) {
         final String idJira = request.params().get(Field.IDJIRA);
         JiraSearch jiraSearch = new JiraSearch().setIdJira(idJira);
-        //This API is unused for now
-        if (true) {
-            Renders.ok(request);
-            return;
-        }
         JsonObject jsonObject = new JsonObject();
         routerService.getPivotTicket(EndpointFactory.getJiraEndpoint(), jiraSearch)
                 .compose(pivotTicket -> routerService.setPivotTicket(EndpointFactory.getPivotEndpoint(), pivotTicket))
