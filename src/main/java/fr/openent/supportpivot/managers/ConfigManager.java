@@ -56,24 +56,13 @@ public class ConfigManager {
         }
     }
 
-    public URI getJiraHostUrl() {
-        try {
-            return new URI(config.getJiraHost());
-        } catch (URISyntaxException e) {
-            log.error(String.format("[SupportPivot@%s::getJiraHostUrl] Bad URL jira-host :  %s ", this.getClass().getSimpleName(), config.getJiraHost()));
-            return URI.create("");
-        }
-    }
-
-    public String getJiraAuthInfo() { return config.getJiraLogin() + ":" + config.getJiraPasswd(); }
-
     public String getJiraLogin() { return config.getJiraLogin();}
 
     public String getJiraPassword() { return config.getJiraPasswd();}
 
     public String getJiraCustomFieldIdForExternalId() { return config.getJiraCustomFields().getOrDefault(Field.ID_EXTERNE, ""); }
 
-    public String getjiraCustomFieldIdForIdent() { return config.getJiraCustomFields().getOrDefault(Field.ID_ENT, ""); }
+    public String getJiraCustomFieldIdForIdent() { return config.getJiraCustomFields().getOrDefault(Field.ID_ENT, ""); }
 
     private void initPublicConfig() {
         publicConfig.put(ConfigField.JIRA_DASH_PASSWD, hidePasswd(rawConfig.getString(ConfigField.JIRA_DASH_PASSWD, "")));

@@ -15,6 +15,7 @@ import fr.wseduc.security.SecuredAction;
 import fr.wseduc.webutils.http.Renders;
 import fr.wseduc.webutils.request.RequestUtils;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.entcore.common.controller.ControllerHelper;
@@ -42,14 +43,18 @@ public class LdeController extends ControllerHelper {
     public void getListeTicketsLDE(final HttpServerRequest request) {
         String date = request.params().get(Field.DATE);
         JiraSearch jiraSearch = new JiraSearch().setDate(date);
-        routerService.getPivotTicketList(EndpointFactory.getJiraEndpoint(), jiraSearch)
-                .onSuccess(pivotTicketList -> {
+        JsonObject jsonObject = new JsonObject();
+        ServiceManager.getInstance().getMongoService().saveTicket("getListeTicketsLDEIn", jiraSearch.toJson())
+                .compose(event -> routerService.getPivotTicketList(EndpointFactory.getJiraEndpoint(), jiraSearch))
+                .compose(pivotTicketList -> {
                     List<LdeTicket> ldeTicketList = pivotTicketList.stream()
                             .map(LdeTicket::new)
                             .map(LdeTicket::listFormat)
                             .collect(Collectors.toList());
-                    Renders.renderJson(request, IModelHelper.toJsonArray(ldeTicketList));
+                    jsonObject.put(Field.RESULT, IModelHelper.toJsonArray(ldeTicketList));
+                    return ServiceManager.getInstance().getMongoService().saveTicket("getListeTicketsLDEOut", jsonObject);
                 })
+                .onSuccess(event -> Renders.renderJson(request, jsonObject.getJsonArray(Field.RESULT)))
                 .onFailure(error -> {
                     log.error(String.format("[SupportPivot@%s::getListeTicketsLDE] GET /lde/tickets failed : %s",
                             this.getClass().getSimpleName(), error.getMessage()));
@@ -62,8 +67,14 @@ public class LdeController extends ControllerHelper {
     public void getTicketLDE(final HttpServerRequest request) {
         String id_param_value = request.params().get(Field.ID);
         JiraSearch jiraSearch = new JiraSearch().setIdJira(id_param_value);
-        routerService.getPivotTicket(EndpointFactory.getJiraEndpoint(), jiraSearch)
-                .onSuccess(pivotTicket -> Renders.renderJson(request, new LdeTicket(pivotTicket).toJson()))
+        JsonObject jsonObject = new JsonObject();
+        ServiceManager.getInstance().getMongoService().saveTicket("getTicketLDEIn", jiraSearch.toJson())
+                .compose(event -> routerService.getPivotTicket(EndpointFactory.getJiraEndpoint(), jiraSearch))
+                .compose(pivotTicket -> {
+                    jsonObject.put(Field.RESULT, new LdeTicket(pivotTicket).toJson());
+                    return ServiceManager.getInstance().getMongoService().saveTicket("getTicketLDEOut", new LdeTicket(pivotTicket).toJson());
+                })
+                .onSuccess(event -> Renders.renderJson(request, jsonObject.getJsonObject(Field.RESULT)))
                 .onFailure(error -> {
                     log.error(String.format("[SupportPivot@%s::getTicketLDE] GET /lde/ticket/%s failed : %s",
                             this.getClass().getSimpleName(), id_param_value, error.getMessage()));
@@ -75,14 +86,19 @@ public class LdeController extends ControllerHelper {
     @SecuredAction(value = "", type = ActionType.AUTHENTICATED)
     //todo rajouter la save du du ticket en mongo
     public void putTicketLDE(final HttpServerRequest request) {
-        RequestUtils.bodyToJson(request, body -> {
-            routerService.setPivotTicket(EndpointFactory.getJiraEndpoint(), new PivotTicket(body))
-                    .onSuccess(jiraTicket -> Renders.renderJson(request, jiraTicket.toJson()))
-                    .onFailure(error -> {
-                        log.error(String.format("[SupportPivot@%s::getTicketLDE] PUT /lde/ticket/ failed : %s",
-                                this.getClass().getSimpleName(), error.getMessage()));
-                        Renders.badRequest(request);
-                    });
-        });
+        JsonObject jsonObject = new JsonObject();
+        RequestUtils.bodyToJson(request, body ->
+                ServiceManager.getInstance().getMongoService().saveTicket("putTicketLDEIn", body)
+                        .compose(event -> routerService.setPivotTicket(EndpointFactory.getJiraEndpoint(), new PivotTicket(body)))
+                        .compose(jiraTicket -> {
+                            jsonObject.put(Field.RESULT, jiraTicket.toJson());
+                            return ServiceManager.getInstance().getMongoService().saveTicket("putTicketLDEOut", jiraTicket.toJson());
+                        })
+                        .onSuccess(event -> Renders.renderJson(request, jsonObject.getJsonObject(Field.RESULT)))
+                        .onFailure(error -> {
+                            log.error(String.format("[SupportPivot@%s::getTicketLDE] PUT /lde/ticket/ failed : %s",
+                                    this.getClass().getSimpleName(), error.getMessage()));
+                            Renders.badRequest(request);
+                        }));
     }
 }
