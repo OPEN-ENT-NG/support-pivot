@@ -11,8 +11,9 @@ import java.nio.charset.StandardCharsets;
 public class JiraFilterBuilder extends JsonObject {
 
     private static final Logger log = LoggerFactory.getLogger(JiraFilterBuilder.class);
-    StringBuilder jqlQueryString = new StringBuilder();
-    String outputFields = "";
+    private final StringBuilder jqlQueryString = new StringBuilder();
+    private String outputFields = "";
+    private String maxResults = "";
 
     public void addAssigneeFilter(String assignee) {
         if (assignee != null) jqlQueryString.append(addFilter(("assignee = " + assignee)));
@@ -76,9 +77,13 @@ public class JiraFilterBuilder extends JsonObject {
         }
     }
 
+    public void maxResults(int maxResults) {
+        this.maxResults = "&maxResults=" + maxResults;
+    }
+
     public String buildSearchQueryString() {
         try {
-            return "jql=" + URLEncoder.encode(jqlQueryString.toString(), StandardCharsets.UTF_8.toString()) + outputFields;
+            return "jql=" + URLEncoder.encode(jqlQueryString.toString(), StandardCharsets.UTF_8.toString()) + outputFields + this.maxResults;
         } catch (UnsupportedEncodingException e) {
             log.error(String.format("[SupportPivot@%s::buildSearchQueryString] Error during build Jira search request: %s", this.getClass().getSimpleName(), jqlQueryString.toString()));
             return "";

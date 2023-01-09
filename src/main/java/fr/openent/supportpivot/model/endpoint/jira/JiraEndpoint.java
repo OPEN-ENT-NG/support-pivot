@@ -51,9 +51,9 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
         if (jiraSearch.getIdJira() != null) {
             future = this.getJiraTicketByJiraId(jiraSearch.getIdJira());
         } else if (jiraSearch.getIdExterne() != null) {
-            future = this.getJiraTicketByExternalId(jiraSearch.getIdExterne());
+            future = this.getJiraTicketByExternalId(jiraSearch);
         } else if (jiraSearch.getIdEnt() != null) {
-            future = this.getJiraTicketByEntId(jiraSearch.getIdEnt());
+            future = this.getJiraTicketByEntId(jiraSearch);
         }
 
         future
@@ -72,11 +72,7 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
     @Override
     public Future<List<JiraTicket>> getPivotTicketList(JiraSearch searchTicket) {
         Promise<List<JiraTicket>> promise = Promise.promise();
-        JsonObjectSafe data = new JsonObjectSafe();
-        data.put(Field.ATTRIBUTION, Field.LDE);
-        data.put(Field.CUSTOM_FIELD, Field.ID_EXTERNE);
-        data.putSafe(Field.UPDATED, searchTicket.getDate());
-        URI uri = prepareSearchRequest(data);
+        URI uri = prepareSearchRequest(searchTicket);
 
         executeJiraRequest(uri, 200)
                 .onSuccess(body -> {
@@ -226,25 +222,20 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
         return promise.future();
     }
 
-    private URI prepareSearchRequest(JsonObject data) {
+    private URI prepareSearchRequest(JiraSearch jiraSearch) {
         JiraFilterBuilder filter = new JiraFilterBuilder();
         Map<String, String> jiraField = ConfigManager.getInstance().getConfig().getJiraCustomFields();
-        if (data.containsKey(Field.ATTRIBUTION)) {
-            String customFieldFilter = data.getString(Field.CUSTOM_FIELD, "");
-            if (customFieldFilter.isEmpty()) {
-                filter.addAssigneeFilter(data.getString(Field.ATTRIBUTION));
-            } else {
-                String customFieldName = jiraField.getOrDefault(customFieldFilter, "");
-                if (customFieldName == null || customFieldName.isEmpty()) {
-                    log.error(String.format("[SupportPivot@%s::prepareSearchRequest]: Can not find customFieldFilter %s",
-                            this.getClass().getSimpleName(), customFieldFilter));
-                }
-                filter.addAssigneeOrCustomFieldFilter(data.getString(Field.ATTRIBUTION),
-                        customFieldName, null);
+        if (jiraSearch.getAttribution() != null) {
+            String customFieldName = jiraField.getOrDefault(Field.ID_EXTERNE, "");
+            if (customFieldName == null || customFieldName.isEmpty()) {
+                log.error(String.format("[SupportPivot@%s::prepareSearchRequest]: Can not find customFieldFilter %s",
+                        this.getClass().getSimpleName(), Field.ID_EXTERNE));
             }
+            filter.addAssigneeOrCustomFieldFilter(jiraSearch.getAttribution(),
+                    customFieldName, null);
         }
-        if (data.containsKey(Field.UPDATED)) {
-            filter.addMinUpdateDate(data.getString(Field.UPDATED));
+        if (jiraSearch.getDate() != null) {
+            filter.addMinUpdateDate(jiraSearch.getDate());
         }
         filter.onlyIds();
         filter.addFieldDates();
@@ -254,6 +245,7 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
                     this.getClass().getSimpleName()));
         }
         filter.addFields(creationFieldJira);
+        filter.maxResults(jiraSearch.getMaxResult());
 
         return ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
     }
@@ -273,12 +265,13 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
         return promise.future();
     }
 
-    private Future<JiraSearchResult> getJiraTicketByExternalId(String idExternal) {
+    private Future<JiraSearchResult> getJiraTicketByExternalId(JiraSearch jiraSearch) {
         Promise<JiraSearchResult> promise = Promise.promise();
 
         String idCustomField = ConfigManager.getInstance().getJiraCustomFieldIdForExternalId().replaceAll(Field.CUSTOMFIELD_, "");
         JiraFilterBuilder filter = new JiraFilterBuilder();
-        filter.addCustomfieldFilter(idCustomField, idExternal);
+        filter.addCustomfieldFilter(idCustomField, jiraSearch.getIdExterne());
+        filter.maxResults(jiraSearch.getMaxResult());
         URI uri = ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
         executeJiraRequest(uri, 200)
                 .onSuccess(body -> promise.complete(new JiraSearchResult(new JsonObject(body))))
@@ -291,12 +284,13 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
         return promise.future();
     }
 
-    private Future<JiraSearchResult> getJiraTicketByEntId(String idEnt) {
+    private Future<JiraSearchResult> getJiraTicketByEntId(JiraSearch jiraSearch) {
         Promise<JiraSearchResult> promise = Promise.promise();
 
         String idCustomField = ConfigManager.getInstance().getJiraCustomFieldIdForIdent().replaceAll("customfield_", "");
         JiraFilterBuilder filter = new JiraFilterBuilder();
-        filter.addCustomfieldFilter(idCustomField, idEnt);
+        filter.addCustomfieldFilter(idCustomField, jiraSearch.getIdEnt());
+        filter.maxResults(jiraSearch.getMaxResult());
         URI uri = ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
         executeJiraRequest(uri, 200)
                 .onSuccess(body -> promise.complete(new JiraSearchResult(new JsonObject(body))))
