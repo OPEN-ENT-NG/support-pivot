@@ -48,8 +48,7 @@ public class SupportEndpoint implements Endpoint<SupportTicket, SupportSearch> {
                 handlerToAsyncHandler(message -> {
                     if (Field.OK.equals(message.body().getString(Field.STATUS))) {
                         log.info(String.format("[SupportPivot@%s::send] %s", this.getClass().getSimpleName(), message.body()));
-                        //Todo voir si c'est normal que l'on renvoit un nouveau ticket
-                        promise.complete(new SupportTicket());
+                        promise.complete(new SupportTicket(ticket));
                     } else {
                         log.error(String.format("[SupportPivot@%s::send] Fail to send to support %s",
                                 this.getClass().getSimpleName(), message.body().toString()));
