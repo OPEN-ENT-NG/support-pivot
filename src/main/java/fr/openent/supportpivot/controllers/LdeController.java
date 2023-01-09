@@ -42,7 +42,11 @@ public class LdeController extends ControllerHelper {
     @SecuredAction(value = "", type = ActionType.AUTHENTICATED)
     public void getListeTicketsLDE(final HttpServerRequest request) {
         String date = request.params().get(Field.DATE);
-        JiraSearch jiraSearch = new JiraSearch().setDate(date);
+        JiraSearch jiraSearch = new JiraSearch().setDate(date).setAttribution(Field.LDE);
+        String maxResults = request.params().get(Field.MAXRESULTS);
+        if (maxResults != null && !maxResults.isEmpty()) {
+            jiraSearch.setMaxResult(Integer.parseInt(maxResults));
+        }
         JsonObject jsonObject = new JsonObject();
         ServiceManager.getInstance().getMongoService().saveTicket("getListeTicketsLDEIn", jiraSearch.toJson())
                 .compose(event -> routerService.getPivotTicketList(EndpointFactory.getJiraEndpoint(), jiraSearch))

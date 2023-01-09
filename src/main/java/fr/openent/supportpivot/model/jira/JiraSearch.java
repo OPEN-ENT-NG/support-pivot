@@ -10,6 +10,8 @@ public class JiraSearch implements ISearchTicket, IModel<JiraSearch> {
     private String idExterne;
     private String idEnt;
     private String date;
+    private int maxResult = 50; //Jira return 50 value by default
+    private String attribution;
 
     public JiraSearch() {
     }
@@ -51,6 +53,24 @@ public class JiraSearch implements ISearchTicket, IModel<JiraSearch> {
 
     public JiraSearch setDate(String date) {
         this.date = date;
+        return this;
+    }
+
+    public int getMaxResult() {
+        return maxResult;
+    }
+
+    public JiraSearch setMaxResult(int maxResult) {
+        this.maxResult = maxResult;
+        return this;
+    }
+
+    public String getAttribution() {
+        return attribution;
+    }
+
+    public JiraSearch setAttribution(String attribution) {
+        this.attribution = attribution;
         return this;
     }
 
