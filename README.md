@@ -3,7 +3,7 @@
 * Licence : [AGPL v3](http://www.gnu.org/licenses/agpl.txt) - Copyright Ville de Paris
 * Développeur(s) : CGI
 * Financeur(s) : Région Ville de Paris
-* Description : Application permettant l'automatisation de l'échange de tickets support entre l'application support de l'ENT, l'outil IWS, et JIRA. 
+* Description : Application permettant l'automatisation de l'échange de tickets support entre l'application support de l'ENT, LDE, et JIRA. 
 
 ## Déployer dans ent-core
 <pre>
@@ -16,40 +16,32 @@ Ce module permet l'échange de tickets entre différents outils de ticketing.
 
 Les outils supportés sont :
 * le module support de l'ENT ( mini v1.1)
-* L'outil IWS d'ISILOG
+* L'outil LDE
 * JIRA d'Attlassian
 
 Flux de création autorisés :
-  ENT -> IWS
-  IWS -> JIRA
-  IWS -> ENT   : interdit
-  ENT -> JIRA  : interdit
+  ENT -> JIRA
+  LDE -> JIRA   : interdit
   JIRA -> *    : interdit
   
 Flux de Mise à jour autorisés :
-  ENT -> IWS
   ENT -> JIRA
-  IWS -> ENT
-  IWS -> JIRA
+  LDE -> JIRA
   JIRA -> ENT
-  JIRA -> IWS
            
 
 
 ## Fonctionnalités
 
 Le module expose 
-           sur le BUS une interface permettant d'escalader un ticket vers IWS.
-           une route permettant à IWS d'escalader des tickets vers le module support de l'ENT et/ou JIRA.
-           une route permettant à JIRA d'escalader un ticket vers IWS et le mosule support de l'ENT (maj uniquement)
+           sur le BUS une interface permettant d'escalader un ticket vers JIRA. (Utiliser par support de l'ENT)
+           une route permettant à LDE d'escalader des tickets vers JIRA.
+           une route permettant à JIRA d'escalader un ticket vers le mosule support de l'ENT (maj uniquement)
 
 Le module exploite 
-           sur le BUS l'interface du module Support pour escalader les mise à jour provenant de IWS ou JIRA
-           l'emailSender du springboard pour l'escalade vers IWS depuis le module support ou JIRA.  
+           sur le BUS l'interface du module Support pour escalader les mise à jour provenant JIRA
 
 ## Configuration
-
-pré-requis : un mail sender doit être configuré sur la plateforme.
 
 Contenu du fichier deployment/support/conf.json.template :
 
@@ -73,7 +65,6 @@ Contenu du fichier deployment/support/conf.json.template :
     		"default-attribution" : "${supportPivotDefAttribution}",
     		"default-tickettype" : "${supportPivotDefTicketType}",
     		"default-priority" : "${supportPivotDefTicketPriority}",
-            "mail-iws" : "${supportPivotIWSMail}",
             "jira-login" : "${supportPivotJIRALogin}",
             "jira-passwd" : "${supportPivotJIRAPwd}",
             "jira-host" : "${supportPivotJIRAHost}",
@@ -83,14 +74,11 @@ Contenu du fichier deployment/support/conf.json.template :
             "jira-allowed-priority":  "${supportPivotJIRAAllowedPriority}",
             "jira-custom-fields" : {
                 "id_ent" : "${supportPivotCFIdEnt}",
-                "id_iws" : "${supportPivotCFIdIws}",
                 "id_externe" : "${supportPivotCFIdExterne}",
                 "status_ent" : "${supportPivotCFStEnt}",
-                "status_iws" : "${supportPivotCFStIws}",
                 "status_externe" : "${supportPivotCFStExterne}",
                 "creation" : "${supportPivotCFCreateDate}",
                 "resolution_ent" : "${supportPivotCFResEnt}",
-                "resolution_iws" : "${supportPivotCFResIws}",
                 "creator" : "${supportPivotCFCreator}",
                 "response_technical" : "${supportPivotCFTechResp}",
                 "uai" : "${supportPivotCFUai}"
@@ -114,10 +102,6 @@ Les paramètres spécifiques à l'application support sont les suivants :
     "default-tickettype"    : "${supportPivotDefTicketType}"    , default ticket type
     "default-priority"      : "${supportPivotDefTicketPriority}", default ticket priority
     -------------------------------------------------------------------------------------------------------------------
-                IWS escalating
-    -------------------------------------------------------------------------------------------------------------------
-    "mail-iws"              : "${supportPivotIWSMail}"          , mail adress to escalate ticket to IWS
-    -------------------------------------------------------------------------------------------------------------------
                 JIRA escalating
     -------------------------------------------------------------------------------------------------------------------
     "jira-login"                : "${supportPivotJIRALogin"                 , JIRA login 
@@ -127,25 +111,22 @@ Les paramètres spécifiques à l'application support sont les suivants :
     "jira-allowed-tickettype"   :  "${supportPivotJIRAAllowedTicketType}"   , JIRA ticket type i.e [bug, task] 
     "jira-allowed-priority"     :  "${supportPivotJIRAAllowedPriority}"     , Order 3 priorities [low, mid, high]
     -------------------------------------------------------------------------------------------------------------------
-                JIRA Custom fields used to display IWS informations
+                JIRA Custom fields used to display informations
                 All theses customs fields have to be defined in JIRA for the screens 
     -------------------------------------------------------------------------------------------------------------------
     "id_ent"                : "${supportPivotCFIdEnt}"          , Jira field id for ENT id of the ticket
-    "id_iws"                : "${supportPivotCFIdIws}"          , Jira field id for IWS id of the ticket
     "id_externe"            : "${supportPivotCFIdExterne}"      , Jira field id for external id of the ticket
     "status_ent"            : "${supportPivotCFStEnt}"          , Jira field id for ENT status of the ticket
-    "status_iws"            : "${supportPivotCFStIws}"          , Jira field id for IWS id of the ticket
     "status_externe"        : "${supportPivotCFStExterne}"      , Jira field id for external id of the ticket
-    "creation"              : "${supportPivotCFCreateDate}"     , Jira field id for IWS creation date
+    "creation"              : "${supportPivotCFCreateDate}"     , Jira field id for creation date
     "resolution_ent"        : "${supportPivotCFResEnt}"         , Jira field id for ENT resolution date
-    "resolution_iws"        : "${supportPivotCFResIws}"         , Jira field id for IWS resolution date
     "creator"               : "${supportPivotCFCreator}"        , Jira field id for creator of the ticket
     "response_technical"    : "${supportPivotCFTechResp}"       , Jira field id for CGI technical response
     "statutsJira"           : ${supportPivotMappingStatus}      , Status Mapping table. give for each JIRA status a 
-                                                                  corresponding expected IWS status
+                                                                  corresponding expected status
                                                                    ex. [ "Nouveau": ["JiraStatus1"],
                                                                          "Ouvert": ["JiraStatus2","JiraStatus3"],
                                                                          "Résolu": ["JiraStatus4"],
                                                                          "Fermé": ["JiraStatus5"]   ]             
-    "statutsDefault"        : "${supportPivotDefaultStatut}"                 , Default statut sent to IWS if no corresponding found 
+    "statutsDefault"        : "${supportPivotDefaultStatut}"                 , Default statut sent if no corresponding found 
                                                                    in mapping table above

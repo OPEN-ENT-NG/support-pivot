@@ -39,8 +39,8 @@ public class ConfigManager {
      * Send log when one jira custom field is missing
      */
     private void checkMissingFields() {
-        List<String> requiredFieldsList = Arrays.asList(Field.ID_ENT, Field.ID_IWS, Field.ID_EXTERNE, Field.STATUS_ENT,
-                Field.STATUS_IWS, Field.STATUS_EXTERNE, Field.CREATION, Field.RESOLUTION_ENT, Field.RESOLUTION_IWS, Field.CREATOR,
+        List<String> requiredFieldsList = Arrays.asList(Field.ID_ENT, Field.ID_EXTERNE, Field.STATUS_ENT,
+                Field.STATUS_EXTERNE, Field.CREATION, Field.RESOLUTION_ENT, Field.CREATOR,
                 Field.RESPONSE_TECHNICAL, Field.UAI);
         requiredFieldsList.stream()
                 .filter(field -> !config.getJiraCustomFields().containsKey(field))

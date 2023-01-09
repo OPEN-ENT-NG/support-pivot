@@ -51,14 +51,11 @@ public class ConfigModelTest {
                 "  ],\n" +
                 "  \"jira-custom-fields\": {\n" +
                 "    \"id_ent\": \"customfield_12708\",\n" +
-                "    \"id_iws\": \"cusomfield_13401\",\n" +
                 "    \"id_externe\": \"customfield_13401\",\n" +
                 "    \"status_ent\": \"customfield_12711\",\n" +
-                "    \"status_iws\": \"customfield_12712\",\n" +
                 "    \"status_externe\": \"customfield_13402\",\n" +
                 "    \"creation\": \"customfield_12705\",\n" +
                 "    \"resolution_ent\": \"customfield_12706\",\n" +
-                "    \"resolution_iws\": \"customfield_12707\",\n" +
                 "    \"creator\": \"customfield_11405\",\n" +
                 "    \"response_technical\": \"customfield_12710\",\n" +
                 "    \"uai\": \"customfield_13403\"\n" +

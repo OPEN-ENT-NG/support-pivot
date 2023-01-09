@@ -100,12 +100,6 @@ public class JiraServiceImpl implements JiraService {
         this.jiraProjectName = config.getJiraProjectKey();
         jiraField = config.getJiraCustomFields();
 
-        if (jiraField.containsKey(Field.ID_EXTERNAL)) {
-            //Retro-compatibility external fields are historical labeled iws
-            jiraField.put(Field.ID_IWS, jiraField.getOrDefault(ConfigField.ID_EXTERNAL, ""));
-            jiraField.put(Field.STATUS_IWS, jiraField.getOrDefault(ConfigField.STATUS_EXTERNAL, ""));
-            jiraField.put(Field.RESOLUTION_IWS, jiraField.getOrDefault(ConfigField.RESOLUTION_EXTERNAL, ""));
-        }
         entStatusMapping = config.getEntStatusMapping();
         jiraAllowedTickettype = new JsonArray(config.getJiraAllowedPriority()).copy();
         this.defaultJiraTickettype = config.getDefaultTicketType();

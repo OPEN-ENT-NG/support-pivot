@@ -25,12 +25,6 @@
 		"default-attribution" : "${supportPivotDefAttribution}",
 		"default-tickettype" : "${supportPivotDefTicketType}",
 		"default-priority" : "${supportPivotDefTicketPriority}",
-    <% if (supportPivotExternalTools != null && "IWS".equals(supportPivotExternalTools)) { %>
-        "iws-endpoint" : {
-            "mail-iws" : "${supportPivotIWSMail}"
-        },
-        "mail-iws" : "${supportPivotIWSMail}",
-    <% } %>
         "jira-login" : "${supportPivotJIRALogin}",
         "jira-passwd" : "${supportPivotJIRAPwd}",
         "jira-host" : "${supportPivotJIRAHost}",
@@ -41,14 +35,11 @@
         "jira-allowed-priority":  ${supportPivotJIRAAllowedPriority},
         "jira-custom-fields" : {
             "id_ent" : "${supportPivotCFIdEnt}",
-            "id_iws" : "${supportPivotCFIdIws}",
             "id_externe" : "${supportPivotCFIdExterne}",
             "status_ent" : "${supportPivotCFStEnt}",
-            "status_iws" : "${supportPivotCFStIws}",
             "status_externe" : "${supportPivotCFStExterne}",
             "creation" : "${supportPivotCFCreateDate}",
             "resolution_ent" : "${supportPivotCFResEnt}",
-            "resolution_iws" : "${supportPivotCFResIws}",
             "creator" : "${supportPivotCFCreator}",
             "response_technical" : "${supportPivotCFTechResp}",
             "uai" : "${supportPivotCFUai}"
