@@ -165,15 +165,13 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
 
             pivotTicket.setStatutEnt(fields.getCustomFields(statusEntField, ""));
 
-            String currentStatus = fields.getStatus().getName();
-
-            String currentStatusToIWS = jiraStatusConfigMapping.stream()
-                    .filter(jiraStatusConfig -> jiraStatusConfig.contains(currentStatus))
+            String currentStatus = jiraStatusConfigMapping.stream()
+                    .filter(jiraStatusConfig -> jiraStatusConfig.contains(fields.getStatus().getName()))
                     .map(JiraStatusConfig::getKey)
                     .findFirst()
                     .orElse(defaultJiraStatusConfig.getKey());
 
-            pivotTicket.setStatutJira(currentStatusToIWS);
+            pivotTicket.setStatutJira(currentStatus);
 
 
             pivotTicket.setDateCreation(fields.getCustomFields(creationField, null));

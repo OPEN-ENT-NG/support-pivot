@@ -42,10 +42,6 @@ import org.entcore.common.controller.ControllerHelper;
 /**
  * Created by colenot on 07/12/2017.
  * Controller for support pivot
- * Exposed API
- * /demande : Register a demande from IWS
- * /testMail/:mail : Send a test mail to address in parameter
- * /demandeENT : Register a demande from Support module
  */
 public class SupportController extends ControllerHelper {
     private final MongoService mongoService;
