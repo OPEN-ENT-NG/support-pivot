@@ -6,6 +6,9 @@ public class StringHelper {
         throw new IllegalStateException("Utility class");
     }
 
+    /**
+     * Convert a string in CamelCase to snake_case
+     */
     public static String camelToSnake(String str)
     {
         if (isNullOrEmpty(str)) {
@@ -44,6 +47,9 @@ public class StringHelper {
         return result.toString();
     }
 
+    /**
+     * @return true if string is empty or null
+     */
     public static boolean isNullOrEmpty(String string) {
         return string == null || string.isEmpty();
     }

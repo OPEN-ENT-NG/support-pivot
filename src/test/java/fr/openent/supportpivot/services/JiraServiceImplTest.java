@@ -130,7 +130,7 @@ public class JiraServiceImplTest {
     }
 
     @Test
-    public void prepareTicketForCreationTest(TestContext ctx) {
+    public void prepareTicketForCreationTest(TestContext ctx) throws Exception {
         PivotTicket pivotTicket = PowerMockito.spy(new PivotTicket());
         pivotTicket.setDateCreation("2000-01-05T08:30:00.000");
         pivotTicket.setModules(Arrays.asList("/pages"));
@@ -148,7 +148,9 @@ public class JiraServiceImplTest {
                 "\"customfield_12711\":\"3\",\"customfield_12705\":\"05/01/2000 09:30\",\"customfield_12706\":\"2000-01-15T08:30:00.000\"," +
                 "\"reporter\":{\"name\":\"assistanceMLN\"},\"customfield_11405\":\"Demandeur\",\"priority\":{\"name\":\"Highest\"}," +
                 "\"components\":[{\"name\":\"Pages\"}]}}";
-        ctx.assertEquals(this.jiraService.prepareTicketForCreation(pivotTicket).toString(), expected);
+
+        JsonObject jsonObject = Whitebox.invokeMethod(this.jiraService, "prepareTicketForCreation", pivotTicket);
+        ctx.assertEquals(jsonObject.toString(), expected);
     }
 
     @Test

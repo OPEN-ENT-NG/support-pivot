@@ -28,7 +28,7 @@ import io.vertx.core.Future;
  */
 public interface JiraService {
     /**
-     * Send pivot information -- to Jira<
+     * Send pivot ticket to Jira
      * A ticket is created with the Jira API with all the pivot information received
      *
      * @param pivotTicket pivot format
