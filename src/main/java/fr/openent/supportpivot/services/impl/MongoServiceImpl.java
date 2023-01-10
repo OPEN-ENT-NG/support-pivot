@@ -53,14 +53,10 @@ public class MongoServiceImpl implements MongoService {
     }
 
     @Override
-    public Future<JsonObject> getMongoInfos(String mailTo) {
+    public Future<JsonObject> getMongoInfos(JsonObject request) {
         Promise<JsonObject> promise = Promise.promise();
-        try {
-            JsonObject req = new JsonObject(java.net.URLDecoder.decode(mailTo, Field.ENCODE_UTF_8));
-            mongo.find(mongoCollection, req, MongoDbResult.validResultHandler(FutureHelper.handlerEitherPromise(promise)));
-        } catch(Exception e) {
-            return Future.failedFuture(String.format("[SupportPivot@%s::getMongoInfos] Malformed json", this.getClass().getSimpleName()));
-        }
+
+        mongo.find(mongoCollection, request, MongoDbResult.validResultHandler(FutureHelper.handlerEitherPromise(promise)));
 
         return promise.future();
     }

@@ -8,6 +8,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Object used to create the search query for the Jira API call
+ */
 public class JiraFilterBuilder extends JsonObject {
 
     private static final Logger log = LoggerFactory.getLogger(JiraFilterBuilder.class);
@@ -77,7 +80,7 @@ public class JiraFilterBuilder extends JsonObject {
         }
     }
 
-    public void maxResults(int maxResults) {
+    public void setMaxResults(int maxResults) {
         this.maxResults = "&maxResults=" + maxResults;
     }
 

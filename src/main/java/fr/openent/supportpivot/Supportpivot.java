@@ -100,7 +100,5 @@ public class Supportpivot extends BaseServer {
 		addController(new SupportController());
 		addController(new JiraController());
 		addController(new LdeController());
-
 	}
-
 }

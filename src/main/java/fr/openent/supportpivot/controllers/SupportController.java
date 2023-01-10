@@ -39,6 +39,9 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonObject;
 import org.entcore.common.controller.ControllerHelper;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+
 /**
  * Created by colenot on 07/12/2017.
  * Controller for support pivot
@@ -128,9 +131,14 @@ public class SupportController extends ControllerHelper {
     @Get("getMongoInfos/:request")
     @SecuredAction("supportpivot.ws.dbrequest")
     public void getMongoInfos(final HttpServerRequest request) {
-        final String mailTo = request.params().get(Field.REQUEST);
-        this.mongoService.getMongoInfos(mailTo)
-                .onComplete(getDefaultResponseHandlerAsync(request));
+        final String encoderRequest = request.params().get(Field.REQUEST);
+        try {
+            String decoderRequest = URLDecoder.decode(encoderRequest, Field.ENCODE_UTF_8);
+            this.mongoService.getMongoInfos(new JsonObject(decoderRequest))
+                    .onComplete(getDefaultResponseHandlerAsync(request));
+        } catch (UnsupportedEncodingException e) {
+            Renders.renderError(request, new JsonObject().put(Field.ERRORMESSAGE, "UnsupportedEncodingException"));
+        }
     }
 
     @Get("config")

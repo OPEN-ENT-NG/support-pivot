@@ -19,11 +19,10 @@
 package fr.openent.supportpivot.services.impl;
 
 import fr.openent.supportpivot.Supportpivot;
-import fr.openent.supportpivot.constants.ConfigField;
 import fr.openent.supportpivot.constants.Field;
 import fr.openent.supportpivot.helpers.DateHelper;
-import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.helpers.HttpRequestHelper;
+import fr.openent.supportpivot.helpers.JsonObjectSafe;
 import fr.openent.supportpivot.helpers.StringHelper;
 import fr.openent.supportpivot.managers.ConfigManager;
 import fr.openent.supportpivot.managers.ServiceManager;
@@ -87,6 +86,12 @@ public class JiraServiceImpl implements JiraService {
             Field.BLOQUANT);
     public static final int COMMENT_LENGTH = 4;
 
+    /**
+     * Generate a Boundary for a Multipart HTTPRequest
+     * return generated Boundary
+     */
+    private final static char[] MULTIPART_CHARS = "-_1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
+
     public JiraServiceImpl() {
         ConfigModel config = ConfigManager.getInstance().getConfig();
 
@@ -105,16 +110,6 @@ public class JiraServiceImpl implements JiraService {
         this.defaultJiraTickettype = config.getDefaultTicketType();
         this.defaultPriority = config.getDefaultPriority();
         this.jiraAllowedPriority = new JsonArray(config.getJiraAllowedPriority()).copy();
-    }
-
-    /**
-     * Get a modules name ENT-like, returns the module name PIVOT-like
-     * Returns original name by default
-     * @param moduleName ENT-like module name
-     * @return PIVOT-like module name encoded in UTF-8
-     */
-    private String moduleEntToPivot(String moduleName) {
-        return Supportpivot.applicationsMap.getOrDefault(moduleName, Field.NOTEXIST);
     }
 
     @Override
@@ -151,6 +146,39 @@ public class JiraServiceImpl implements JiraService {
         return promise.future();
     }
 
+    @Override
+    public Future<JiraTicket> getFromJira(final String jiraTicketId) {
+        Promise<JiraTicket> promise = Promise.promise();
+
+        final URI urlGetTicketGeneralInfo = this.jiraAbsUrl.resolve(jiraTicketId);
+
+        HttpRequest<Buffer> request = HttpRequestHelper.getJiraAuthRequest(HttpMethod.GET, urlGetTicketGeneralInfo.toString());
+
+        request.send(responseAsyncResult -> {
+            if (responseAsyncResult.failed()) {
+                promise.fail(String.format("Jira request error : %s", responseAsyncResult.cause()));
+            } else {
+                HttpResponse<Buffer> response = responseAsyncResult.result();
+                if (response.statusCode() == HttpResponseStatus.OK.code()) {
+                    promise.complete(new JiraTicket(response.bodyAsJsonObject()));
+                } else {
+                    LOGGER.error(String.format("[SupportPivot@%s::getFromJira] Error when calling URL : %s : %s %s ",
+                            this.getClass().getSimpleName(), urlGetTicketGeneralInfo, response.statusCode(), response.statusMessage()));
+                    LOGGER.error(response.body().toString());
+                    promise.fail("Error when gathering Jira ticket information");
+                }
+            }
+        });
+
+        return promise.future();
+    }
+
+    /**
+     * Create a new ticket in jira
+     *
+     * @param pivotTicket the pivotTicket with the information to create the ticket
+     * @return a future complete with the same pivotTicket
+     */
     private Future<PivotTicket> createJiraTicket(PivotTicket pivotTicket) {
         Promise<PivotTicket> promise = Promise.promise();
 
@@ -192,10 +220,14 @@ public class JiraServiceImpl implements JiraService {
         return promise.future();
     }
 
-    public JsonObject prepareTicketForCreation(PivotTicket pivotTicket) {
-
+    /**
+     * Prepare a jsonObject from a pivotTicket that will create the ticket in jira
+     *
+     * @param pivotTicket the ticket we want to prepare
+     * @return a jira-readable jsonObject to create a ticket
+     */
+    private JsonObject prepareTicketForCreation(PivotTicket pivotTicket) {
         final JsonObject jsonJiraTicket = new JsonObject();
-
         //changeFormatDate
         String dateCreaField = pivotTicket.getDateCreation() != null ?
                 DateHelper.convertDateFormat(DateHelper.convertStringToDate(pivotTicket.getDateCreation())) : "";
@@ -262,6 +294,13 @@ public class JiraServiceImpl implements JiraService {
         return jsonJiraTicket;
     }
 
+    /**
+     * Create new comments in a jira issue using the jira API
+     *
+     * @param newComments list of new comments created
+     * @param jiraTicket the jira ticket where you want to add the comments
+     * @return a future completed
+     */
     private Future<Void> updateComments(List<String> newComments, JiraTicket jiraTicket) {
         Promise<Void> promise = Promise.promise();
         
@@ -283,10 +322,11 @@ public class JiraServiceImpl implements JiraService {
     }
 
     /**
-     * Send one Jira Comments
+     * Create one new comment in a jira issue using the jira API
      *
-     * @param idJira jira ticket id
-     * @param comment comment to send
+     * @param idJira new comments created
+     * @param comment the jira ticket where you want to add the comment
+     * @return a future completed
      */
     private Future<Void> sendJiraComment(final String idJira, final String comment) {
         Promise<Void> promise = Promise.promise();
@@ -401,7 +441,13 @@ public class JiraServiceImpl implements JiraService {
         return promise.future();
     }
 
-    public Future<PivotTicket> updateJiraTicket(final PivotTicket pivotTicket) {
+    /**
+     * Update a jira ticket based on a pivotTicket
+     *
+     * @param pivotTicket the pivotTicket which contains the information of the ticket to update
+     * @return a future completed whit the same pivotTicket
+     */
+    private Future<PivotTicket> updateJiraTicket(final PivotTicket pivotTicket) {
         Promise<PivotTicket> promise = Promise.promise();
 
         this.getFromJira(pivotTicket.getIdJira())
@@ -459,7 +505,13 @@ public class JiraServiceImpl implements JiraService {
         return promise.future();
     }
 
-    public JiraTicket ticketPrepareForUpdate(PivotTicket pivotTicket) {
+    /**
+     * Prepare a JiraTicket from a pivotTicket that will update the ticket in jira
+     *
+     * @param pivotTicket the ticket we want to prepare
+     * @return a jira-readable jiraTicket to update a ticket
+     */
+    private JiraTicket ticketPrepareForUpdate(PivotTicket pivotTicket) {
         String title = ""; //const and find default value
         JiraTicket jiraTicket = new JiraTicket();
         JiraFields jiraFields = new JiraFields();
@@ -615,12 +667,6 @@ public class JiraServiceImpl implements JiraService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Generate a Boundary for a Multipart HTTPRequest
-     * return generated Boundary
-     */
-    private final static char[] MULTIPART_CHARS = "-_1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
-
     private String generateBoundary() {
         StringBuilder buffer = new StringBuilder();
         Random rand = new Random();
@@ -631,30 +677,13 @@ public class JiraServiceImpl implements JiraService {
         return buffer.toString();
     }
 
-    @Override
-    public Future<JiraTicket> getFromJira(final String jiraTicketId) {
-        Promise<JiraTicket> promise = Promise.promise();
-
-        final URI urlGetTicketGeneralInfo = this.jiraAbsUrl.resolve(jiraTicketId);
-
-        HttpRequest<Buffer> request = HttpRequestHelper.getJiraAuthRequest(HttpMethod.GET, urlGetTicketGeneralInfo.toString());
-
-        request.send(responseAsyncResult -> {
-            if (responseAsyncResult.failed()) {
-                promise.fail(String.format("Jira request error : %s", responseAsyncResult.cause()));
-            } else {
-                HttpResponse<Buffer> response = responseAsyncResult.result();
-                if (response.statusCode() == HttpResponseStatus.OK.code()) {
-                    promise.complete(new JiraTicket(response.bodyAsJsonObject()));
-                } else {
-                    LOGGER.error(String.format("[SupportPivot@%s::getFromJira] Error when calling URL : %s : %s %s ",
-                            this.getClass().getSimpleName(), urlGetTicketGeneralInfo, response.statusCode(), response.statusMessage()));
-                    LOGGER.error(response.body().toString());
-                    promise.fail("Error when gathering Jira ticket information");
-                }
-            }
-        });
-
-        return promise.future();
+    /**
+     * Get a modules name ENT-like, returns the module name PIVOT-like
+     * Returns original name by default
+     * @param moduleName ENT-like module name
+     * @return PIVOT-like module name encoded in UTF-8
+     */
+    private String moduleEntToPivot(String moduleName) {
+        return Supportpivot.applicationsMap.getOrDefault(moduleName, Field.NOTEXIST);
     }
 }
