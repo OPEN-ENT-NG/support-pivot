@@ -43,7 +43,6 @@ public class ConfigModel implements IModel<ConfigModel> {
         if(this.collectivity == null || collectivity.isEmpty()) {
             log.warn(String.format("[SupportPivot@%s::ConfigModel] Default collectivity absent from configuration", this.getClass().getSimpleName()));
         }
-        //We remove "support.demandes" from config
         this.mongoCollection = config.getString(ConfigField.MONGO_DASH_COLLECTION);
         this.defaultTicketType = config.getString(ConfigField.DEFAULT_DASH_TICKETTYPE);
         this.defaultPriority = config.getString(ConfigField.DEFAULT_DASH_PRIORITY);

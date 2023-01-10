@@ -16,6 +16,7 @@ public class FutureHelper {
     private static final Logger LOGGER = LoggerFactory.getLogger(FutureHelper.class);
 
     private FutureHelper() {
+        throw new IllegalStateException("Utility class");
     }
 
     public static <L, R> Handler<Either<L, R>> handlerEitherPromise(Promise<R> promise) {

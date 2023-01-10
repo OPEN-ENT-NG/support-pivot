@@ -222,6 +222,12 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
         return promise.future();
     }
 
+    /**
+     * Returns the URI allowing to perform a search from the Jira API using a jiraSearch
+     *
+     * @param jiraSearch the jiraSearch containing the filters to perform the search
+     * @return Search URI
+     */
     private URI prepareSearchRequest(JiraSearch jiraSearch) {
         JiraFilterBuilder filter = new JiraFilterBuilder();
         Map<String, String> jiraField = ConfigManager.getInstance().getConfig().getJiraCustomFields();
@@ -245,11 +251,17 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
                     this.getClass().getSimpleName()));
         }
         filter.addFields(creationFieldJira);
-        filter.maxResults(jiraSearch.getMaxResult());
+        filter.setMaxResults(jiraSearch.getMaxResult());
 
         return ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
     }
 
+    /**
+     * Search for a ticket in Jira using its id
+     *
+     * @param idJira the jira ticket id
+     * @return JiraSearchResult with 1 result corresponding to the desired ticket
+     */
     private Future<JiraSearchResult> getJiraTicketByJiraId(String idJira) {
         Promise<JiraSearchResult> promise = Promise.promise();
 
@@ -265,13 +277,19 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
         return promise.future();
     }
 
+    /**
+     * Searches for a set of tickets from an externalId
+     *
+     * @param jiraSearch the jiraSearch which contains the externalId
+     * @return a future complete with the search results in JiraSearchResult class
+     */
     private Future<JiraSearchResult> getJiraTicketByExternalId(JiraSearch jiraSearch) {
         Promise<JiraSearchResult> promise = Promise.promise();
 
         String idCustomField = ConfigManager.getInstance().getJiraCustomFieldIdForExternalId().replaceAll(Field.CUSTOMFIELD_, "");
         JiraFilterBuilder filter = new JiraFilterBuilder();
         filter.addCustomfieldFilter(idCustomField, jiraSearch.getIdExterne());
-        filter.maxResults(jiraSearch.getMaxResult());
+        filter.setMaxResults(jiraSearch.getMaxResult());
         URI uri = ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
         executeJiraRequest(uri, 200)
                 .onSuccess(body -> promise.complete(new JiraSearchResult(new JsonObject(body))))
@@ -284,13 +302,19 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
         return promise.future();
     }
 
+    /**
+     * Searches for a set of tickets from an entId
+     *
+     * @param jiraSearch the jiraSearch which contains the entId
+     * @return a future complete with the search results in JiraSearchResult class
+     */
     private Future<JiraSearchResult> getJiraTicketByEntId(JiraSearch jiraSearch) {
         Promise<JiraSearchResult> promise = Promise.promise();
 
         String idCustomField = ConfigManager.getInstance().getJiraCustomFieldIdForIdent().replaceAll("customfield_", "");
         JiraFilterBuilder filter = new JiraFilterBuilder();
         filter.addCustomfieldFilter(idCustomField, jiraSearch.getIdEnt());
-        filter.maxResults(jiraSearch.getMaxResult());
+        filter.setMaxResults(jiraSearch.getMaxResult());
         URI uri = ConfigManager.getInstance().getJiraBaseUrl().resolve("search?" + filter.buildSearchQueryString());
         executeJiraRequest(uri, 200)
                 .onSuccess(body -> promise.complete(new JiraSearchResult(new JsonObject(body))))
@@ -304,6 +328,13 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
     }
 
 
+    /**
+     * Runs a Jira uri
+     *
+     * @param uri the URI
+     * @param codeExpected if the request status is not this we fail the promise
+     * @return a future complete with Buffer
+     */
     private Future<Buffer> executeJiraRequest(URI uri, int codeExpected) {
         Promise<Buffer> promise = Promise.promise();
 
@@ -329,6 +360,12 @@ public class JiraEndpoint implements Endpoint<JiraTicket, JiraSearch> {
         return promise.future();
     }
 
+    /**
+     * Get a PJ in base64 format from a JiraAttachment
+     *
+     * @param jiraAttachment the JiraAttachment
+     * @return a future complete with base64 result
+     */
     private Future<String> getJiraPJ(JiraAttachment jiraAttachment) {
         Promise<String> promise = Promise.promise();
 

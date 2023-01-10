@@ -23,6 +23,7 @@ public class DateHelper {
     private static final Logger log = LoggerFactory.getLogger(DateHelper.class);
 
     private DateHelper() {
+        throw new IllegalStateException("Utility class");
     }
 
     /***
