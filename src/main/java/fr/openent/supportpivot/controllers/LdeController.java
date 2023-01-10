@@ -20,6 +20,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.entcore.common.controller.ControllerHelper;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -76,7 +77,7 @@ public class LdeController extends ControllerHelper {
                 .compose(event -> routerService.getPivotTicket(EndpointFactory.getJiraEndpoint(), jiraSearch))
                 .compose(pivotTicket -> {
                     jsonObject.put(Field.RESULT, new LdeTicket(pivotTicket).toJson());
-                    return ServiceManager.getInstance().getMongoService().saveTicket("getTicketLDEOut", new LdeTicket(pivotTicket).toJson());
+                    return ServiceManager.getInstance().getMongoService().saveTicket("getTicketLDEOut", new LdeTicket(pivotTicket).setPj(Collections.emptyList()).toJson());
                 })
                 .onSuccess(event -> Renders.renderJson(request, jsonObject.getJsonObject(Field.RESULT)))
                 .onFailure(error -> {
@@ -92,7 +93,7 @@ public class LdeController extends ControllerHelper {
     public void putTicketLDE(final HttpServerRequest request) {
         JsonObject jsonObject = new JsonObject();
         RequestUtils.bodyToJson(request, body ->
-                ServiceManager.getInstance().getMongoService().saveTicket("putTicketLDEIn", body)
+                ServiceManager.getInstance().getMongoService().saveTicket("putTicketLDEIn", new PivotTicket(body).setPj(Collections.emptyList()).toJson())
                         .compose(event -> routerService.setPivotTicket(EndpointFactory.getJiraEndpoint(), new PivotTicket(body)))
                         .compose(jiraTicket -> {
                             jsonObject.put(Field.RESULT, jiraTicket.toJson());
