@@ -23,6 +23,8 @@ public class LdeTicket implements IModel<LdeTicket>, IPivotTicket {
     private String uai;
     private String description;
     private List<LdePj> pj;
+    private String creation;
+    private String maj;
 
     public LdeTicket(JsonObject jsonObject) {
         this.idJira = jsonObject.getString(Field.ID_JIRA);
@@ -39,6 +41,8 @@ public class LdeTicket implements IModel<LdeTicket>, IPivotTicket {
         this.uai = jsonObject.getString(Field.UAI);
         this.description = jsonObject.getString(Field.DESCRIPTION);
         this.pj = IModelHelper.toList(jsonObject.getJsonArray(Field.PJ, new JsonArray()), LdePj.class);
+        this.creation = jsonObject.getString(Field.CREATION);
+        this.maj = jsonObject.getString(Field.MAJ);
     }
 
     public LdeTicket(PivotTicket pivotTicket) {
@@ -52,6 +56,8 @@ public class LdeTicket implements IModel<LdeTicket>, IPivotTicket {
         this.titre = pivotTicket.getTitre();
         this.uai = pivotTicket.getUai();
         this.description = pivotTicket.getDescription();
+        this.creation = pivotTicket.getCreation();
+        this.maj = pivotTicket.getMaj();
 
         if (pivotTicket.getPj() != null) {
             this.pj = pivotTicket.getPj()
@@ -176,6 +182,24 @@ public class LdeTicket implements IModel<LdeTicket>, IPivotTicket {
 
     public LdeTicket setPj(List<LdePj> pj) {
         this.pj = pj;
+        return this;
+    }
+
+    public String getCreation() {
+        return creation;
+    }
+
+    public LdeTicket setCreation(String creation) {
+        this.creation = creation;
+        return this;
+    }
+
+    public String getMaj() {
+        return maj;
+    }
+
+    public LdeTicket setMaj(String maj) {
+        this.maj = maj;
         return this;
     }
 }
