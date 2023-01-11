@@ -59,6 +59,10 @@ public class JiraFilterBuilder extends JsonObject {
         }
     }
 
+    private void orderBy() {
+        jqlQueryString.append(" ORDER BY updated DESC");
+    }
+
     public void addCustomfieldFilter(String customfieldid, String value) {
         if (customfieldid != null && value != null)
             jqlQueryString.append(addFilter(getCustomFieldTemplate(customfieldid, value)));
@@ -86,6 +90,7 @@ public class JiraFilterBuilder extends JsonObject {
 
     public String buildSearchQueryString() {
         try {
+            orderBy();
             return "jql=" + URLEncoder.encode(jqlQueryString.toString(), StandardCharsets.UTF_8.toString()) + outputFields + this.maxResults;
         } catch (UnsupportedEncodingException e) {
             log.error(String.format("[SupportPivot@%s::buildSearchQueryString] Error during build Jira search request: %s", this.getClass().getSimpleName(), jqlQueryString.toString()));
