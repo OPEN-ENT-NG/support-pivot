@@ -41,6 +41,7 @@ import org.entcore.common.controller.ControllerHelper;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.Collections;
 
 /**
  * Created by colenot on 07/12/2017.
@@ -116,7 +117,7 @@ public class SupportController extends ControllerHelper {
     public void busEndpointScalingTicket(final Message<JsonObject> message) {
         JsonObject jsonMessage = message.body().getJsonObject(Field.ISSUE, new JsonObject());
         PivotTicket pivotTicket = new PivotTicket(jsonMessage);
-        ServiceManager.getInstance().getMongoService().saveTicket("busEndpointScalingTicketIn", message.body())
+        ServiceManager.getInstance().getMongoService().saveTicket("busEndpointScalingTicketIn", pivotTicket.clone().setPj(Collections.emptyList()).toJson())
                 .compose(event -> this.routerService.setPivotTicket(EndpointFactory.getJiraEndpoint(), pivotTicket))
                 .onSuccess(event -> message.reply(new JsonObject().put(Field.STATUS, Field.OK.toLowerCase())
                         .put(Field.MESSAGE, "invalid.action")
