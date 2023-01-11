@@ -53,7 +53,7 @@ public class JiraEndpointTest {
     public void prepareSearchRequestTest(TestContext ctx) throws Exception {
         JiraSearch jiraSearch = new JiraSearch().setAttribution("LDE").setMaxResult(5000);
         URI result = Whitebox.invokeMethod(this.jiraEndpoint, "prepareSearchRequest", jiraSearch);
-        String expected = "https://jira-test.support-ent.fr/rest/api/2/search?jql=%28assignee+%3D+LDE+or+cf%5B13401%5D+is+not+EMPTY%29&fields=id,key,,updated,created,customfield_12705&maxResults=5000";
+        String expected = "https://jira-test.support-ent.fr/rest/api/2/search?jql=%28assignee+%3D+LDE+or+cf%5B13401%5D+is+not+EMPTY%29+ORDER+BY+updated+DESC&fields=id,key,,updated,created,customfield_12705&maxResults=5000";
         ctx.assertEquals(result.toString(), expected);
     }
 
