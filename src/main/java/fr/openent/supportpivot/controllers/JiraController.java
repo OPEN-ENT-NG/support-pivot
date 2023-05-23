@@ -6,6 +6,8 @@ import fr.openent.supportpivot.model.endpoint.EndpointFactory;
 import fr.openent.supportpivot.model.jira.JiraSearch;
 import fr.openent.supportpivot.services.RouterService;
 import fr.wseduc.rs.Get;
+import fr.wseduc.security.ActionType;
+import fr.wseduc.security.SecuredAction;
 import fr.wseduc.webutils.http.Renders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.JsonObject;
@@ -30,6 +32,7 @@ public class JiraController extends ControllerHelper {
 
 
     @Get("/updateJira/:idjira")
+    @SecuredAction(value = "", type = ActionType.AUTHENTICATED)
 //    @fr.wseduc.security.SecuredAction("glpi.test.trigger") //TODO (voir comment faire)
     //todo rajouter la save du du ticket en mongo
     public void updateTicketJira(final HttpServerRequest request) {
