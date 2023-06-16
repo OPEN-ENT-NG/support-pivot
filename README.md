@@ -43,6 +43,52 @@ Le module exploite
 
 ## Configuration
 
+Liste des catégories à ajouter dans JIRA dans composants (à retrouver dans Supportpivot.java) :
+  - Actualité
+  - Agenda
+  - Aide et support
+  - Annuaire
+  - Communauté
+  - Autre
+  - Blog
+  - Carte mentale
+  - Casier
+  - Espace documentaire
+  - Exercices et évaluations
+  - Formulaire
+  - Forum
+  - Frise chronologique
+  - LibreOffice Online (LOOL)
+  - Messagerie Zimbra
+  - Moodle
+  - Mur collaboratif
+  - Mediacentre
+  - Pad
+  - Pages
+  - Peertube
+  - Réservation de ressources
+  - Schooltoring
+  - Site Web
+  - Sondage
+  - Statistiques
+  - Téléchargement de fichiers lourds
+  - Web-conférence
+  - Wiki
+  - Application Mobile
+  - Connexion
+  - Espace Documentaire
+  - GAR
+  - Portail
+  - Trousseau
+  - Vie Scolaire
+  - Widget aide aux devoirs (Maxicours)
+  - Widget calendrier
+  - Widget pronote
+  - Widget Rss
+  - Widget Signets
+  - Xiti
+
+
 Contenu du fichier deployment/support/conf.json.template :
 
      {
