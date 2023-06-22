@@ -287,6 +287,8 @@ public class JiraServiceImpl implements JiraService {
 
         if (!newModules.isEmpty() && !Field.NOTEXIST.equals(newModules.get(0))) {
             field.put(Field.COMPONENTS, new JsonArray().add(new JsonObject().put(Field.NAME, newModules.get(0))));
+        }else {
+            field.put(Field.COMPONENTS, new JsonArray().add(new JsonObject().put(Field.NAME, "Pas de composant associé dans Jira")));
         }
 
         jsonJiraTicket.put(Field.FIELDS, field);
@@ -684,6 +686,7 @@ public class JiraServiceImpl implements JiraService {
      * @return PIVOT-like module name encoded in UTF-8
      */
     private String moduleEntToPivot(String moduleName) {
-        return Supportpivot.applicationsMap.getOrDefault(moduleName, Field.NOTEXIST);
+        ConfigModel config = ConfigManager.getInstance().getConfig();
+        return config.getEntJiraCategoryMapping().getOrDefault(moduleName, Field.NOTEXIST);
     }
 }

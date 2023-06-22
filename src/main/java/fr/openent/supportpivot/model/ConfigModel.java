@@ -33,6 +33,7 @@ public class ConfigModel implements IModel<ConfigModel> {
     private final JiraStatusConfig defaultJiraStatusConfig;
     private final List<EntStatusConfig> entStatusConfigMapping;
     private final EntStatusConfig defaultEntStatusConfig;
+    private final Map<String, String> entJiraCategoryMapping;
     private final String proxyHost;
     private final Integer proxyPort;
     private final String proxyLogin;
@@ -86,6 +87,8 @@ public class ConfigModel implements IModel<ConfigModel> {
         this.proxyPort = config.getInteger(ConfigField.PROXY_DASH_PORT);
         this.proxyLogin = config.getString(ConfigField.PROXY_DASH_LOGIN);
         this.proxyPasswd = config.getString(ConfigField.PROXY_DASH_PASSWD);
+        this.entJiraCategoryMapping = config.getJsonObject(ConfigField.ENT_DASH_JIRA_DASH_CATEGORY_DASH_MAPPING, new JsonObject()).stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, stringObjectEntry -> stringObjectEntry.getValue().toString()));
     }
 
     @Override
@@ -203,4 +206,6 @@ public class ConfigModel implements IModel<ConfigModel> {
     public String getProxyLogin() { return proxyLogin; }
 
     public String getProxyPasswd() { return proxyPasswd; }
+
+    public Map<String, String> getEntJiraCategoryMapping() { return entJiraCategoryMapping; }
 }

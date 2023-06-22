@@ -23,4 +23,5 @@ public class ConfigField {
     public static final String PROXY_DASH_LOGIN = "proxy-login";
     public static final String PROXY_DASH_PASSWD = "proxy-passwd";
     public static final String ENT_DASH_STATUS_DASH_MAPPING = "ent-status-mapping";
+    public static final String ENT_DASH_JIRA_DASH_CATEGORY_DASH_MAPPING = "ent-jira-category-mapping";
 }

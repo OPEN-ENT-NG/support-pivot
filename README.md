@@ -43,50 +43,55 @@ Le module exploite
 
 ## Configuration
 
-Liste des catégories à ajouter dans JIRA dans composants (à retrouver dans Supportpivot.java) :
-  - Actualité
-  - Agenda
-  - Aide et support
-  - Annuaire
-  - Communauté
-  - Autre
-  - Blog
-  - Carte mentale
-  - Casier
-  - Espace documentaire
-  - Exercices et évaluations
-  - Formulaire
-  - Forum
-  - Frise chronologique
-  - LibreOffice Online (LOOL)
-  - Messagerie Zimbra
-  - Moodle
-  - Mur collaboratif
-  - Mediacentre
-  - Pad
-  - Pages
-  - Peertube
-  - Réservation de ressources
-  - Schooltoring
-  - Site Web
-  - Sondage
-  - Statistiques
-  - Téléchargement de fichiers lourds
-  - Web-conférence
-  - Wiki
-  - Application Mobile
-  - Connexion
-  - Espace Documentaire
-  - GAR
-  - Portail
-  - Trousseau
-  - Vie Scolaire
-  - Widget aide aux devoirs (Maxicours)
-  - Widget calendrier
-  - Widget pronote
-  - Widget Rss
-  - Widget Signets
-  - Xiti
+Liste des modules à associer à son nom dans Jira et ajouter "Pas de composant associé dans Jira" comme composant dans Jira :
+
+    "/actualites" : ${supportPivotJiraActualites},
+    "/calendar" : ${supportPivotJiraCalendar},
+    "/support" : ${supportPivotJiraSupport},
+    "/userbook/annuaire#/search" : ${supportPivotJiraAnnuaire},
+    "/community" : ${supportPivotJiraCommunity},
+    "/autres" : ${supportPivotJiraAutres},
+    "/blog" : ${supportPivotJiraBlog},
+    "/mindmap" : ${supportPivotJiraMindmap},
+    "/rack": ${supportPivotJiraRack},
+    "/workspace/workspace" : ${supportPivotJiraWorkspace},
+    "/exercizer" : ${supportPivotJiraExercizer},
+    "/formulaire" : ${supportPivotJiraFormulaire},
+    "/forum" : ${supportPivotJiraForum},
+    "/timelinegenerator" : ${supportPivotJiraTimeline},
+    "/lool" : ${supportPivotJiraLool},
+    "/conversation/conversation" : ${supportPivotJiraConversation},
+    "/moodle" : ${supportPivotJiraMoodle},
+    "/collaborativewall" : ${supportPivotJiraCollaborativeWall},
+    "/mediacentre" : ${supportPivotJiraMediacentre},
+    "/collaborativeeditor" : ${supportPivotJiraCollaborativeEditor},
+    "/pages" : ${supportPivotJiraPages},
+    "/peertube" : ${supportPivotJiraPeertube},
+    "/rbs" : ${supportPivotJiraRbs},
+    "/schooltoring" : ${supportPivotJiraSchooltoring},
+    "/site-web" : ${supportPivotJiraSiteweb},
+    "/poll": ${supportPivotJiraPoll},
+    "/statistics" : ${supportPivotJiraStatistics},
+    "/telechargement" : ${supportPivotJiraTelechargement},
+    "web-conference" : ${supportPivotJiraWebconf},
+    "/wiki" : ${supportPivotJiraWiki},
+    "/application-mobile" : ${supportPivotJiraApplicationMobile},
+    "/cas" : ${supportPivotJiraCas},
+    "/auth/saml/sso/urn:gar:ihmAffectation:seclin" : ${supportPivotJiraGar},
+    "/portail" : ${supportPivotJiraPortail},
+    "/trousseau" : ${supportPivotJiraTrousseau},
+    "/vie-scolaire" : ${supportPivotJiraViescolaire},
+    "/homework-assistance" : ${supportPivotJiraHomework},,
+    "/pronote" : ${supportPivotJiraPronote},
+    "/rss" : ${supportPivotJiraRss},
+    "/bookmark" : ${supportPivotJiraBookmark},
+    "/xiti" : ${supportPivotJiraXiti},
+    "/minibadge" : ${supportPivotJiraMinibadge},
+    "/crre" : ${supportPivotJiraCrre},
+    "/scrapbook" : ${supportPivotJiraScrapbook},
+    "/admin" : ${supportPivotJiraAdmin},
+    "/directory/admin-console" : ${supportPivotJiraAdminConsole},
+    "lystore" : ${supportPivotJiraLystore}
 
 
 Contenu du fichier deployment/support/conf.json.template :
