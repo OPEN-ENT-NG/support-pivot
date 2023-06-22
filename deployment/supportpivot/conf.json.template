@@ -90,7 +90,6 @@
             "/trousseau" : ${supportPivotJiraTrousseau},
             "/vie-scolaire" : ${supportPivotJiraViescolaire},
             "/homework-assistance" : ${supportPivotJiraHomework},,
-            "https://www.index-education.com/fr/pronote-info191-pronote-a-chacun-son-espace--demonstration.php" : ${supportPivotJiraPronote},
             "/rss" : ${supportPivotJiraRss},
             "/bookmark" : ${supportPivotJiraBookmark},
             "/xiti" : ${supportPivotJiraXiti},
