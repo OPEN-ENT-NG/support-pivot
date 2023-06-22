@@ -110,6 +110,9 @@ public class ConfigModel implements IModel<ConfigModel> {
         JsonObject jiraField = new JsonObject();
         this.jiraCustomFields.forEach(jiraField::put);
 
+        JsonObject entJiraCategory = new JsonObject();
+        this.entJiraCategoryMapping.forEach(entJiraCategory::put);
+
         JsonObject jiraStatus = new JsonObject();
         this.jiraStatusConfigMapping.forEach(jiraStatusConfig1 -> jiraStatus.put(jiraStatusConfig1.getKey(), new JsonArray(jiraStatusConfig1.getNameList()).copy()));
         JsonObject jiraMapping = new JsonObject()
@@ -123,6 +126,7 @@ public class ConfigModel implements IModel<ConfigModel> {
                 .put(Field.STATUTSDEFAULTENT, this.defaultEntStatusConfig.getName());
 
         result.put(ConfigField.JIRA_DASH_CUSTOM_DASH_FIELDS, jiraField)
+                .put(ConfigField.ENT_DASH_JIRA_DASH_CATEGORY_DASH_MAPPING, entJiraCategory)
                 .put(ConfigField.JIRA_DASH_STATUS_DASH_MAPPING, jiraMapping)
                 .put(ConfigField.ENT_DASH_STATUS_DASH_MAPPING, entMapping);
 

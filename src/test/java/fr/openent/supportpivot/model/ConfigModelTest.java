@@ -1,10 +1,14 @@
 package fr.openent.supportpivot.model;
 
+import fr.openent.supportpivot.constants.ConfigField;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RunWith(VertxUnitRunner.class)
 public class ConfigModelTest {
@@ -20,8 +24,17 @@ public class ConfigModelTest {
         confJson.getJsonObject("jira-custom-fields").forEach(stringObjectEntry ->
                 ctx.assertEquals(confJson.getJsonObject("jira-custom-fields").getString(stringObjectEntry.getKey()), stringObjectEntry.getValue()));
 
+        ctx.assertEquals(confexpected.getJsonObject("ent-jira-category-mapping").size(), confJson.getJsonObject("ent-jira-category-mapping").size());
+        confJson.getJsonObject("ent-jira-category-mapping").forEach(stringObjectEntry ->
+                ctx.assertEquals(confJson.getJsonObject("ent-jira-category-mapping").getString(stringObjectEntry.getKey()), stringObjectEntry.getValue()));
+
+        confJson.getJsonObject("ent-jira-category-mapping", new JsonObject()).stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, stringObjectEntry -> stringObjectEntry.getValue().toString()));
         confJson.remove("jira-custom-fields");
         confexpected.remove("jira-custom-fields");
+
+        confJson.remove("ent-jira-category-mapping");
+        confexpected.remove("ent-jira-category-mapping");
 
         ctx.assertEquals(confJson.toString(), confexpected.toString());
     }
@@ -90,7 +103,9 @@ public class ConfigModelTest {
                 "      \"4\": \"Ferme\"\n" +
                 "    },\n" +
                 "    \"statutsDefaultEnt\": \"Ouvert\"\n" +
-                "  }\n" +
+                "  },\n" +
+                "\"ent-jira-category-mapping\": {" +
+                "\"/pages\" : \"Pages\" }" +
                 "}");
     }
 }
