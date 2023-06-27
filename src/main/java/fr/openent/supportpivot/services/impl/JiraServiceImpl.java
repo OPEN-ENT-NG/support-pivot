@@ -288,7 +288,7 @@ public class JiraServiceImpl implements JiraService {
         if (!newModules.isEmpty() && !Field.NOTEXIST.equals(newModules.get(0))) {
             field.put(Field.COMPONENTS, new JsonArray().add(new JsonObject().put(Field.NAME, newModules.get(0))));
         }else {
-            field.put(Field.COMPONENTS, new JsonArray().add(new JsonObject().put(Field.NAME, "Pas de composant associé dans Jira")));
+            field.put(Field.COMPONENTS, new JsonArray().add(new JsonObject().put(Field.NAME, Field.NOASSOCIATEDCATEGORY)));
         }
 
         jsonJiraTicket.put(Field.FIELDS, field);

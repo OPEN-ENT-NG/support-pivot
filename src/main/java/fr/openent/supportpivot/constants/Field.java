@@ -111,4 +111,5 @@ public class Field {
     public static final String REPORTER = "reporter";
     public static final String COMPONENTS = "components";
     public static final String CUSTOM_FIELD = "custom_field";
+    public static final String NOASSOCIATEDCATEGORY = "Pas de composant associé dans Jira";
 }
