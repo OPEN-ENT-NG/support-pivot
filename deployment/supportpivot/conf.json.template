@@ -81,7 +81,7 @@
             "/poll": ${supportPivotJiraPoll},
             "/statistics" : ${supportPivotJiraStatistics},
             "/telechargement" : ${supportPivotJiraTelechargement},
-            "web-conference" : ${supportPivotJiraWebconf},
+            "/webconference" : ${supportPivotJiraWebconf},
             "/wiki" : ${supportPivotJiraWiki},
             "/application-mobile" : ${supportPivotJiraApplicationMobile},
             "/cas" : ${supportPivotJiraCas},
@@ -98,7 +98,8 @@
             "/scrapbook" : ${supportPivotJiraScrapbook},
             "/admin" : ${supportPivotJiraAdmin},
             "/directory/admin-console" : ${supportPivotJiraAdminConsole},
-            "lystore" : ${supportPivotJiraLystore}
+            "/lystore" : ${supportPivotJiraLystore},
+            "no_associated_category" : "${supportPivotJiraNoCategory}"
           }
       }
     }

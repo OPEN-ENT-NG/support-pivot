@@ -80,6 +80,8 @@ public class JiraServiceImpl implements JiraService {
     private static final Base64.Encoder encoder = Base64.getMimeEncoder().withoutPadding();
     private static final Base64.Decoder decoder = Base64.getMimeDecoder();
 
+    private static final ConfigModel config = ConfigManager.getInstance().getConfig();
+
     public static final List<String> PIVOT_PRIORITY_LEVEL = Arrays.asList(
             Field.MINEUR,
             Field.MAJEUR,
@@ -288,7 +290,7 @@ public class JiraServiceImpl implements JiraService {
         if (!newModules.isEmpty() && !Field.NOTEXIST.equals(newModules.get(0))) {
             field.put(Field.COMPONENTS, new JsonArray().add(new JsonObject().put(Field.NAME, newModules.get(0))));
         }else {
-            field.put(Field.COMPONENTS, new JsonArray().add(new JsonObject().put(Field.NAME, Field.NOASSOCIATEDCATEGORY)));
+            field.put(Field.COMPONENTS, new JsonArray().add(new JsonObject().put(Field.NAME, config.getEntJiraCategoryMapping().get(Field.NO_ASSOCIATED_CATEGORY))));
         }
 
         jsonJiraTicket.put(Field.FIELDS, field);
