@@ -688,7 +688,6 @@ public class JiraServiceImpl implements JiraService {
      * @return PIVOT-like module name encoded in UTF-8
      */
     private String moduleEntToPivot(String moduleName) {
-        ConfigModel config = ConfigManager.getInstance().getConfig();
         return config.getEntJiraCategoryMapping().getOrDefault(moduleName, Field.NOTEXIST);
     }
 }
