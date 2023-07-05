@@ -1,10 +1,14 @@
 package fr.openent.supportpivot.model;
 
+import fr.openent.supportpivot.constants.ConfigField;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RunWith(VertxUnitRunner.class)
 public class ConfigModelTest {
@@ -16,12 +20,21 @@ public class ConfigModelTest {
 
         JsonObject confexpected = getConfig1();
 
-        ctx.assertEquals(confexpected.getJsonObject("jira-custom-fields").size(), confJson.getJsonObject("jira-custom-fields").size());
-        confJson.getJsonObject("jira-custom-fields").forEach(stringObjectEntry ->
-                ctx.assertEquals(confJson.getJsonObject("jira-custom-fields").getString(stringObjectEntry.getKey()), stringObjectEntry.getValue()));
+        ctx.assertEquals(confexpected.getJsonObject(ConfigField.JIRA_DASH_CUSTOM_DASH_FIELDS).size(), confJson.getJsonObject(ConfigField.JIRA_DASH_CUSTOM_DASH_FIELDS).size());
+        confJson.getJsonObject(ConfigField.JIRA_DASH_CUSTOM_DASH_FIELDS).forEach(stringObjectEntry ->
+                ctx.assertEquals(confJson.getJsonObject(ConfigField.JIRA_DASH_CUSTOM_DASH_FIELDS).getString(stringObjectEntry.getKey()), stringObjectEntry.getValue()));
 
-        confJson.remove("jira-custom-fields");
-        confexpected.remove("jira-custom-fields");
+        ctx.assertEquals(confexpected.getJsonObject(ConfigField.ENT_DASH_JIRA_DASH_CATEGORY_DASH_MAPPING).size(), confJson.getJsonObject(ConfigField.ENT_DASH_JIRA_DASH_CATEGORY_DASH_MAPPING).size());
+        confJson.getJsonObject(ConfigField.ENT_DASH_JIRA_DASH_CATEGORY_DASH_MAPPING).forEach(stringObjectEntry ->
+                ctx.assertEquals(confJson.getJsonObject(ConfigField.ENT_DASH_JIRA_DASH_CATEGORY_DASH_MAPPING).getString(stringObjectEntry.getKey()), stringObjectEntry.getValue()));
+
+        confJson.getJsonObject(ConfigField.ENT_DASH_JIRA_DASH_CATEGORY_DASH_MAPPING, new JsonObject()).stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, stringObjectEntry -> stringObjectEntry.getValue().toString()));
+        confJson.remove(ConfigField.JIRA_DASH_CUSTOM_DASH_FIELDS);
+        confexpected.remove(ConfigField.JIRA_DASH_CUSTOM_DASH_FIELDS);
+
+        confJson.remove(ConfigField.ENT_DASH_JIRA_DASH_CATEGORY_DASH_MAPPING);
+        confexpected.remove(ConfigField.ENT_DASH_JIRA_DASH_CATEGORY_DASH_MAPPING);
 
         ctx.assertEquals(confJson.toString(), confexpected.toString());
     }
@@ -90,7 +103,9 @@ public class ConfigModelTest {
                 "      \"4\": \"Ferme\"\n" +
                 "    },\n" +
                 "    \"statutsDefaultEnt\": \"Ouvert\"\n" +
-                "  }\n" +
+                "  },\n" +
+                "\"ent-jira-category-mapping\": {" +
+                "\"/pages\" : \"Pages\" }" +
                 "}");
     }
 }
