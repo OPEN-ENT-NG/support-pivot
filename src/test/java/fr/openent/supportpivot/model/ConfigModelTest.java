@@ -20,21 +20,21 @@ public class ConfigModelTest {
 
         JsonObject confexpected = getConfig1();
 
-        ctx.assertEquals(confexpected.getJsonObject("jira-custom-fields").size(), confJson.getJsonObject("jira-custom-fields").size());
-        confJson.getJsonObject("jira-custom-fields").forEach(stringObjectEntry ->
-                ctx.assertEquals(confJson.getJsonObject("jira-custom-fields").getString(stringObjectEntry.getKey()), stringObjectEntry.getValue()));
+        ctx.assertEquals(confexpected.getJsonObject(ConfigField.JIRA_DASH_CUSTOM_DASH_FIELDS).size(), confJson.getJsonObject(ConfigField.JIRA_DASH_CUSTOM_DASH_FIELDS).size());
+        confJson.getJsonObject(ConfigField.JIRA_DASH_CUSTOM_DASH_FIELDS).forEach(stringObjectEntry ->
+                ctx.assertEquals(confJson.getJsonObject(ConfigField.JIRA_DASH_CUSTOM_DASH_FIELDS).getString(stringObjectEntry.getKey()), stringObjectEntry.getValue()));
 
-        ctx.assertEquals(confexpected.getJsonObject("ent-jira-category-mapping").size(), confJson.getJsonObject("ent-jira-category-mapping").size());
-        confJson.getJsonObject("ent-jira-category-mapping").forEach(stringObjectEntry ->
-                ctx.assertEquals(confJson.getJsonObject("ent-jira-category-mapping").getString(stringObjectEntry.getKey()), stringObjectEntry.getValue()));
+        ctx.assertEquals(confexpected.getJsonObject(ConfigField.ENT_DASH_JIRA_DASH_CATEGORY_DASH_MAPPING).size(), confJson.getJsonObject(ConfigField.ENT_DASH_JIRA_DASH_CATEGORY_DASH_MAPPING).size());
+        confJson.getJsonObject(ConfigField.ENT_DASH_JIRA_DASH_CATEGORY_DASH_MAPPING).forEach(stringObjectEntry ->
+                ctx.assertEquals(confJson.getJsonObject(ConfigField.ENT_DASH_JIRA_DASH_CATEGORY_DASH_MAPPING).getString(stringObjectEntry.getKey()), stringObjectEntry.getValue()));
 
-        confJson.getJsonObject("ent-jira-category-mapping", new JsonObject()).stream()
+        confJson.getJsonObject(ConfigField.ENT_DASH_JIRA_DASH_CATEGORY_DASH_MAPPING, new JsonObject()).stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, stringObjectEntry -> stringObjectEntry.getValue().toString()));
-        confJson.remove("jira-custom-fields");
-        confexpected.remove("jira-custom-fields");
+        confJson.remove(ConfigField.JIRA_DASH_CUSTOM_DASH_FIELDS);
+        confexpected.remove(ConfigField.JIRA_DASH_CUSTOM_DASH_FIELDS);
 
-        confJson.remove("ent-jira-category-mapping");
-        confexpected.remove("ent-jira-category-mapping");
+        confJson.remove(ConfigField.ENT_DASH_JIRA_DASH_CATEGORY_DASH_MAPPING);
+        confexpected.remove(ConfigField.ENT_DASH_JIRA_DASH_CATEGORY_DASH_MAPPING);
 
         ctx.assertEquals(confJson.toString(), confexpected.toString());
     }
