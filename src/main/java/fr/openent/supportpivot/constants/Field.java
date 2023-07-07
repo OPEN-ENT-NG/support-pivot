@@ -112,4 +112,5 @@ public class Field {
     public static final String COMPONENTS = "components";
     public static final String CUSTOM_FIELD = "custom_field";
     public static final String NO_ASSOCIATED_CATEGORY = "no_associated_category";
+    public static final String UPDATETICKETJIRA = "updateTicketJira";
 }

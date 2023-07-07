@@ -99,7 +99,7 @@
             "/admin" : ${supportPivotJiraAdmin},
             "/directory/admin-console" : ${supportPivotJiraAdminConsole},
             "/lystore" : ${supportPivotJiraLystore},
-            "no_associated_category" : "${supportPivotJiraNoCategory}"
+            "no_associated_category" : ${supportPivotJiraNoCategory}
           }
       }
     }
