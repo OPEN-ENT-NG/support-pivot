@@ -67,7 +67,7 @@ public class JiraController extends ControllerHelper {
     @BusAddress("supportpivot.updateJira")
     @SecuredAction("supportpivot.updateJira")
     public void busEndpointUpdateTicketJira(final Message<JsonObject> message) {
-        final String idJira = message.body().getString(Field.IDJIRA);
+        final String idJira = message.body().getString(Field.IDTICKETJIRA);
         tryUpdateJira(idJira)
                 .onSuccess(event -> message.reply(new JsonObject().put(Field.RESULT, event)))
                 .onFailure(error -> {
