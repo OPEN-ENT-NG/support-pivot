@@ -53,15 +53,13 @@ public class JiraController extends ControllerHelper {
     public Future<Void> tryUpdateJira(String idJira){
         JiraSearch jiraSearch = new JiraSearch().setIdJira(idJira);
         JsonObject jsonObject = new JsonObject();
-        Promise<Void> promise = Promise.promise();
-        routerService.getPivotTicket(EndpointFactory.getJiraEndpoint(), jiraSearch)
+        return routerService.getPivotTicket(EndpointFactory.getJiraEndpoint(), jiraSearch)
                 .compose(pivotTicket -> routerService.setPivotTicket(EndpointFactory.getPivotEndpoint(), pivotTicket))
                 .compose(supportTicket -> {
                     jsonObject.put(Field.RESULT, supportTicket.toJson());
-                    return ServiceManager.getInstance().getMongoService().saveTicket(Field.UPDATETICKETJIRA, supportTicket.toJson());
+                    return ServiceManager.getInstance().getMongoService()
+                            .saveTicket(Field.UPDATETICKETJIRA, supportTicket.toJson());
                 });
-        promise.complete();
-        return promise.future();
     }
 
     @BusAddress("supportpivot.updateJira")
