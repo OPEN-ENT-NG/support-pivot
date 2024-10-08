@@ -261,20 +261,20 @@ public class DefaultDemandeServiceImpl implements DemandeService {
                     } else  {
                         newHandler = handler;
                     }
-                    sendToJIRA(request, jsonPivot, newHandler);
+                    // sendToJIRA(request, jsonPivot, newHandler);
                 }
                 break;
 
             case Supportpivot.ATTRIBUTION_ENT:
                 sendToIWS(request, jsonPivot, handler);
-                if(jsonPivot.containsKey(Supportpivot.IDJIRA_FIELD)
+                /** if(jsonPivot.containsKey(Supportpivot.IDJIRA_FIELD)
                         && jsonPivot.getString(Supportpivot.IDJIRA_FIELD).isEmpty()) {
                     sendToJIRA(request, jsonPivot, jiraResponse -> {
                         if(jiraResponse.isLeft()) {
                             log.error("Supportpivot : could not save ticket to JIRA");
                         }
                     });
-                }
+                } **/
                 break;
 
             case Supportpivot.ATTRIBUTION_CGI:
