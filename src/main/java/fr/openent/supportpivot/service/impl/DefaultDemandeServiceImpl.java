@@ -303,7 +303,7 @@ public class DefaultDemandeServiceImpl implements DemandeService {
             handler.handle(new Either.Left<>("2;Mandatory field " + Supportpivot.IDENT_FIELD));
             return;
         }
-        eb.send(ENT_TRACKERUPDATE_ADDRESS,
+        eb.request(ENT_TRACKERUPDATE_ADDRESS,
                 new JsonObject().put("action", "create").put("issue", jsonPivot),
                 handlerToAsyncHandler(message -> {
                     if("OK".equals(message.body().getString("status"))) {
