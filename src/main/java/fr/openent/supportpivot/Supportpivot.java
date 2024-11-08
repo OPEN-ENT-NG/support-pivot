@@ -18,9 +18,13 @@
 
 package fr.openent.supportpivot;
 
+import io.vertx.core.Promise;
 import org.entcore.common.http.BaseServer;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class Supportpivot extends BaseServer {
 
@@ -134,10 +138,11 @@ public class Supportpivot extends BaseServer {
         }
     };
 
-    @Override
-	public void start() throws Exception {
-		super.start();
+  @Override
+	public void start(final Promise<Void> startPromise) throws Exception {
+		super.start(startPromise);
 		addController(new SupportController());
+    startPromise.tryComplete();
 	}
 
 }
