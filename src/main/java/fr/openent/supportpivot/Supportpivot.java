@@ -46,6 +46,7 @@ public class Supportpivot extends BaseServer {
     public final static String ATTACHMENT_FIELD = "pj";
     public final static String ATTACHMENT_NAME_FIELD = "nom";
     public final static String ATTACHMENT_CONTENT_FIELD = "contenu";
+    public final static String ATTACHMENT_CONTENT_TYPE_FIELD = "contentType";
     public final static String STATUSIWS_FIELD = "statut_iws";
     public final static String STATUSENT_FIELD = "statut_ent";
     public final static String STATUSJIRA_FIELD = "statut_jira";

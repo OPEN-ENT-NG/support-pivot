@@ -436,8 +436,8 @@ public class DefaultDemandeServiceImpl implements DemandeService {
             if(!jsonAtt.containsKey(Supportpivot.ATTACHMENT_NAME_FIELD)
                     || !jsonAtt.containsKey(Supportpivot.ATTACHMENT_CONTENT_FIELD)) continue;
             JsonObject att = new JsonObject();
-            log.info("atts : Pivot " + jsonAtt.toString());
             att.put("name", jsonAtt.getString(Supportpivot.ATTACHMENT_NAME_FIELD));
+            att.put("contentType", jsonAtt.getString(Supportpivot.ATTACHMENT_CONTENT_TYPE_FIELD));
             att.put("content", jsonAtt.getString(Supportpivot.ATTACHMENT_CONTENT_FIELD));
             mailAtts.add(att);
 
