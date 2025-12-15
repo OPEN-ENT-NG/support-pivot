@@ -58,7 +58,7 @@ public class SupportController extends ControllerHelper{
     public void init(Vertx vertx, final JsonObject config, RouteMatcher rm,
                      Map<String, fr.wseduc.webutils.security.SecuredAction> securedActions) {
         super.init(vertx, config, rm, securedActions);
-        EmailFactory emailFactory = new EmailFactory(vertx, config);
+        EmailFactory emailFactory = EmailFactory.getInstance();
         EmailSender emailSender = emailFactory.getSender();
         this.demandeService = new DefaultDemandeServiceImpl(vertx, config, emailSender);
     }

@@ -141,9 +141,12 @@ public class Supportpivot extends BaseServer {
 
   @Override
 	public void start(final Promise<Void> startPromise) throws Exception {
-		super.start(startPromise);
-		addController(new SupportController());
-    startPromise.tryComplete();
+        final Promise<Void> promise = Promise.promise();
+		super.start(promise);
+        promise.future().onSuccess(e -> {
+            addController(new SupportController());
+            startPromise.tryComplete();
+        }).onFailure(startPromise::fail);
 	}
 
 }
