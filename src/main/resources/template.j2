@@ -2,6 +2,10 @@
   "name": "fr.openent~supportpivot",
   "config": {
     "main" : "fr.openent.supportpivot.Supportpivot",
+    "probes": [
+      "org.entcore.common.http.health.Neo4jProbe",
+      "org.entcore.common.http.health.MongoProbe"
+    ],
     "port" : 9595,
     "app-name" : "Supportpivot",
     "app-address" : "/supportpivot",
