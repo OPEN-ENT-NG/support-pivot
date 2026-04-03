@@ -40,12 +40,6 @@
     <dependency>
       <groupId>org.entcore</groupId>
       <artifactId>common</artifactId>
-      <version>${entCoreVersion}</version>
-      <scope>compile</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.entcore</groupId>
-      <artifactId>common</artifactId>
       <version>${entCoreLibsVersion}</version>
       <scope>compile</scope>
     </dependency>
