@@ -26,3 +26,4 @@ tslint.json
 .gitignore
 /.env
 target
+edifice
